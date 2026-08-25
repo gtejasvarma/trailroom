@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#EDEDEB;color:#616161;-webkit-font-smoothing:antialiased}
+a{color:#00796B;text-decoration:none}
+a:hover{color:#00695C}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;justify-content:center;padding:48px 24px 96px">
+<div style="width:100%;max-width:820px">
+
+  <p style="margin:0 0 6px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:#757575">TRAILROOM · PROTOTYPE AUDIT</p>
+  <h1 style="margin:0 0 12px;font-size:38px;line-height:44px;font-weight:500;letter-spacing:-.025em;color:#212121;text-wrap:pretty">Every pixel against two events: account created, and came back next week</h1>
+  <p style="margin:0 0 28px;font-size:17px;line-height:26px;color:#616161;max-width:66ch;text-wrap:pretty">The prototype is now consistent. Consistent is not the same as converting. Below is each journey read as a funnel, then what I would cut, change or add. 44 items, prioritised at the end.</p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:40px">
+    <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9999px;background:#FFFFFF;border:1px solid #E0E0E0;font-size:13px;color:#212121"><span style="width:7px;height:7px;border-radius:9999px;background:#D32F2F"></span>Cut · 11</span>
+    <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9999px;background:#FFFFFF;border:1px solid #E0E0E0;font-size:13px;color:#212121"><span style="width:7px;height:7px;border-radius:9999px;background:#212121"></span>Change · 18</span>
+    <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9999px;background:#FFFFFF;border:1px solid #E0E0E0;font-size:13px;color:#212121"><span style="width:7px;height:7px;border-radius:9999px;background:#00796B"></span>Add · 12</span>
+    <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9999px;background:#FFFFFF;border:1px solid #E0E0E0;font-size:13px;color:#212121"><span style="width:7px;height:7px;border-radius:9999px;background:#9E9E9E"></span>Keep, defend it · 3</span>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid #E0E0E0;border-radius:16px;padding:24px 26px;margin-bottom:44px">
+    <p style="margin:0 0 14px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:#757575">THE FUNNEL, AND WHERE IT LEAKS TODAY</p>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:16px">
+      <div style="background:#212121;color:#fff;border-radius:8px 0 0 8px;padding:12px 10px"><p style="margin:0;font-size:12px;line-height:16px;font-weight:600">Open</p><p style="margin:2px 0 0;font-size:11px;line-height:15px;opacity:.7">sees stock photos</p></div>
+      <div style="background:#424242;color:#fff;padding:12px 10px"><p style="margin:0;font-size:12px;line-height:16px;font-weight:600">Give a photo</p><p style="margin:2px 0 0;font-size:11px;line-height:15px;opacity:.7">work before value</p></div>
+      <div style="background:#616161;color:#fff;padding:12px 10px"><p style="margin:0;font-size:12px;line-height:16px;font-weight:600">First render</p><p style="margin:2px 0 0;font-size:11px;line-height:15px;opacity:.7">one item only</p></div>
+      <div style="background:#757575;color:#fff;padding:12px 10px"><p style="margin:0;font-size:12px;line-height:16px;font-weight:600">Account</p><p style="margin:2px 0 0;font-size:11px;line-height:15px;opacity:.7">asked at the till</p></div>
+      <div style="background:#BDBDBD;color:#212121;border-radius:0 8px 8px 0;padding:12px 10px"><p style="margin:0;font-size:12px;line-height:16px;font-weight:600">Next week</p><p style="margin:2px 0 0;font-size:11px;line-height:15px;opacity:.75">no trigger at all</p></div>
+    </div>
+    <p style="margin:0;font-size:15px;line-height:23px;color:#616161;max-width:70ch;text-wrap:pretty">Two structural problems, and everything below is downstream of them. <span style="color:#212121;font-weight:500">One:</span> we ask for the photo before we have shown the customer anything they want. <span style="color:#212121;font-weight:500">Two:</span> there is no mechanism anywhere in the app that brings a person back on a particular day — no named drop day, no push permission, no social activity. A weekly product with no clock is a one-session product.</p>
+  </div>
+
+  <h2 style="margin:0 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.1em;color:#00796B">JOURNEY 1</h2>
+  <h3 style="margin:0 0 6px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:#212121">Cold open</h3>
+  <p style="margin:0 0 18px;font-size:15px;line-height:23px;color:#616161;max-width:66ch">What the customer wants: to know within five seconds whether this is worth their photo. What they get today: a shopping feed.</p>
+  <div style="border-top:1px solid #E0E0E0">
+
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">A before/after on someone else, above everything.</span> One tap flips a stock model photo to that garment on a real person's own photo. The differentiating asset is currently invisible until the customer does work. Show the magic, then ask.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">"Six new pieces this week."</span> A count means nothing to someone who has never used the app. It should state the promise: see anything here on your own body in ten seconds.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The add-your-photo card's three example thumbnails, at cold open.</span> Teaching photo technique to someone who has not agreed to give a photo is instruction before motivation. The examples belong on the photo screen, which is where they already are.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Guest Saved and You tabs.</span> Both are empty rooms for a guest — two of four navigation destinations lead nowhere on the first session. Point them at the same one-tap value proof until there is something in them.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The "1/2" frame counter on feed images.</span> Two frames is not a carousel. The counter advertises depth that isn't there and adds a number to a photograph.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The ring in the first-session feed.</span> It needs a second photo for a $210 object. Two photo asks in one session halves completion of the first. Move jewellery to a week-two unlock.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#9E9E9E">KEEP</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Full-bleed 4:5 imagery.</span> The product is a photograph of you. Nothing should ever be bigger on the screen than the image.</p>
+    </div>
+  </div>
+
+  <h2 style="margin:44px 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.1em;color:#00796B">JOURNEY 2</h2>
+  <h3 style="margin:0 0 6px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:#212121">Photo, render, and the account ask</h3>
+  <p style="margin:0 0 18px;font-size:15px;line-height:23px;color:#616161;max-width:66ch">This is the whole business. Every avoidable decision here costs signups directly.</p>
+  <div style="border-top:1px solid #E0E0E0">
+
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">"Choose from photos" and "Take a photo" as equal buttons.</span> Their best full-body photo already exists in the camera roll. Two equal buttons make the customer choose a method before they get a result. One primary, camera as a text link underneath.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The three-icon trust module.</span> Right instinct, three times too big. One line — private to you, delete any time, never used for training — and the link. Privacy copy only has to unblock the tap, not answer everything.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#9E9E9E">KEEP</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The rejected-photo example with the cross.</span> A bad first render is the single most likely reason someone never comes back. Two ticks and one cross costs a strip of pixels and protects the only impression that matters.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Render four pieces on the first photo, not one.</span> The same photo, the same wait. One result is a demo; four results is a wardrobe, and it is the first thing worth an account. This single change does more for signup than any copy edit on this page.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The generating screen.</span> Fifteen seconds of shimmer and a progress bar is dead air on the highest-anticipation screen in the app. Fill it with the other pieces landing in the same batch, so the wait builds the payoff instead of measuring it.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The progress bar and "usually under 15 seconds".</span> Naming the duration makes the customer watch the clock. The batch preview replaces both.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Buy as the primary action on a guest's first result.</span> This is the one place I'd revisit your earlier call. A person who has seen themselves in one thing, once, is not making a $328 decision — and the tap sends them to a retailer's site, which is the opposite of both goals. Same three actions, same order, but for guests the weight sits on Ask friends: free, no money decision, and it drags five to twenty non-customers onto a Trailroom page. Buy becomes primary the moment they have an account. Your call — I'd A/B it, and I'd bet on the social action.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Account sheet copy.</span> It currently explains checkout. It should name the loss and the gain in that order: this try-on disappears in 24 hours; your photo stays, so the next one is one tap.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">One of the two "a preview, not a fitting" lines.</span> It appears on the item screen and again under the price on the result. Said twice it reads as a disclaimer; said once, below the actions, it reads as honesty.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">A visible "yours until you delete it" state after signup.</span> The photo is the switching cost. Once it is saved, say so — that is what makes the second session cheap.</p>
+    </div>
+  </div>
+
+  <h2 style="margin:44px 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.1em;color:#00796B">JOURNEY 3</h2>
+  <h3 style="margin:0 0 6px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:#212121">The weekly return</h3>
+  <p style="margin:0 0 18px;font-size:15px;line-height:23px;color:#616161;max-width:66ch">The goal says weekly. Nothing in the build currently produces a week. This is the largest gap in the prototype.</p>
+  <div style="border-top:1px solid #E0E0E0">
+
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Name the day. "Thursdays at nine."</span> A habit needs an appointment. Put the day in the feed header and a countdown to the next drop at the end of the feed, so the customer learns when to come back without being told to.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The notification ask, right after the first result.</span> There is no push permission anywhere in the app, which means there is no weekly loop at all. Ask at the moment of delight, framed as the product: tell me when new pieces land on me. This is the highest-leverage missing pixel in the prototype.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">A "follow three labels" step after the first result.</span> Follows are what fill next Thursday's feed, and today they are a 32px pill on a card that most people will never press. Ask for three, once, explicitly, and explain the payoff in the same sentence.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The Discover tab, the search field and the four filter chips.</span> A quarter of the navigation spent on generic browsing, with no personalisation, competing with the curated feed. Search belongs behind an icon in the header. The chips filter nothing a customer asked for.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">An Asks tab in its place.</span> Your polls and your friends' polls in one inbox. Other people's decisions are a far stronger reason to open an app on a Tuesday than a search field, and every vote request is another person seeing Trailroom.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The "ON THE MODEL" badge.</span> Once someone has a photo, a badge saying we haven't rendered this yet is a failure notice printed on the image. Replace it with the Try on action and keep the badge only for "ON YOU".</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Saved, into the alerts surface.</span> The price-drop card is the best return trigger in the build and there is exactly one, static. Every saved row should carry its own state — dropped, restocked, nearly gone — and each one should show the on-you image, not the product shot.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">"Go to this week" in the empty Saved state.</span> The tab bar is two centimetres below it. An empty state should explain what will live there, not duplicate navigation.</p>
+    </div>
+  </div>
+
+  <h2 style="margin:44px 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.1em;color:#00796B">JOURNEY 4</h2>
+  <h3 style="margin:0 0 6px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:#212121">Ask friends</h3>
+  <p style="margin:0 0 18px;font-size:15px;line-height:23px;color:#616161;max-width:66ch">The only loop in the product that acquires customers instead of spending on them. It is currently the least finished.</p>
+  <div style="border-top:1px solid #E0E0E0">
+
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The two-option minimum.</span> A first-session guest has one try-on, so the action that matters most to them is blocked by an arbitrary rule. One image and "does this work?" is a valid ask. Let the poll be a poll when there are two.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The share sheet itself.</span> The prototype jumps from Send to a results screen. The real drop-off is in the two seconds between them — picking a thread. Show it, because that is where the loop breaks.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The vote page's "See it on you".</span> This is the acquisition moment for a stranger and it is a quiet button under the results. It should be the loudest thing on the page after the vote, and it should say what they get: their own photo, on the thing they just voted for, free.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">A reason for the asker to return.</span> Votes arrive over days. "Priya voted" as a notification is the cheapest weekly return trigger we have and it costs nothing to build.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">"23 friends have opened it" on the sent screen.</span> Invented precision at a moment when the honest number is zero. Show the votes as they land, starting empty.</p>
+    </div>
+  </div>
+
+  <h2 style="margin:44px 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.1em;color:#00796B">JOURNEY 5</h2>
+  <h3 style="margin:0 0 6px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:#212121">Brand page, buy, and You</h3>
+  <div style="border-top:1px solid #E0E0E0;margin-top:18px">
+
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#9E9E9E">KEEP</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Follow as the full-width primary on a brand page.</span> Correct hierarchy. Follows are the retention asset; buying is the brand's job, one tap lower.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The 16:9 brand cover.</span> Ninety pixels of decoration. Spend them on the thing that earns a follow: next drop day, how many pieces are try-on ready, how many people follow them.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#00796B">ADD</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The "did it arrive?" prompt, actually built.</span> The buy sheet promises it and nothing ever asks. It is a next-session opening screen, a reason to return, and the only honest signal on whether the render told the truth.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">Delete, on the You tab.</span> Deleting the photo destroys the account's only real asset, and it currently sits at the same level as everything else, in red, three times. Keep it one tap deeper under Manage photos. Trust does not require prominence, only availability.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">"Open the designer side" in the You tab.</span> Prototype scaffolding leaking into the product. It belongs in the journey rail beside the phone.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #EEEEEE">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#D32F2F">CUT</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The Face photo tile.</span> It fills itself when a body photo is added, so it is telling the customer about an internal distinction they cannot act on. Two slots: your body, your hand.</p>
+    </div>
+    <div style="display:flex;gap:16px;padding:14px 0">
+      <span style="flex:none;width:66px;font-size:10px;line-height:18px;font-weight:600;letter-spacing:.08em;color:#212121">CHANGE</span>
+      <p style="flex:1;margin:0;font-size:15px;line-height:23px;color:#616161;text-wrap:pretty"><span style="color:#212121;font-weight:500">The Following list, into a schedule.</span> Five rows of names do nothing. The same rows with "drops Thursday" against each turn the list into a calendar, which is the thing that brings people back.</p>
+    </div>
+  </div>
+
+  <h2 style="margin:44px 0 14px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.1em;color:#00796B">WHAT I'D BUILD, IN ORDER</h2>
+  <div style="background:#FFFFFF;border:1px solid #E0E0E0;border-radius:16px;overflow:hidden">
+    <div style="padding:18px 22px;border-bottom:1px solid #EEEEEE">
+      <p style="margin:0 0 8px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:#D32F2F">P0 — MOVES SIGNUP OR WEEKLY DIRECTLY</p>
+      <p style="margin:0;font-size:15px;line-height:24px;color:#616161;text-wrap:pretty">Before/after proof at cold open. Four renders on the first photo. Notification ask after the first result. Follow-three step. Named drop day and countdown. Rewritten account-sheet copy.</p>
+    </div>
+    <div style="padding:18px 22px;border-bottom:1px solid #EEEEEE">
+      <p style="margin:0 0 8px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:#212121">P1 — REMOVES FRICTION OR DEAD SPACE</p>
+      <p style="margin:0;font-size:15px;line-height:24px;color:#616161;text-wrap:pretty">One photo-source button. Compressed trust line. Batch preview replacing the progress bar. Discover swapped for Asks. Single-image asks. Saved as the alerts surface. Delete moved a level down.</p>
+    </div>
+    <div style="padding:18px 22px">
+      <p style="margin:0 0 8px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:#757575">P2 — TIDYING, WORTH DOING TOGETHER</p>
+      <p style="margin:0;font-size:15px;line-height:24px;color:#616161;text-wrap:pretty">Frame counter, duplicate disclaimer, cold-open examples, brand cover, face tile, designer link, invented vote count, empty-state button, ring in the first session.</p>
+    </div>
+  </div>
+
+  <p style="margin:28px 0 0;font-size:15px;line-height:24px;color:#757575;max-width:66ch;text-wrap:pretty">One thing I did not touch: the three actions and their order. That system is working and it should not move again. Everything above changes what surrounds them, when they are asked for, and what happens in the week between.</p>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:1100}}"></script>
+</body>
+</html>

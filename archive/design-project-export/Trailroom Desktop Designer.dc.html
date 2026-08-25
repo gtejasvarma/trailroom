@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<style>
+*{box-sizing:border-box}
+:root{
+--ink:#1A1A1A;--ink-800:#333;--ink-700:#5C5C5C;--ink-600:#7A7A7A;--ink-500:#9E9E9E;--ink-400:#C4C4C4;
+--line:#E2E2E2;--line-soft:#EFEFEF;--surface:#F6F6F5;--canvas:#FFF;
+--accent:#00695C;--accent-tint:#E4EFED;--success:#2E7D32;--danger:#C62828;--warn:#B26A00;
+--ease:cubic-bezier(.2,0,0,1);
+}
+body{margin:0;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#E6E6E3;color:#5C5C5C;-webkit-font-smoothing:antialiased}
+a{color:#00695C;text-decoration:none}
+a:hover{color:#00443B}
+button{font-family:inherit;cursor:pointer}
+img{display:block}
+input{font-family:inherit}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding:20px 20px 60px">
+
+  <div style="width:1280px;min-width:1280px;margin:0 auto 14px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:11px;line-height:16px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-600)">Designer back office</span>
+    <span style="flex:1"></span>
+    <a href="Trailroom Desktop.dc.html" style="font-size:12px;font-weight:500">← the shopper app</a>
+  </div>
+
+  <div style="width:1280px;min-width:1280px;margin:0 auto;background:var(--canvas);border:1px solid #D8D8D5;border-radius:14px;box-shadow:0 8px 16px rgba(0,0,0,.07),0 24px 60px rgba(0,0,0,.09);overflow:hidden">
+
+    <div style="height:44px;background:#EDEDEA;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 16px">
+      <span style="display:flex;gap:6px">
+        <span style="width:11px;height:11px;border-radius:9999px;background:#DDD"></span>
+        <span style="width:11px;height:11px;border-radius:9999px;background:#DDD"></span>
+        <span style="width:11px;height:11px;border-radius:9999px;background:#DDD"></span>
+      </span>
+      <span style="flex:1;max-width:420px;height:26px;border-radius:7px;background:#FFF;border:1px solid var(--line);display:flex;align-items:center;padding:0 10px;font-size:12px;color:var(--ink-600)">studio.trailroom.ai/{{ route }}</span>
+    </div>
+
+    <div style="display:flex;min-height:800px">
+
+      <div style="flex:none;width:248px;border-right:1px solid var(--line);background:#FBFBFA;padding:24px 16px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:9px;padding:0 8px 20px">
+          <span style="display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:var(--ink);color:#fff;font-size:13px;font-weight:600">T</span>
+          <span style="display:block">
+            <span style="display:block;font-size:13px;font-weight:600;letter-spacing:.13em;color:var(--ink)">TRAILROOM</span>
+            <span style="display:block;font-size:11px;line-height:15px;color:var(--ink-600)">Studio</span>
+          </span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+            <button onClick="{{ n.go }}" style="width:100%;text-align:left;border:none;border-radius:9px;background:{{ n.bg }};padding:10px 10px;display:flex;align-items:center;gap:10px;transition:background 150ms var(--ease)" style-hover="background:#F2F2F0">
+              <span style="flex:none;width:16px;height:16px;border-radius:{{ n.radius }};border:1.5px solid {{ n.mark }};background:{{ n.fill }}"></span>
+              <span style="flex:1;font-size:14px;font-weight:{{ n.weight }};color:{{ n.color }}">{{ n.label }}</span>
+              <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}">
+                <span style="flex:none;display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:9999px;background:{{ n.badgeBg }};color:#fff;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums">{{ n.badgeN }}</span>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+        <span style="flex:1"></span>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:12px;background:var(--canvas)">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+            <span style="flex:none;width:28px;height:28px;border-radius:7px;overflow:hidden;display:block;background:var(--surface)">
+              <img src="{{ labelAvatar }}" alt="" style="width:100%;height:100%;object-fit:cover" />
+            </span>
+            <span style="flex:1;display:block">
+              <span style="display:block;font-size:13px;line-height:17px;font-weight:600;color:var(--ink)">Loam Studio</span>
+              <span style="display:block;font-size:11px;line-height:15px;color:{{ verifiedColor }}">{{ verifiedLabel }}</span>
+            </span>
+          </div>
+          <p style="margin:0;font-size:11px;line-height:16px;color:var(--ink-600)">{{ planLine }}</p>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:0">
+
+        <sc-if value="{{ sVerify }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:32px 40px 48px;animation:rise .3s var(--ease);max-width:840px">
+          <h1 style="margin:0 0 4px;font-size:30px;line-height:36px;font-weight:500;letter-spacing:-.025em;color:var(--ink)">Get verified</h1>
+          <p style="margin:0 0 28px;font-size:15px;line-height:22px;color:var(--ink-700)">Three steps. Until all three are green nothing you upload can be rendered on a shopper.</p>
+          <sc-for list="{{ steps }}" as="st" hint-placeholder-count="3">
+            <div style="border:1px solid {{ st.border }};border-radius:13px;padding:18px 20px;margin-bottom:12px;display:flex;gap:16px;align-items:flex-start;background:{{ st.bg }}">
+              <span style="flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:9999px;background:{{ st.markBg }};color:#fff;font-size:12px;font-weight:600">{{ st.mark }}</span>
+              <span style="flex:1;display:block">
+                <span style="display:block;font-size:16px;line-height:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">{{ st.title }}</span>
+                <span style="display:block;margin-top:3px;font-size:14px;line-height:20px;color:var(--ink-700)">{{ st.meta }}</span>
+              </span>
+              <sc-if value="{{ st.actionable }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ st.action }}" style="flex:none;height:40px;padding:0 18px;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:14px;font-weight:600;line-height:1">{{ st.actionLabel }}</button>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="margin-top:24px;padding-top:22px;border-top:1px solid var(--line-soft)">
+            <p style="margin:0 0 12px;font-size:14px;line-height:20px;font-weight:600;color:var(--ink)">What a shopper never sees</p>
+            <sc-for list="{{ neverSees }}" as="ns" hint-placeholder-count="3">
+              <div style="display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line-soft)">
+                <span style="flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:9999px;background:var(--accent-tint);color:var(--accent);font-size:11px">{{ ns.glyph }}</span>
+                <span style="flex:1;font-size:14px;line-height:20px;color:var(--ink-700)">{{ ns.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ sCatalogue }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:rise .3s var(--ease)">
+          <div style="padding:32px 40px 0;display:flex;align-items:flex-end;gap:20px">
+            <div style="flex:1">
+              <h1 style="margin:0 0 4px;font-size:30px;line-height:36px;font-weight:500;letter-spacing:-.025em;color:var(--ink)">Catalogue</h1>
+              <p style="margin:0;font-size:15px;line-height:22px;color:var(--ink-700)">{{ readySummary }}</p>
+            </div>
+            <button onClick="{{ fixAll }}" style="flex:none;height:42px;padding:0 20px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:14px;font-weight:500;line-height:1">Re-sync from store</button>
+          </div>
+          <div style="padding:22px 40px 0;display:flex;gap:8px;border-bottom:1px solid var(--line-soft);padding-bottom:16px">
+            <sc-for list="{{ catFilters }}" as="cf" hint-placeholder-count="3">
+              <button onClick="{{ cf.pick }}" style="height:34px;padding:0 14px;border:1px solid {{ cf.border }};border-radius:8px;background:{{ cf.bg }};color:{{ cf.color }};font-size:13px;font-weight:500;line-height:1">{{ cf.label }}</button>
+            </sc-for>
+          </div>
+          <div style="padding:8px 40px 48px">
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">
+              <span style="flex:none;width:44px"></span>
+              <span style="flex:1">PIECE</span>
+              <span style="flex:none;width:170px">RENDER READINESS</span>
+              <span style="flex:none;width:120px;text-align:right">TRY-ONS</span>
+              <span style="flex:none;width:110px;text-align:right">CLICK TO BUY</span>
+              <span style="flex:none;width:96px"></span>
+            </div>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--line-soft)">
+                <span style="flex:none;width:44px;height:55px;border-radius:7px;overflow:hidden;display:block;background:var(--surface)">
+                  <img src="{{ r.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ r.pos }}" />
+                </span>
+                <span style="flex:1;min-width:0;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                  <span style="display:block;font-size:13px;line-height:18px;font-variant-numeric:tabular-nums;color:var(--ink-600)">{{ r.price }}</span>
+                </span>
+                <span style="flex:none;width:170px;display:block">
+                  <span style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                    <span style="flex:1;height:6px;border-radius:9999px;background:var(--line-soft);overflow:hidden;display:block">
+                      <span style="display:block;height:100%;background:{{ r.barColor }};width:{{ r.score }}%"></span>
+                    </span>
+                    <span style="flex:none;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)">{{ r.score }}</span>
+                  </span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:{{ r.noteColor }}">{{ r.note }}</span>
+                </span>
+                <span style="flex:none;width:120px;text-align:right;font-size:15px;font-variant-numeric:tabular-nums;color:{{ r.tryColor }}">{{ r.tryons }}</span>
+                <span style="flex:none;width:110px;text-align:right;font-size:15px;font-variant-numeric:tabular-nums;color:var(--ink)">{{ r.ctr }}</span>
+                <span style="flex:none;width:96px;text-align:right">
+                  <button onClick="{{ r.open }}" style="height:34px;padding:0 14px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:{{ r.btnColor }};font-size:13px;font-weight:500;line-height:1">{{ r.btn }}</button>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ sPiece }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:28px 40px 48px;animation:rise .3s var(--ease)">
+          <button onClick="{{ backToCat }}" style="border:none;background:none;padding:0 0 16px;font-size:13px;font-weight:500;color:var(--ink-600)" style-hover="color:#1A1A1A">← Catalogue</button>
+          <div style="display:flex;gap:36px;align-items:flex-start">
+            <div style="flex:none;width:300px">
+              <div style="position:relative;width:300px;height:375px;border-radius:13px;overflow:hidden;background:var(--surface)">
+                <img src="{{ pieceSrc }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ piecePos }}" />
+                <span style="position:absolute;left:12px;top:12px;background:rgba(255,255,255,.94);color:var(--ink);border-radius:9999px;padding:5px 11px;font-size:10px;font-weight:600;letter-spacing:.05em">YOUR PHOTO</span>
+              </div>
+              <p style="margin:14px 0 2px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.09em;color:var(--ink-600)">LOAM STUDIO</p>
+              <p style="margin:0;font-size:19px;line-height:25px;font-weight:500;letter-spacing:-.015em;color:var(--ink)">{{ pieceName }}</p>
+              <p style="margin:2px 0 0;font-size:16px;line-height:22px;font-variant-numeric:tabular-nums;color:var(--ink)">{{ piecePrice }}</p>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
+                <h1 style="flex:1;margin:0;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.025em;color:var(--ink)">Render readiness</h1>
+                <span style="flex:none;font-size:30px;line-height:34px;font-weight:500;font-variant-numeric:tabular-nums;color:{{ pieceScoreColor }}">{{ pieceScore }}</span>
+              </div>
+              <p style="margin:0 0 22px;font-size:15px;line-height:22px;color:var(--ink-700)">{{ pieceVerdict }}</p>
+              <sc-for list="{{ checks }}" as="ch" hint-placeholder-count="4">
+                <div style="display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line-soft)">
+                  <span style="flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:9999px;background:{{ ch.bg }};color:#fff;font-size:11px;font-weight:600">{{ ch.mark }}</span>
+                  <span style="flex:1;display:block">
+                    <span style="display:block;font-size:15px;line-height:20px;color:var(--ink)">{{ ch.title }}</span>
+                    <span style="display:block;font-size:13px;line-height:18px;color:var(--ink-600)">{{ ch.meta }}</span>
+                  </span>
+                  <sc-if value="{{ ch.fixable }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ ch.fix }}" style="flex:none;height:34px;padding:0 14px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:13px;font-weight:500;line-height:1">Upload</button>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ pieceBlocked }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:22px;border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--surface)">
+                  <p style="margin:0 0 10px;font-size:14px;line-height:20px;color:var(--ink-700)">Shoppers see an honest message on this piece, not a bad render. 41 have asked to be emailed when it's ready.</p>
+                  <button onClick="{{ fixPiece }}" style="height:44px;padding:0 20px;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:15px;font-weight:600;line-height:1">Upload a front-on photo</button>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ sSignal }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:32px 40px 48px;animation:rise .3s var(--ease)">
+          <div style="display:flex;align-items:flex-end;gap:20px;margin-bottom:24px">
+            <div style="flex:1">
+              <h1 style="margin:0 0 4px;font-size:30px;line-height:36px;font-weight:500;letter-spacing:-.025em;color:var(--ink)">Demand signal</h1>
+              <p style="margin:0;font-size:15px;line-height:22px;color:var(--ink-700)">Aggregated and anonymised. You never see a person, a photo, or a render.</p>
+            </div>
+            <div style="flex:none;display:flex;gap:8px">
+              <sc-for list="{{ ranges }}" as="rg" hint-placeholder-count="3">
+                <button onClick="{{ rg.pick }}" style="height:36px;padding:0 14px;border:1px solid {{ rg.border }};border-radius:8px;background:{{ rg.bg }};color:{{ rg.color }};font-size:13px;font-weight:500;line-height:1">{{ rg.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+            <sc-for list="{{ stats }}" as="st" hint-placeholder-count="4">
+              <div style="border:1px solid var(--line);border-radius:13px;padding:18px">
+                <p style="margin:0 0 4px;font-size:28px;line-height:34px;font-weight:500;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--ink)">{{ st.n }}</p>
+                <p style="margin:0 0 3px;font-size:13px;line-height:18px;color:var(--ink-700)">{{ st.label }}</p>
+                <p style="margin:0;font-size:12px;line-height:16px;color:{{ st.deltaColor }}">{{ st.delta }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:16px;align-items:stretch">
+            <div style="flex:1;border:1px solid var(--line);border-radius:13px;padding:20px">
+              <p style="margin:0 0 3px;font-size:16px;line-height:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Try-ons by piece</p>
+              <p style="margin:0 0 18px;font-size:13px;line-height:18px;color:var(--ink-600)">How often each piece got put on someone, and how often that turned into a click through to buy.</p>
+              <sc-for list="{{ bars }}" as="b" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:14px;padding:8px 0">
+                  <span style="flex:none;width:150px;font-size:14px;line-height:19px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.name }}</span>
+                  <span style="flex:1;display:block;height:22px;border-radius:5px;background:var(--line-soft);overflow:hidden;position:relative">
+                    <span style="position:absolute;left:0;top:0;bottom:0;background:#D5DFDC;width:{{ b.tryPct }}%"></span>
+                    <span style="position:absolute;left:0;top:0;bottom:0;background:var(--accent);width:{{ b.buyPct }}%"></span>
+                  </span>
+                  <span style="flex:none;width:64px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;color:var(--ink-700)">{{ b.tryons }}</span>
+                  <span style="flex:none;width:52px;text-align:right;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent)">{{ b.ctr }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex;gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft)">
+                <span style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-600)"><span style="width:10px;height:10px;border-radius:3px;background:#D5DFDC;display:block"></span>Try-ons</span>
+                <span style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-600)"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent);display:block"></span>Clicked through to buy</span>
+              </div>
+            </div>
+
+            <div style="flex:none;width:330px;display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid var(--line);border-radius:13px;padding:20px">
+                <p style="margin:0 0 3px;font-size:16px;line-height:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Waiting on a photo</p>
+                <p style="margin:0 0 16px;font-size:13px;line-height:18px;color:var(--ink-600)">Shoppers who asked to be emailed when a blocked piece can render.</p>
+                <sc-for list="{{ waitRows }}" as="w" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-soft)">
+                    <span style="flex:none;width:32px;height:40px;border-radius:5px;overflow:hidden;display:block;background:var(--surface)">
+                      <img src="{{ w.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ w.pos }}" />
+                    </span>
+                    <span style="flex:1;min-width:0;display:block">
+                      <span style="display:block;font-size:14px;line-height:19px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.name }}</span>
+                      <span style="display:block;font-size:12px;line-height:16px;color:var(--danger)">{{ w.note }}</span>
+                    </span>
+                    <span style="flex:none;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)">{{ w.n }}</span>
+                  </div>
+                </sc-for>
+                <div style="margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--accent-tint)">
+                  <p style="margin:0;font-size:13px;line-height:19px;color:#00443B">One front-on photo each and 486 people get an email that day.</p>
+                </div>
+              </div>
+              <div style="border:1px solid var(--line);border-radius:13px;padding:20px">
+                <p style="margin:0 0 3px;font-size:16px;line-height:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Did it arrive</p>
+                <p style="margin:0 0 14px;font-size:13px;line-height:18px;color:var(--ink-600)">Shoppers answer once after buying.</p>
+                <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+                  <span style="font-size:28px;line-height:32px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink)">94%</span>
+                  <span style="font-size:13px;color:var(--ink-700)">said the render matched</span>
+                </div>
+                <div style="height:8px;border-radius:9999px;background:var(--line-soft);overflow:hidden">
+                  <div style="height:100%;background:var(--success);width:94%"></div>
+                </div>
+                <p style="margin:12px 0 0;font-size:13px;line-height:19px;color:var(--ink-700)">The six percent who disagreed all named colour, not fit.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ sAudience }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:32px 40px 48px;animation:rise .3s var(--ease);max-width:900px">
+          <h1 style="margin:0 0 4px;font-size:30px;line-height:36px;font-weight:500;letter-spacing:-.025em;color:var(--ink)">Followers</h1>
+          <p style="margin:0 0 26px;font-size:15px;line-height:22px;color:var(--ink-700)">4,180 people get your new pieces already rendered on themselves. You can't see who they are.</p>
+          <div style="border:1px solid var(--line);border-radius:13px;padding:22px;margin-bottom:16px">
+            <div style="display:flex;align-items:flex-end;gap:20px;margin-bottom:18px">
+              <div style="flex:1">
+                <p style="margin:0 0 2px;font-size:16px;line-height:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Publish to followers</p>
+                <p style="margin:0;font-size:13px;line-height:18px;color:var(--ink-600)">Anything you publish renders on every follower who has a photo, within the hour.</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+              <sc-for list="{{ publishQueue }}" as="pq" hint-placeholder-count="3">
+                <div style="flex:none;width:96px">
+                  <span style="display:block;position:relative;width:96px;height:120px;border-radius:9px;overflow:hidden;background:var(--surface);outline:{{ pq.ring }};outline-offset:-2px">
+                    <img src="{{ pq.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ pq.pos }}" />
+                    <button onClick="{{ pq.toggle }}" style="position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:9999px;border:1.5px solid rgba(255,255,255,.9);background:{{ pq.dotBg }};color:#fff;font-size:11px;line-height:1;display:grid;place-items:center;padding:0">{{ pq.dot }}</button>
+                  </span>
+                  <p style="margin:6px 0 0;font-size:12px;line-height:16px;color:var(--ink-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pq.name }}</p>
+                  <p style="margin:0;font-size:12px;line-height:16px;color:{{ pq.readyColor }}">{{ pq.ready }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding-top:16px;border-top:1px solid var(--line-soft)">
+              <p style="flex:1;margin:0;font-size:14px;line-height:20px;color:var(--ink-700)">{{ publishLine }}</p>
+              <button onClick="{{ publish }}" disabled="{{ publishBlocked }}" style="flex:none;height:46px;padding:0 24px;border:none;border-radius:9999px;background:{{ publishBg }};color:#fff;font-size:15px;font-weight:600;line-height:1">Publish {{ publishCount }}</button>
+            </div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:13px;padding:22px">
+            <p style="margin:0 0 14px;font-size:16px;line-height:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">House style</p>
+            <p style="margin:0 0 16px;font-size:13px;line-height:18px;color:var(--ink-600)">Every render on a shopper uses your light and your crop, so your pieces look like yours.</p>
+            <div style="display:flex;gap:10px">
+              <sc-for list="{{ houseStyles }}" as="hs" hint-placeholder-count="3">
+                <button onClick="{{ hs.pick }}" style="flex:1;border:1px solid {{ hs.border }};border-radius:11px;background:{{ hs.bg }};padding:12px;text-align:left">
+                  <span style="display:block;height:70px;border-radius:7px;overflow:hidden;background:var(--surface);margin-bottom:9px">
+                    <img src="{{ hs.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ hs.pos }};filter:{{ hs.filter }}" />
+                  </span>
+                  <span style="display:block;font-size:14px;line-height:19px;font-weight:600;color:var(--ink)">{{ hs.label }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ hs.meta }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;background:var(--ink);color:#fff;border-radius:11px;padding:13px 20px;font-size:14px;line-height:20px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:rise .25s var(--ease)">{{ toast }}</div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:1000}}">
+const IMG = (id, w) => 'https://images.pexels.com/photos/' + id + '/pexels-photo-' + id + '.jpeg?auto=compress&cs=tinysrgb&w=' + (w || 800);
+
+const PIECES = [
+  {id:'suit',   name:'Tailored linen suit',   price:'$410', img:8368060,  pos:'50% 35%', score:92, tryons:918, ctr:'7.1%', note:'Ready', ok:true},
+  {id:'set',    name:'White trouser set',     price:'$298', img:10201379, pos:'50% 40%', score:54, tryons:184, ctr:'2.2%', note:'No front-on photo', ok:false, fix:'front'},
+  {id:'blouse', name:'Printed silk blouse',   price:'$168', img:1380587,  pos:'50% 30%', score:61, tryons:302, ctr:'3.4%', note:'Model occludes the hem', ok:false, fix:'hem'},
+  {id:'coat',   name:'Wool car coat',         price:'$328', img:19299199, pos:'50% 25%', score:88, tryons:1204,ctr:'8.6%', note:'Ready', ok:true},
+  {id:'slip',   name:'Bias-cut slip dress',   price:'$245', img:18526354, pos:'50% 35%', score:84, tryons:640, ctr:'6.2%', note:'Ready', ok:true},
+  {id:'jacket', name:'Cropped leather jacket',price:'$520', img:2036102,  pos:'50% 40%', score:22, tryons:0,   ctr:'—',    note:'Blocked — folded over an arm', ok:false, fix:'front'}
+];
+
+class Component extends DCLogic {
+  state = {
+    screen:'verify', route:'verify', pieceId:'set', catFilter:'Everything',
+    verified:1, range:'30 days', publish:['suit','coat'], house:'warm', toast:null
+  };
+  componentWillUnmount(){ clearTimeout(this.tt); }
+  say = (t) => { clearTimeout(this.tt); this.setState({toast:t}); this.tt = setTimeout(()=>this.setState({toast:null}), 3200); };
+  go = (screen, route) => { this.setState({screen, route: route || screen}); window.scrollTo({top:0}); };
+  piece = () => PIECES.find(p => p.id === this.state.pieceId) || PIECES[0];
+
+  renderVals(){
+    const s = this.state;
+    const p = this.piece();
+    const ready = PIECES.filter(x => x.ok).length;
+    const rows = PIECES.filter(x =>
+      s.catFilter === 'Everything' || (s.catFilter === 'Needs a fix' && !x.ok) || (s.catFilter === 'Ready' && x.ok));
+
+    return {
+      route: s.route,
+      nav: [['verify','Verification'],['catalogue','Catalogue'],['signal','Demand signal'],['audience','Followers']].map(([k,label]) => ({
+        label,
+        bg: (s.screen === k || (k === 'catalogue' && s.screen === 'piece')) ? '#F0F0EE' : 'transparent',
+        color: (s.screen === k || (k === 'catalogue' && s.screen === 'piece')) ? '#1A1A1A' : '#5C5C5C',
+        weight: (s.screen === k || (k === 'catalogue' && s.screen === 'piece')) ? '600' : '500',
+        mark: (s.screen === k || (k === 'catalogue' && s.screen === 'piece')) ? '#1A1A1A' : '#C4C4C4',
+        fill: (s.screen === k || (k === 'catalogue' && s.screen === 'piece')) ? '#1A1A1A' : 'transparent',
+        radius: k === 'verify' ? '9999px' : k === 'catalogue' ? '4px' : k === 'signal' ? '3px 9999px 3px 9999px' : '9999px',
+        badge: k === 'catalogue' || k === 'verify',
+        badgeN: k === 'catalogue' ? String(PIECES.filter(x => !x.ok).length) : String(3 - s.verified),
+        badgeBg: '#C62828',
+        go: () => this.go(k)
+      })),
+      labelAvatar: IMG(8368060, 150),
+      verifiedLabel: s.verified >= 3 ? 'Verified label' : 'Verification ' + s.verified + ' of 3',
+      verifiedColor: s.verified >= 3 ? '#2E7D32' : '#B26A00',
+      planLine: s.verified >= 3 ? '22 pieces live · no listing fee, 8% on a sale we send you' : 'Nothing can render until verification is done',
+
+      sVerify: s.screen === 'verify', sCatalogue: s.screen === 'catalogue', sPiece: s.screen === 'piece',
+      sSignal: s.screen === 'signal', sAudience: s.screen === 'audience',
+
+      steps: [
+        {title:'Domain email verified', meta:'hello@loamstudio.com, confirmed 2 August', done:true},
+        {title:'Store linked', meta:'22 products imported with price, stock and size', done:s.verified >= 2, actionLabel:'Link store', action: () => { this.setState({verified:2}); this.say('Store linked — 22 products imported'); }},
+        {title:'Human review', meta:'A person checks the first 500 labels. Usually within a day.', done:s.verified >= 3, actionLabel:'Submit', action: () => { this.setState({verified:3}); this.say('Submitted — we\u2019ll email you within a day'); }}
+      ].map((st, i) => ({
+        title:st.title, meta:st.meta,
+        mark: st.done ? '\u2713' : String(i + 1),
+        markBg: st.done ? '#2E7D32' : '#C4C4C4',
+        border: st.done ? '#E2E2E2' : '#1A1A1A',
+        bg: st.done ? '#FFF' : '#FBFBFA',
+        actionable: !st.done && !!st.actionLabel && i === s.verified,
+        actionLabel: st.actionLabel,
+        action: st.action
+      })),
+      neverSees: [
+        {glyph:'\u25C9', text:'Their photo, their face, and every render of them. You get counts, never pictures.'},
+        {glyph:'\u25CB', text:'Who follows you, who tried a piece, and who put it in a list.'},
+        {glyph:'\u25B3', text:'You can\u2019t buy a lookalike audience from us, and we don\u2019t sell one.'}
+      ],
+
+      readySummary: ready + ' of ' + PIECES.length + ' pieces render cleanly. The rest need one photo each — until then shoppers get an honest message instead of a bad guess.',
+      fixAll: () => this.say('Re-syncing from your store\u2026'),
+      catFilters: ['Everything','Needs a fix','Ready'].map(label => ({
+        label,
+        border: s.catFilter === label ? '#00695C' : '#E2E2E2',
+        bg: s.catFilter === label ? '#E4EFED' : '#FFF',
+        color: s.catFilter === label ? '#00695C' : '#5C5C5C',
+        pick: () => this.setState({catFilter:label})
+      })),
+      rows: rows.map(r => ({
+        name:r.name, price:r.price, src:IMG(r.img, 200), pos:r.pos,
+        score:r.score,
+        barColor: r.score >= 80 ? '#2E7D32' : r.score >= 55 ? '#B26A00' : '#C62828',
+        note:r.note, noteColor: r.ok ? '#2E7D32' : '#C62828',
+        tryons: r.tryons ? r.tryons.toLocaleString() : '—',
+        tryColor: r.tryons ? '#1A1A1A' : '#C4C4C4',
+        ctr:r.ctr,
+        btn: r.ok ? 'View' : 'Fix',
+        btnColor: r.ok ? '#5C5C5C' : '#C62828',
+        open: () => { this.setState({pieceId:r.id}); this.go('piece', 'catalogue/' + r.id); }
+      })),
+
+      backToCat: () => this.go('catalogue'),
+      pieceSrc: IMG(p.img), piecePos: p.pos, pieceName: p.name, piecePrice: p.price,
+      pieceScore: p.score, pieceScoreColor: p.score >= 80 ? '#2E7D32' : p.score >= 55 ? '#B26A00' : '#C62828',
+      pieceVerdict: p.ok
+        ? 'Good to go. Front-on, clean edges, and the hem is visible, so we can place it accurately on any body.'
+        : 'We can read the colour and the fabric, but not where the garment ends on a body. One more photo fixes it.',
+      pieceBlocked: !p.ok,
+      checks: [
+        {title:'Front-on photo', meta:'Needed to place shoulders and hem', ok: p.fix !== 'front'},
+        {title:'Full garment visible', meta:'Nothing folded, cropped or held', ok: p.fix !== 'front'},
+        {title:'Hem not occluded', meta:'We read length from the hem', ok: p.fix !== 'hem'},
+        {title:'Colour and fabric readable', meta:'Even light, no heavy filter', ok: true},
+        {title:'Size and stock synced', meta:'From your store, hourly', ok: true}
+      ].map(c => ({
+        title:c.title, meta:c.meta,
+        mark: c.ok ? '\u2713' : '\u2715',
+        bg: c.ok ? '#2E7D32' : '#C62828',
+        fixable: !c.ok,
+        fix: () => this.say('Photo uploaded \u2014 re-scoring, usually a few minutes')
+      })),
+      fixPiece: () => this.say('Photo uploaded \u2014 we\u2019ll email the 41 waiting shoppers when it renders'),
+
+      ranges: ['7 days','30 days','All time'].map(label => ({
+        label,
+        border: s.range === label ? '#00695C' : '#E2E2E2',
+        bg: s.range === label ? '#E4EFED' : '#FFF',
+        color: s.range === label ? '#00695C' : '#5C5C5C',
+        pick: () => this.setState({range:label})
+      })),
+      stats: [
+        {n:'4,180', label:'Followers', delta:'+312 this month', up:true},
+        {n:'3,248', label:'Try-ons', delta:'+18% on last month', up:true},
+        {n:'24%',   label:'Saved to a list after trying', delta:'+3 pts', up:true},
+        {n:'6.8%',  label:'Clicked through to buy', delta:'\u22121 pt', up:false}
+      ].map(st => ({...st, deltaColor: st.up ? '#2E7D32' : '#C62828'})),
+      bars: PIECES.filter(x => x.tryons > 0).map(b => ({
+        name:b.name, tryons:b.tryons.toLocaleString(), ctr:b.ctr,
+        tryPct: Math.round(b.tryons / 1204 * 100),
+        buyPct: Math.round(b.tryons / 1204 * 100 * parseFloat(b.ctr) / 100 * 6)
+      })),
+      waitRows: [
+        {name:'Cropped leather jacket', note:'No front-on photo', n:'302', src:IMG(2036102,150), pos:'50% 40%'},
+        {name:'White trouser set', note:'No front-on photo', n:'118', src:IMG(10201379,150), pos:'50% 40%'},
+        {name:'Printed silk blouse', note:'Hem occluded', n:'66', src:IMG(1380587,150), pos:'50% 30%'}
+      ],
+
+      publishQueue: PIECES.filter(x => x.ok).map(pq => ({
+        name:pq.name, src:IMG(pq.img, 250), pos:pq.pos,
+        ready: 'Score ' + pq.score,
+        readyColor: '#2E7D32',
+        ring: s.publish.includes(pq.id) ? '2.5px solid #00695C' : 'none',
+        dot: s.publish.includes(pq.id) ? '\u2713' : '+',
+        dotBg: s.publish.includes(pq.id) ? '#00695C' : 'rgba(0,0,0,.35)',
+        toggle: () => this.setState(st => ({publish: st.publish.includes(pq.id) ? st.publish.filter(x=>x!==pq.id) : [...st.publish, pq.id]}))
+      })),
+      publishCount: s.publish.length,
+      publishBlocked: s.publish.length === 0,
+      publishBg: s.publish.length === 0 ? '#C4C4C4' : '#1A1A1A',
+      publishLine: s.publish.length === 0
+        ? 'Pick at least one ready piece.'
+        : s.publish.length + (s.publish.length === 1 ? ' piece' : ' pieces') + ' \u2192 4,180 followers, rendered on each of them who has a photo.',
+      publish: () => { if (s.publish.length) this.say('Published \u2014 rendering on 4,180 followers now'); },
+
+      houseStyles: [
+        {id:'warm', label:'Warm daylight', meta:'Your current look', filter:'saturate(1.05) brightness(1.02)', img:8368060, pos:'50% 35%'},
+        {id:'cool', label:'Cool studio', meta:'Flat, even, no shadow', filter:'saturate(.92) brightness(1.06)', img:10201379, pos:'50% 40%'},
+        {id:'film', label:'Film', meta:'Warmer, softer contrast', filter:'sepia(.14) saturate(1.08)', img:19299199, pos:'50% 25%'}
+      ].map(hs => ({
+        label:hs.label, meta:hs.meta, filter:hs.filter, src:IMG(hs.img, 300), pos:hs.pos,
+        border: s.house === hs.id ? '#1A1A1A' : '#E2E2E2',
+        bg: s.house === hs.id ? '#FBFBFA' : '#FFF',
+        pick: () => { this.setState({house:hs.id}); this.say(hs.label + ' applied to every render of your pieces'); }
+      })),
+
+      toast: s.toast
+    };
+  }
+}
+
+</script>
+</body>
+</html>

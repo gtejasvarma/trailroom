@@ -1,0 +1,7 @@
+# macOS
+.DS_Store
+.thumbnail
+
+# tooling
+node_modules/
+*.log

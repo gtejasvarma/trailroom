@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<style>
+*{box-sizing:border-box}
+:root{
+--ink:#1A1A1A;--ink-800:#333333;--ink-700:#5C5C5C;--ink-600:#7A7A7A;--ink-500:#9E9E9E;--ink-400:#C4C4C4;
+--line:#E2E2E2;--line-soft:#EFEFEF;--surface:#F6F6F5;--canvas:#FFFFFF;
+--accent:#00695C;--accent-tint:#E4EFED;--success:#2E7D32;--danger:#C62828;
+--ease:cubic-bezier(.2,0,0,1);
+}
+body{margin:0;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#EDEDEB;color:#5C5C5C;-webkit-font-smoothing:antialiased}
+a{color:#00695C;text-decoration:none}
+a:hover{color:#00443B}
+button{font-family:inherit;cursor:pointer}
+img{display:block}
+input[type=range].tr-slider{-webkit-appearance:none;appearance:none;background:transparent;pointer-events:auto}
+input[type=range].tr-slider::-webkit-slider-thumb{-webkit-appearance:none;width:44px;height:100%;background:transparent;cursor:ew-resize}
+input[type=range].tr-slider::-moz-range-thumb{width:44px;height:100%;background:transparent;border:none;cursor:ew-resize}
+@keyframes shimmer{to{background-position:-200% 0}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes reveal{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}
+@keyframes sheetup{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(-10px)}}
+@media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;align-items:flex-start;justify-content:center;gap:28px;padding:36px 24px 64px">
+
+  <div style="flex:none;width:236px;padding-top:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="flex:none;width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:-.02em">T</span>
+      <span style="font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Trailroom</span>
+    </div>
+    <p style="margin:0 0 18px;font-size:12px;line-height:16px;color:var(--ink-600)">Two upload flows, a queue you can walk away from, four poses, and fit in words.</p>
+    <p style="margin:0 0 8px;font-size:10px;line-height:14px;font-weight:600;letter-spacing:.1em;color:var(--ink-600)">JUMP TO A JOURNEY</p>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <sc-for list="{{ journeys }}" as="j" hint-placeholder-count="6">
+        <button onClick="{{ j.go }}" style="width:100%;display:flex;gap:10px;align-items:baseline;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);padding:9px 2px;transition:opacity 150ms var(--ease)" style-hover="opacity:.6">
+          <span style="flex:none;width:22px;font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--ink-500)">{{ j.code }}</span>
+          <span style="flex:1;display:block">
+            <span style="display:block;font-size:13px;line-height:18px;font-weight:500;color:var(--ink)">{{ j.title }}</span>
+            <span style="display:block;font-size:11px;line-height:15px;color:var(--ink-600)">{{ j.sub }}</span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+    <button onClick="{{ reset }}" style="margin-top:14px;background:none;border:none;padding:0;font-size:12px;font-weight:500;color:var(--accent)">Reset state</button>
+    <p style="margin:14px 0 0;font-size:11px;line-height:16px;color:var(--ink-500)">{{ stateLine }}</p>
+    <p style="margin:6px 0 0;font-size:11px;line-height:16px;color:var(--ink-500)">{{ metricLine }}</p>
+  </div>
+
+  <sc-if value="{{ notVote }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:none;width:390px;height:844px;background:var(--canvas);border:1px solid var(--line);border-radius:44px;box-shadow:0 10px 20px rgba(0,0,0,.10),0 24px 48px rgba(0,0,0,.10);overflow:hidden;display:flex;flex-direction:column;position:relative">
+
+    <div style="flex:none;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:600;color:var(--ink)">
+      <span>9:41</span>
+      <span style="width:17px;height:9px;border:1px solid var(--ink);border-radius:2px;display:block"></span>
+    </div>
+
+    <div style="flex:none;height:54px;display:flex;align-items:center;padding:0 8px;border-bottom:1px solid var(--line-soft);background:var(--canvas)">
+      <div style="width:56px;display:flex;align-items:center">
+        <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ back }}" style="width:44px;height:44px;border:none;background:none;font-size:19px;line-height:1;color:var(--ink)">←</button>
+        </sc-if>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px">
+        <span style="flex:none;width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:-.02em">T</span>
+        <span style="font-size:15px;font-weight:600;letter-spacing:.06em;color:var(--ink)">TRAILROOM</span>
+      </div>
+      <div style="width:56px;display:flex;justify-content:flex-end">
+        <button onClick="{{ goSaved }}" style="width:44px;height:44px;border:none;background:none;font-size:17px;color:var(--ink);position:relative">
+          <span>{{ savedTabIcon }}</span>
+          <sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute;top:9px;right:8px;width:8px;height:8px;border-radius:9999px;background:var(--danger);border:1.5px solid #fff"></span>
+          </sc-if>
+        </button>
+      </div>
+    </div>
+
+    <sc-if value="{{ jobOn }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ openJob }}" style="flex:none;width:100%;border:none;border-bottom:1px solid var(--line-soft);background:var(--surface);padding:9px 14px;display:flex;align-items:center;gap:10px;text-align:left">
+        <span style="flex:none;width:26px;height:26px;border-radius:9999px;border:2px solid var(--line);border-top-color:var(--ink);display:block;animation:spin .9s linear infinite"></span>
+        <span style="flex:1;display:block">
+          <span style="display:block;font-size:13px;line-height:17px;font-weight:600;color:var(--ink)">{{ jobLine }}</span>
+          <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ jobSub }}</span>
+        </span>
+        <span style="flex:none;font-size:12px;font-weight:600;color:var(--accent)">View</span>
+      </button>
+    </sc-if>
+
+    <sc-if value="{{ readyOn }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ openReady }}" style="flex:none;width:100%;border:none;border-bottom:1px solid var(--line-soft);background:var(--accent-tint);padding:9px 14px;display:flex;align-items:center;gap:10px;text-align:left">
+        <span style="flex:none;width:26px;aspect-ratio:3/4;border-radius:6px;overflow:hidden;display:block">
+          <img src="{{ readyThumb }}" alt="" style="width:100%;height:100%;object-fit:cover" />
+        </span>
+        <span style="flex:1;font-size:13px;line-height:17px;font-weight:600;color:var(--accent)">{{ readyLine }}</span>
+        <span style="flex:none;font-size:12px;font-weight:600;color:var(--accent)">See it</span>
+      </button>
+    </sc-if>
+
+    <div ref="{{ scrollRef }}" style="flex:1;overflow:auto;position:relative;background:var(--canvas)">
+
+      <sc-if value="{{ showProof }}" hint-placeholder-val="{{ true }}">
+        <div style="margin:14px 16px 4px;border:1px solid var(--line);border-radius:18px;overflow:hidden;animation:rise .35s var(--ease)">
+          <div style="position:relative;aspect-ratio:4/5;background:var(--surface);overflow:hidden">
+            <img src="{{ proofModel }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%" />
+            <span style="position:absolute;inset:0;clip-path:inset(0 calc(100% - {{ proofX }}%) 0 0)">
+              <img src="{{ proofOnYou }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%" />
+            </span>
+            <span style="position:absolute;top:0;bottom:0;left:{{ proofX }}%;width:2px;background:rgba(255,255,255,.95);box-shadow:0 0 8px rgba(0,0,0,.35)"></span>
+            <span style="position:absolute;top:50%;left:{{ proofX }}%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:9999px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:grid;place-items:center;font-size:13px;color:var(--ink);letter-spacing:-.04em">↔</span>
+            <input type="range" min="0" max="100" value="{{ proofX }}" onChange="{{ setProofX }}" class="tr-slider" style="position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize" />
+            <span style="position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:4px 10px;font-size:10px;font-weight:600;letter-spacing:.06em">ON HER PHOTO</span>
+            <span style="position:absolute;right:12px;top:12px;background:rgba(255,255,255,.9);color:var(--ink);border-radius:9999px;padding:4px 10px;font-size:10px;font-weight:600;letter-spacing:.06em">MODEL SHOT</span>
+          </div>
+          <div style="padding:14px 16px 16px">
+            <p style="margin:0 0 4px;font-size:19px;line-height:25px;font-weight:600;letter-spacing:-.015em;color:var(--ink)">Drag to see the difference</p>
+            <p style="margin:0 0 12px;font-size:14px;line-height:20px;color:var(--ink-700)">Maya uploaded one photo. Now every piece here comes back on her body, in four poses, with the fit spelled out.</p>
+            <button onClick="{{ uploadStandalone }}" style="height:50px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1;transition:transform 150ms var(--ease)" style-active="transform:scale(.985)">Upload your picture</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sFeed }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:14px 0 24px;animation:rise .35s var(--ease)">
+        <div style="padding:0 16px 14px">
+          <p style="margin:0 0 8px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:var(--ink-600)">WHAT ARE YOU LOOKING FOR</p>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ cats }}" as="c" hint-placeholder-count="3">
+              <button onClick="{{ c.pick }}" style="flex:1;border:{{ c.border }};border-radius:14px;background:none;padding:0;overflow:hidden;text-align:left;display:block">
+                <span style="display:block;position:relative;aspect-ratio:1/1;background:var(--surface)">
+                  <img src="{{ c.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ c.pos }}" />
+                  <span style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 62%)"></span>
+                  <span style="position:absolute;left:8px;bottom:6px;color:#fff;font-size:13px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.5)">{{ c.label }}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:26px">
+          <sc-for list="{{ feed }}" as="f" hint-placeholder-count="4">
+            <div style="animation:rise .4s var(--ease)">
+              <div style="display:flex;align-items:center;gap:10px;padding:0 16px 10px">
+                <button onClick="{{ f.openBrand }}" style="flex:none;width:34px;height:34px;border-radius:9999px;overflow:hidden;border:1px solid var(--line);padding:0;background:none">
+                  <img src="{{ f.avatar }}" alt="" style="width:100%;height:100%;object-fit:cover" />
+                </button>
+                <button onClick="{{ f.openBrand }}" style="flex:1;text-align:left;background:none;border:none;padding:0">
+                  <span style="display:block;font-size:14px;line-height:18px;font-weight:600;color:var(--ink)">{{ f.brand }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ f.shelf }}</span>
+                </button>
+                <button onClick="{{ f.follow }}" style="flex:none;height:32px;padding:0 14px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:13px;font-weight:500;line-height:1">{{ f.followLabel }}</button>
+              </div>
+              <div style="position:relative">
+                <div style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none">
+                  <sc-for list="{{ f.frames }}" as="fr" hint-placeholder-count="4">
+                    <button onClick="{{ f.open }}" style="flex:none;width:100%;scroll-snap-align:start;border:none;padding:0;background:none;display:block">
+                      <span style="display:block;position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--surface)">
+                        <img src="{{ fr.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ fr.pos }};transform:{{ fr.tf }}" />
+                      </span>
+                    </button>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ f.isOnYou }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:5px 10px;font-size:11px;font-weight:600;letter-spacing:.04em">ON YOU</span>
+                </sc-if>
+                <span style="position:absolute;right:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:5px 10px;font-size:11px;font-weight:600;display:flex;gap:5px;align-items:center">{{ f.count }}</span>
+              </div>
+              <div style="padding:12px 16px 0">
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="flex:1;font-size:15px;line-height:20px;color:var(--ink)">{{ f.name }}</span>
+                  <span style="flex:none;font-size:15px;line-height:20px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ f.price }}</span>
+                </div>
+                <p style="margin:3px 0 0;font-size:13px;line-height:18px;color:{{ f.fitColor }}">{{ f.fitLine }}</p>
+                <sc-if value="{{ f.isModel }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+                    <button onClick="{{ f.tryOn }}" style="flex:1;height:44px;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:15px;font-weight:600;line-height:1;transition:transform 150ms var(--ease)" style-active="transform:scale(.985)">Try it on</button>
+                    <button onClick="{{ f.list }}" style="flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:17px">{{ f.heart }}</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.isOnYou }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+                    <button onClick="{{ f.buy }}" style="flex:1;height:44px;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:15px;font-weight:600;line-height:1;transition:transform 150ms var(--ease)" style-active="transform:scale(.985)">Buy {{ f.price }}</button>
+                    <button onClick="{{ f.list }}" style="flex:none;height:44px;padding:0 16px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Add to list</button>
+                    <button onClick="{{ f.list }}" style="flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:17px">{{ f.heart }}</button>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sItem }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .3s var(--ease);padding-bottom:24px">
+        <div style="position:relative">
+          <div style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none">
+            <sc-for list="{{ curFrames }}" as="fr" hint-placeholder-count="3">
+              <span style="flex:none;width:100%;scroll-snap-align:start;display:block;position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--surface)">
+                <img src="{{ fr.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ fr.pos }};transform:{{ fr.tf }}" />
+              </span>
+            </sc-for>
+          </div>
+          <span style="position:absolute;right:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:5px 10px;font-size:11px;font-weight:600">↔ 3 photos</span>
+        </div>
+        <div style="padding:16px">
+          <p style="margin:0 0 3px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">{{ curBrand }}</p>
+          <h1 style="margin:0 0 4px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ curName }}</h1>
+          <p style="margin:0 0 4px;font-size:17px;line-height:22px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ curPrice }}</p>
+          <p style="margin:0 0 14px;font-size:13px;line-height:18px;color:var(--ink-700)">{{ curStock }}</p>
+          <p style="margin:0 0 18px;font-size:15px;line-height:23px;color:var(--ink-700)">{{ curDesc }}</p>
+          <button onClick="{{ startTry }}" style="height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1;transition:transform 150ms var(--ease)" style-active="transform:scale(.985)">{{ tryLabel }}</button>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+            <button onClick="{{ buy }}" style="flex:1;height:46px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Buy {{ curPrice }}</button>
+            <button onClick="{{ openList }}" style="flex:none;width:46px;height:46px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:17px">{{ savedIcon }}</button>
+          </div>
+        </div>
+        <div style="margin:8px 16px 0;padding-top:18px;border-top:1px solid var(--line-soft)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="flex:none;width:36px;height:36px;border-radius:9999px;overflow:hidden;border:1px solid var(--line);display:block">
+              <img src="{{ curAvatar }}" alt="" style="width:100%;height:100%;object-fit:cover" />
+            </span>
+            <span style="flex:1;display:block">
+              <span style="display:block;font-size:14px;line-height:18px;font-weight:600;color:var(--ink)">{{ curBrand }}</span>
+              <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ curBrandMeta }}</span>
+            </span>
+            <button onClick="{{ toggleFollow }}" style="flex:none;height:34px;padding:0 16px;border:{{ followBorder }};border-radius:9999px;background:{{ followBg }};color:{{ followColor }};font-size:14px;font-weight:500;line-height:1">{{ followLabel }}</button>
+          </div>
+          <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none">
+            <sc-for list="{{ moreFromBrand }}" as="m" hint-placeholder-count="3">
+              <button onClick="{{ m.open }}" style="flex:none;width:104px;border:none;padding:0;background:none;text-align:left">
+                <span style="display:block;aspect-ratio:3/4;overflow:hidden;border-radius:10px;background:var(--surface)">
+                  <img src="{{ m.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ m.pos }}" />
+                </span>
+                <span style="display:block;margin-top:6px;font-size:12px;line-height:16px;color:var(--ink-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.name }}</span>
+                <span style="display:block;font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;color:var(--ink)">{{ m.price }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sPhoto }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease)">
+        <h1 style="margin:0 0 4px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ photoTitle }}</h1>
+        <p style="margin:0 0 16px;font-size:15px;line-height:22px;color:var(--ink-700)">{{ photoSub }}</p>
+        <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">FROM YOUR CAMERA ROLL · THESE THREE WILL WORK</p>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <sc-for list="{{ candidates }}" as="cd" hint-placeholder-count="3">
+            <button onClick="{{ cd.use }}" style="flex:1;border:none;padding:0;background:none;text-align:left;display:block">
+              <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:12px;background:var(--surface)">
+                <img src="{{ cd.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ cd.pos }}" />
+                <span style="position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:9999px;background:var(--success);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">✓</span>
+              </span>
+              <span style="display:block;margin-top:6px;font-size:12px;line-height:16px;color:var(--ink-700)">{{ cd.label }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <button onClick="{{ pickRoll }}" style="height:50px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Browse all photos</button>
+        <div style="display:flex;justify-content:center;margin-top:12px">
+          <button onClick="{{ openCam }}" style="background:none;border:none;padding:6px 8px;font-size:14px;font-weight:500;color:var(--accent)">or take one now</button>
+        </div>
+        <p style="margin:18px 0 0;font-size:13px;line-height:19px;color:var(--ink-600);text-align:center">Private to you, never public, never used to train. <button onClick="{{ openPrivacy }}" style="background:none;border:none;padding:0;font-size:13px;font-weight:500;line-height:19px;color:var(--accent)">Details</button></p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sPickNext }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease)">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:18px">
+          <span style="flex:none;width:64px;aspect-ratio:3/4;overflow:hidden;border-radius:12px;display:block;background:var(--surface)">
+            <img src="{{ defaultPhotoSrc }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ defaultPhotoPos }}" />
+          </span>
+          <span style="flex:1;display:block">
+            <span style="display:block;font-size:20px;line-height:26px;font-weight:600;letter-spacing:-.015em;color:var(--ink)">Your photo is in</span>
+            <span style="display:block;margin-top:3px;font-size:14px;line-height:20px;color:var(--ink-700)">Pick anything below and it comes back on you in four poses.</span>
+          </span>
+        </div>
+        <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">START WITH ONE OF THESE</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin-bottom:16px">
+          <sc-for list="{{ starters }}" as="st" hint-placeholder-count="4">
+            <button onClick="{{ st.tryOn }}" style="border:none;padding:0;background:none;text-align:left;display:block">
+              <span style="display:block;aspect-ratio:3/4;overflow:hidden;border-radius:14px;background:var(--surface)">
+                <img src="{{ st.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ st.pos }}" />
+              </span>
+              <span style="display:block;margin-top:8px;font-size:14px;line-height:19px;color:var(--ink-800)">{{ st.name }}</span>
+              <span style="display:block;font-size:13px;line-height:18px;font-weight:600;color:var(--accent)">Try it on</span>
+            </button>
+          </sc-for>
+        </div>
+        <button onClick="{{ goFeed }}" style="height:48px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Browse everything instead</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sLibrary }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease)">
+        <h1 style="margin:0 0 4px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">Which photo?</h1>
+        <p style="margin:0 0 16px;font-size:15px;line-height:22px;color:var(--ink-700)">{{ libSub }}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <sc-for list="{{ library }}" as="l" hint-placeholder-count="3">
+            <button onClick="{{ l.use }}" style="border:none;padding:0;background:none;text-align:left;display:block">
+              <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:14px;background:var(--surface);outline:{{ l.ring }};outline-offset:-2px">
+                <img src="{{ l.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ l.pos }}" />
+                <sc-if value="{{ l.isDefault }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;left:8px;top:8px;background:var(--ink);color:#fff;border-radius:9999px;padding:3px 9px;font-size:10px;font-weight:600;letter-spacing:.04em">DEFAULT</span>
+                </sc-if>
+              </span>
+              <span style="display:block;margin-top:7px;font-size:13px;line-height:18px;color:var(--ink-700)">{{ l.label }}</span>
+            </button>
+          </sc-for>
+          <button onClick="{{ addPhotoForCat }}" style="border:1px dashed var(--line);border-radius:14px;background:none;aspect-ratio:3/4;display:grid;place-items:center;color:var(--accent);font-size:14px;font-weight:500">+ Add a photo</button>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sGen }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:fade .25s var(--ease)">
+        <h1 style="margin:0 0 4px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ genTitle }}</h1>
+        <p style="margin:0 0 16px;font-size:15px;line-height:22px;color:var(--ink-700)">{{ genLine }}</p>
+        <sc-if value="{{ genDone }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ openReady }}" style="height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1;margin-bottom:16px">See your four poses</button>
+        </sc-if>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <sc-for list="{{ poseTiles }}" as="p" hint-placeholder-count="4">
+            <div>
+              <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:14px;background:linear-gradient(90deg,#DCDCDA 0%,#EFEFED 40%,#DCDCDA 80%);background-size:200% 100%;animation:shimmer 1.5s linear infinite">
+                <sc-if value="{{ p.done }}" hint-placeholder-val="{{ false }}">
+                  <img src="{{ p.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ p.pos }};transform:{{ p.tf }};animation:pop .35s var(--ease)" />
+                </sc-if>
+              </span>
+              <span style="display:block;margin-top:7px;font-size:13px;line-height:18px;color:{{ p.color }}">{{ p.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ genRunning }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ goFeed }}" style="height:48px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Keep browsing while it renders</button>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sFail }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease)">
+        <div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start">
+          <span style="flex:none;width:56px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+            <img src="{{ curProductThumb }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ curOnYouPos }}" />
+          </span>
+          <span style="flex:1;display:block">
+            <span style="display:block;font-size:17px;line-height:23px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">We couldn't render this one honestly</span>
+            <span style="display:block;margin-top:4px;font-size:14px;line-height:20px;color:var(--ink-700)">The only photo {{ curBrand }} gave us has the jacket folded over an arm, so we can't tell where the hem falls. We'd rather say so than show you a guess.</span>
+          </span>
+        </div>
+        <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">CLOSEST THREE WE CAN PUT ON YOU</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+          <sc-for list="{{ nearMatches }}" as="n" hint-placeholder-count="3">
+            <button onClick="{{ n.tryOn }}" style="border:none;padding:0;background:none;text-align:left;display:block">
+              <span style="display:block;aspect-ratio:3/4;overflow:hidden;border-radius:12px;background:var(--surface)">
+                <img src="{{ n.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ n.pos }}" />
+              </span>
+              <span style="display:block;margin-top:6px;font-size:12px;line-height:16px;color:var(--ink-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ n.name }}</span>
+              <span style="display:block;font-size:12px;line-height:16px;font-variant-numeric:tabular-nums;color:var(--ink)">{{ n.price }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <button onClick="{{ notifyWhenReady }}" style="height:48px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Email me if we get better photos</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sResult }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:reveal .45s var(--ease);padding-bottom:24px">
+        <div style="position:relative">
+          <div ref="{{ galRef }}" data-gal="poses" onScroll="{{ onGalScroll }}" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none">
+            <sc-for list="{{ resultPoses }}" as="rp" hint-placeholder-count="4">
+              <span style="flex:none;width:100%;scroll-snap-align:start;display:block;position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--surface)">
+                <img src="{{ rp.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ rp.pos }};transform:{{ rp.tf }}" />
+              </span>
+            </sc-for>
+          </div>
+          <span style="position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:5px 10px;font-size:11px;font-weight:600;letter-spacing:.04em">ON YOU</span>
+          <span style="position:absolute;right:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:5px 10px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums">{{ galCounter }}</span>
+          <span style="position:absolute;left:0;right:0;bottom:12px;display:flex;gap:5px;justify-content:center">
+            <sc-for list="{{ galDots }}" as="d" hint-placeholder-count="4">
+              <span style="width:6px;height:6px;border-radius:9999px;background:{{ d.bg }};box-shadow:0 1px 2px rgba(0,0,0,.4)"></span>
+            </sc-for>
+          </span>
+        </div>
+        <div style="display:flex;gap:6px;padding:8px 16px 0">
+          <sc-for list="{{ poseThumbs }}" as="pt" hint-placeholder-count="4">
+            <button onClick="{{ pt.go }}" style="flex:none;width:44px;border:none;padding:0;background:none;display:block">
+              <span style="display:block;position:relative;width:44px;height:56px;overflow:hidden;border-radius:7px;background:var(--surface);outline:{{ pt.ring }};outline-offset:-2px;opacity:{{ pt.opacity }}">
+                <img src="{{ pt.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ pt.pos }};transform:{{ pt.tf }}" />
+              </span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="padding:10px 16px 16px">
+          <p style="margin:0 0 2px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">{{ curBrand }}</p>
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <h1 style="flex:1;margin:0;font-size:22px;line-height:28px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ curName }}</h1>
+            <span style="flex:none;font-size:18px;line-height:28px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ curPrice }}</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
+            <p style="flex:1;margin:0;font-size:14px;line-height:20px;color:var(--ink)">{{ curFitLine }}</p>
+            <button onClick="{{ openFit }}" style="flex:none;background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--accent)">Edit fit</button>
+          </div>
+          <p style="margin:2px 0 0;font-size:13px;line-height:18px;color:{{ stockColor }}">{{ curStock }}</p>
+          <button onClick="{{ buy }}" style="margin-top:12px;height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1;transition:transform 150ms var(--ease)" style-active="transform:scale(.985)">Buy {{ curPrice }}</button>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+            <button onClick="{{ openList }}" style="flex:1;height:48px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Add to a list</button>
+            <button onClick="{{ openList }}" style="flex:none;width:48px;height:48px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:18px">{{ savedIcon }}</button>
+          </div>
+        </div>
+        <div style="margin:0 16px;border-top:1px solid var(--line-soft);padding-top:14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="flex:1;display:block">
+              <span style="display:block;font-size:14px;line-height:19px;font-weight:600;color:var(--ink)">Build the outfit</span>
+              <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">Have a look, then decide</span>
+            </span>
+            <span style="flex:none;display:flex;gap:8px">
+              <sc-for list="{{ pairWith }}" as="p" hint-placeholder-count="2">
+                <button onClick="{{ p.preview }}" style="width:52px;height:52px;border:1px solid var(--line);border-radius:9999px;overflow:hidden;padding:0;background:none;display:block">
+                  <img src="{{ p.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ p.pos }}" />
+                </button>
+              </sc-for>
+            </span>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:17px;color:var(--ink-600)">Kept in You. Same light and crop on every piece, so two try-ons are comparable.</p>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sOutfit }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:reveal .4s var(--ease);padding-bottom:24px">
+        <div style="position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--surface)">
+          <img src="{{ outfitSrc }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 28%;transform:scale(1.04)" />
+          <span style="position:absolute;left:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:5px 10px;font-size:11px;font-weight:600;letter-spacing:.04em">OUTFIT · ON YOU</span>
+        </div>
+        <div style="padding:16px">
+          <h1 style="margin:0 0 14px;font-size:22px;line-height:28px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ outfitTitle }}</h1>
+          <sc-for list="{{ outfitItems }}" as="oi" hint-placeholder-count="2">
+            <div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft)">
+              <span style="flex:none;width:44px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+                <img src="{{ oi.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ oi.pos }}" />
+              </span>
+              <span style="flex:1;display:block">
+                <span style="display:block;font-size:14px;line-height:19px;color:var(--ink)">{{ oi.name }}</span>
+                <span style="display:block;font-size:13px;line-height:18px;color:var(--ink-600)">{{ oi.brand }}</span>
+              </span>
+              <span style="flex:none;font-size:14px;line-height:19px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ oi.price }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:12px 0 0">
+            <span style="font-size:14px;line-height:19px;color:var(--ink-700)">Both pieces</span>
+            <span style="font-size:18px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)">{{ outfitTotal }}</span>
+          </div>
+          <button onClick="{{ buy }}" style="margin-top:14px;height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Buy the outfit</button>
+          <button onClick="{{ openList }}" style="margin-top:10px;height:48px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Add outfit to a list</button>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sNotify }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease);min-height:100%;display:flex;flex-direction:column">
+        <div style="flex:1">
+          <p style="margin:0 0 3px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:var(--ink-600)">STEP 1 OF 2</p>
+          <h1 style="margin:0 0 8px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">Stay in the loop</h1>
+          <p style="margin:0 0 18px;font-size:15px;line-height:22px;color:var(--ink-700)">We'll email you when a label you follow adds something new, when a friend votes on your list, and when a price on your list moves. Nothing else.</p>
+          <input value="{{ email }}" onChange="{{ setEmail }}" placeholder="you@email.com" style="height:50px;width:100%;padding:0 16px;border:1px solid var(--line);border-radius:12px;font-size:16px;color:var(--ink);background:var(--canvas);margin-bottom:14px" />
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ emailPrefs }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.toggle }}" style="width:100%;display:flex;gap:12px;align-items:center;text-align:left;background:none;border:{{ p.border }};border-radius:12px;padding:12px">
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;font-weight:500;color:var(--ink)">{{ p.label }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ p.meta }}</span>
+                </span>
+                <span style="flex:none;width:24px;height:24px;border-radius:9999px;background:{{ p.dotBg }};border:{{ p.dotBorder }};color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">{{ p.mark }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <button onClick="{{ allowEmail }}" style="margin-top:18px;height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Keep me posted</button>
+        <button onClick="{{ skipEmail }}" style="margin-top:8px;height:46px;width:100%;border:none;background:none;font-size:15px;font-weight:500;line-height:1;color:var(--ink-600)">Not now</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sFollows }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease);min-height:100%;display:flex;flex-direction:column">
+        <div style="flex:1">
+          <p style="margin:0 0 3px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.1em;color:var(--ink-600)">STEP 2 OF 2</p>
+          <h1 style="margin:0 0 8px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">Pick three labels</h1>
+          <p style="margin:0 0 18px;font-size:15px;line-height:22px;color:var(--ink-700)">Whatever they add shows up in Discover, already on you.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ followPicks }}" as="fp" hint-placeholder-count="4">
+              <button onClick="{{ fp.toggle }}" style="width:100%;display:flex;gap:12px;align-items:center;text-align:left;background:var(--canvas);border:{{ fp.border }};border-radius:14px;padding:10px 12px">
+                <span style="flex:none;width:48px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+                  <img src="{{ fp.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ fp.pos }}" />
+                </span>
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;font-weight:600;color:var(--ink)">{{ fp.brand }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ fp.meta }}</span>
+                </span>
+                <span style="flex:none;width:26px;height:26px;border-radius:9999px;background:{{ fp.dotBg }};border:{{ fp.dotBorder }};color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600">{{ fp.mark }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <button onClick="{{ doneFollows }}" style="margin-top:18px;height:52px;width:100%;border:none;border-radius:9999px;background:{{ followsBtnBg }};color:#fff;font-size:16px;font-weight:600;line-height:1">{{ followsBtnLabel }}</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sSaved }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px 16px 24px;animation:rise .3s var(--ease)">
+        <div style="display:flex;gap:6px;padding:3px;background:var(--surface);border-radius:12px;margin-bottom:16px">
+          <button onClick="{{ pickMine }}" style="flex:1;height:38px;border:none;border-radius:10px;background:{{ mineBg }};color:{{ mineColor }};font-size:14px;font-weight:600;line-height:1;box-shadow:{{ mineShadow }}">My lists</button>
+          <button onClick="{{ pickAsks }}" style="flex:1;height:38px;border:none;border-radius:10px;background:{{ asksBg }};color:{{ asksColor }};font-size:14px;font-weight:600;line-height:1;box-shadow:{{ asksShadow }};display:flex;align-items:center;justify-content:center;gap:6px">
+            <span>Asks</span>
+            <sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ false }}">
+              <span style="width:18px;height:18px;border-radius:9999px;background:var(--danger);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700">{{ unreadCount }}</span>
+            </sc-if>
+          </button>
+        </div>
+
+        <sc-if value="{{ tabMine }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+            <p style="margin:0;font-size:13px;line-height:18px;color:var(--ink-600)">{{ listsMeta }}</p>
+            <button onClick="{{ newList }}" style="background:none;border:none;padding:0;font-size:14px;font-weight:600;color:var(--accent)">New list</button>
+          </div>
+          <sc-if value="{{ listsEmpty }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid var(--line);border-radius:16px;padding:18px">
+              <p style="margin:0;font-size:15px;line-height:22px;color:var(--ink-700)">Save anything you're weighing up into a list, then ask friends what they think. One piece or five — they vote in one tap each.</p>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ lists }}" as="l" hint-placeholder-count="2">
+              <button onClick="{{ l.open }}" style="width:100%;border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;background:var(--canvas);text-align:left">
+                <span style="flex:none;display:flex;gap:3px">
+                  <sc-for list="{{ l.thumbs }}" as="th" hint-placeholder-count="2">
+                    <span style="flex:none;width:44px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+                      <img src="{{ th.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ th.pos }}" />
+                    </span>
+                  </sc-for>
+                </span>
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;font-weight:600;color:var(--ink)">{{ l.name }}</span>
+                  <span style="display:block;font-size:13px;line-height:18px;color:{{ l.metaColor }}">{{ l.meta }}</span>
+                  <sc-if value="{{ l.shared }}" hint-placeholder-val="{{ false }}">
+                    <span style="display:block;margin-top:6px;height:6px;border-radius:9999px;background:var(--line-soft);overflow:hidden">
+                      <span style="display:block;height:100%;background:var(--ink);width:{{ l.pct }}%"></span>
+                    </span>
+                    <span style="display:block;margin-top:5px;font-size:12px;line-height:16px;color:var(--ink-600)">{{ l.voteLine }}</span>
+                  </sc-if>
+                </span>
+                <span style="flex:none;color:var(--ink-500);font-size:16px">→</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ tabAsks }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0 0 12px;font-size:13px;line-height:18px;color:var(--ink-600)">Friends waiting on you. One tap each.</p>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ asks }}" as="a" hint-placeholder-count="2">
+              <button onClick="{{ a.open }}" style="width:100%;border:{{ a.border }};border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;background:var(--canvas);text-align:left">
+                <span style="flex:none;display:flex;gap:3px">
+                  <sc-for list="{{ a.thumbs }}" as="th" hint-placeholder-count="2">
+                    <span style="flex:none;width:40px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+                      <img src="{{ th.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ th.pos }}" />
+                    </span>
+                  </sc-for>
+                </span>
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;font-weight:600;color:var(--ink)">{{ a.who }}</span>
+                  <span style="display:block;font-size:13px;line-height:18px;color:var(--ink-600)">{{ a.meta }}</span>
+                </span>
+                <sc-if value="{{ a.unread }}" hint-placeholder-val="{{ true }}">
+                  <span style="flex:none;width:9px;height:9px;border-radius:9999px;background:var(--danger)"></span>
+                </sc-if>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sAskDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease)">
+        <h1 style="margin:0 0 4px;font-size:22px;line-height:28px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ askWho }}</h1>
+        <p style="margin:0 0 16px;font-size:15px;line-height:22px;color:var(--ink-700)">{{ askQuestion }}</p>
+        <div style="display:flex;gap:12px">
+          <sc-for list="{{ askOptions }}" as="ao" hint-placeholder-count="2">
+            <div style="flex:1;display:flex;flex-direction:column">
+              <span style="display:block;aspect-ratio:3/4;overflow:hidden;border-radius:14px;background:var(--surface)">
+                <img src="{{ ao.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ ao.pos }}" />
+              </span>
+              <span style="display:block;margin:8px 0 10px;font-size:13px;line-height:18px;color:var(--ink-700)">{{ ao.name }}</span>
+              <button onClick="{{ ao.vote }}" style="height:46px;border:{{ ao.border }};border-radius:9999px;background:{{ ao.bg }};color:{{ ao.color }};font-size:15px;font-weight:600;line-height:1">{{ ao.label }}</button>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ askVoted }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px;border:1px solid var(--line);border-radius:16px;padding:14px">
+            <p style="margin:0 0 4px;font-size:15px;line-height:21px;font-weight:600;color:var(--ink)">Sent. {{ askWhoFirst }} can see it.</p>
+            <p style="margin:0 0 12px;font-size:14px;line-height:20px;color:var(--ink-700)">You have a photo on file — try this on yourself while you're here.</p>
+            <button onClick="{{ tryAsked }}" style="height:46px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:15px;font-weight:600;line-height:1">See it on me</button>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sList }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px 16px 24px;animation:rise .3s var(--ease)">
+        <h1 style="margin:0 0 2px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ listName }}</h1>
+        <p style="margin:0 0 16px;font-size:13px;line-height:18px;color:var(--ink-600)">{{ listMeta }}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin-bottom:18px">
+          <sc-for list="{{ listItems }}" as="li" hint-placeholder-count="2">
+            <button onClick="{{ li.open }}" style="border:none;padding:0;background:none;text-align:left;display:block">
+              <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:14px;background:var(--surface)">
+                <img src="{{ li.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ li.pos }}" />
+                <sc-if value="{{ li.onYou }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;left:8px;top:8px;background:rgba(0,0,0,.5);color:#fff;border-radius:9999px;padding:3px 8px;font-size:10px;font-weight:600;letter-spacing:.04em">ON YOU</span>
+                </sc-if>
+              </span>
+              <span style="display:block;margin-top:8px;font-size:14px;line-height:19px;color:var(--ink-800)">{{ li.name }}</span>
+              <span style="display:block;font-size:14px;line-height:19px;font-variant-numeric:tabular-nums;color:var(--ink)">{{ li.price }}</span>
+            </button>
+          </sc-for>
+        </div>
+        <button onClick="{{ askFromList }}" disabled="{{ askBlocked }}" style="height:52px;width:100%;border:none;border-radius:9999px;background:{{ askBtnBg }};color:#fff;font-size:16px;font-weight:600;line-height:1">{{ askBtnLabel }}</button>
+        <p style="margin:12px 0 0;font-size:12px;line-height:17px;color:var(--ink-600);text-align:center">They vote in one tap. No app, no account.</p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sShareSheet }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease)">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px">
+          <p style="margin:0 0 12px;font-size:12px;line-height:16px;color:var(--ink-600);text-align:center">trailroom.ai/ask/8f2c</p>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <sc-for list="{{ sharePreview }}" as="sp" hint-placeholder-count="2">
+              <span style="flex:1;aspect-ratio:3/4;overflow:hidden;border-radius:10px;display:block;background:var(--canvas)">
+                <img src="{{ sp.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ sp.pos }}" />
+              </span>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onClick="{{ confirmShare }}" style="flex:1;height:52px;border:none;border-radius:14px;background:var(--ink);color:#fff;font-size:15px;font-weight:600;line-height:1">Messages</button>
+            <button onClick="{{ confirmShare }}" style="flex:1;height:52px;border:1px solid var(--line);border-radius:14px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">WhatsApp</button>
+            <button onClick="{{ confirmShare }}" style="flex:none;width:52px;height:52px;border:1px solid var(--line);border-radius:14px;background:var(--canvas);color:var(--ink);font-size:16px">···</button>
+          </div>
+        </div>
+        <p style="margin:16px 0 0;font-size:14px;line-height:20px;color:var(--ink-700);text-align:center">Pick a thread. Votes come back to the list.</p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sSent }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px;animation:rise .3s var(--ease)">
+        <h1 style="margin:0 0 4px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ sentTitle }}</h1>
+        <p style="margin:0 0 18px;font-size:15px;line-height:22px;color:var(--ink-700)">{{ sentSub }}</p>
+        <sc-for list="{{ voteRows }}" as="v" hint-placeholder-count="2">
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">
+            <span style="flex:none;width:64px;aspect-ratio:3/4;overflow:hidden;border-radius:10px;background:var(--surface);display:block">
+              <img src="{{ v.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ v.pos }}" />
+            </span>
+            <span style="flex:1;display:block">
+              <span style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                <span style="font-size:14px;line-height:19px;color:var(--ink)">{{ v.name }}</span>
+                <span style="font-size:14px;line-height:19px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)">{{ v.pctLabel }}</span>
+              </span>
+              <span style="display:block;height:8px;border-radius:9999px;background:var(--line-soft);overflow:hidden">
+                <span style="display:block;height:100%;background:{{ v.barColor }};width:{{ v.pct }}%;transition:width 500ms var(--ease)"></span>
+              </span>
+              <span style="display:block;margin-top:6px;font-size:12px;line-height:16px;color:var(--ink-600)">{{ v.who }}</span>
+            </span>
+          </div>
+        </sc-for>
+        <button onClick="{{ buyWinner }}" style="margin-top:8px;height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Buy the {{ winnerShort }}</button>
+        <button onClick="{{ goVote }}" style="margin-top:12px;width:100%;background:none;border:none;padding:0;font-size:14px;font-weight:500;color:var(--accent)">See the page your friends open →</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sYou }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px 16px 24px;animation:rise .3s var(--ease)">
+        <h1 style="margin:0 0 16px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">You</h1>
+
+        <div style="display:flex;gap:10px;margin-bottom:20px">
+          <div style="flex:1;border:1px solid var(--line);border-radius:14px;padding:12px">
+            <p style="margin:0 0 2px;font-size:22px;line-height:28px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ tryOnCount }}</p>
+            <p style="margin:0;font-size:12px;line-height:16px;color:var(--ink-600)">try-ons kept</p>
+          </div>
+          <div style="flex:1;border:1px solid var(--line);border-radius:14px;padding:12px">
+            <p style="margin:0 0 2px;font-size:22px;line-height:28px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ weekCount }}</p>
+            <p style="margin:0;font-size:12px;line-height:16px;color:var(--ink-600)">this week</p>
+          </div>
+          <div style="flex:1;border:1px solid var(--line);border-radius:14px;padding:12px">
+            <p style="margin:0 0 2px;font-size:22px;line-height:28px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ listCount }}</p>
+            <p style="margin:0;font-size:12px;line-height:16px;color:var(--ink-600)">lists</p>
+          </div>
+        </div>
+
+        <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">YOUR TRY-ONS</p>
+        <sc-if value="{{ noTryOns }}" hint-placeholder-val="{{ true }}">
+          <div style="border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:20px">
+            <p style="margin:0;font-size:15px;line-height:22px;color:var(--ink-700)">Every try-on you make is kept here, in all four poses.</p>
+          </div>
+        </sc-if>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:22px">
+          <sc-for list="{{ tryOnGrid }}" as="t" hint-placeholder-count="3">
+            <button onClick="{{ t.open }}" style="border:none;padding:0;background:none;display:block">
+              <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:10px;background:var(--surface)">
+                <img src="{{ t.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ t.pos }}" />
+                <span style="position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.5);color:#fff;border-radius:9999px;padding:2px 7px;font-size:9px;font-weight:600">4</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+
+        <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">YOUR PHOTOS</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+          <sc-for list="{{ photoCats }}" as="pc" hint-placeholder-count="3">
+            <div style="border:1px solid var(--line);border-radius:16px;padding:12px">
+              <button onClick="{{ pc.toggle }}" style="width:100%;display:flex;gap:12px;align-items:center;background:none;border:none;padding:0;text-align:left">
+                <span style="flex:none;width:44px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+                  <img src="{{ pc.defaultSrc }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ pc.defaultPos }};opacity:{{ pc.opacity }}" />
+                </span>
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;font-weight:600;color:var(--ink)">{{ pc.label }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ pc.meta }}</span>
+                </span>
+                <span style="flex:none;font-size:13px;font-weight:600;color:var(--accent)">{{ pc.chev }}</span>
+              </button>
+              <sc-if value="{{ pc.open }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:12px">
+                  <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+                    <sc-for list="{{ pc.photos }}" as="ph" hint-placeholder-count="2">
+                      <button onClick="{{ ph.makeDefault }}" style="flex:none;width:84px;border:none;padding:0;background:none;text-align:left">
+                        <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:10px;background:var(--surface);outline:{{ ph.ring }};outline-offset:-2px">
+                          <img src="{{ ph.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ ph.pos }}" />
+                          <sc-if value="{{ ph.isDefault }}" hint-placeholder-val="{{ false }}">
+                            <span style="position:absolute;left:5px;top:5px;background:var(--ink);color:#fff;border-radius:9999px;padding:2px 7px;font-size:9px;font-weight:600;letter-spacing:.04em">DEFAULT</span>
+                          </sc-if>
+                        </span>
+                        <span style="display:block;margin-top:5px;font-size:11px;line-height:15px;color:{{ ph.labelColor }}">{{ ph.action }}</span>
+                      </button>
+                    </sc-for>
+                    <button onClick="{{ pc.add }}" style="flex:none;width:84px;aspect-ratio:3/4;border:1px dashed var(--line);border-radius:10px;background:none;color:var(--accent);font-size:12px;font-weight:500">+ Add</button>
+                  </div>
+                  <p style="margin:10px 0 0;font-size:12px;line-height:17px;color:var(--ink-600)">{{ pc.hint }}</p>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">FIT AND EMAIL</p>
+        <div style="border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center">
+          <span style="flex:1;display:block">
+            <span style="display:block;font-size:15px;line-height:20px;color:var(--ink)">{{ fitMeta }}</span>
+            <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">Used to describe how each piece sits on you</span>
+          </span>
+          <button onClick="{{ openFit }}" style="flex:none;height:34px;padding:0 14px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:13px;font-weight:500;line-height:1">Edit</button>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:20px;display:flex;gap:12px;align-items:center">
+          <span style="flex:1;display:block">
+            <span style="display:block;font-size:15px;line-height:20px;color:var(--ink)">{{ emailState }}</span>
+            <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ emailMeta }}</span>
+          </span>
+          <button onClick="{{ goNotify }}" style="flex:none;height:34px;padding:0 14px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:13px;font-weight:500;line-height:1">Manage</button>
+        </div>
+
+        <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">FOLLOWING</p>
+        <sc-for list="{{ followList }}" as="fl" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft)">
+            <span style="flex:none;width:38px;height:38px;border-radius:9999px;overflow:hidden;border:1px solid var(--line);display:block">
+              <img src="{{ fl.src }}" alt="" style="width:100%;height:100%;object-fit:cover" />
+            </span>
+            <span style="flex:1;display:block">
+              <span style="display:block;font-size:14px;line-height:19px;font-weight:600;color:var(--ink)">{{ fl.brand }}</span>
+              <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ fl.meta }}</span>
+            </span>
+            <button onClick="{{ fl.toggle }}" style="flex:none;height:32px;padding:0 14px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:13px;font-weight:500;line-height:1">{{ fl.label }}</button>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sBrand }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .3s var(--ease);padding-bottom:24px">
+        <div style="padding:16px">
+          <p style="margin:0 0 3px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">{{ curBrandMeta }}</p>
+          <h1 style="margin:0 0 12px;font-size:26px;line-height:32px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ curBrand }}</h1>
+          <div style="display:flex;gap:22px;margin-bottom:16px">
+            <span style="display:block">
+              <span style="display:block;font-size:19px;line-height:25px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">38</span>
+              <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">pieces</span>
+            </span>
+            <span style="display:block">
+              <span style="display:block;font-size:19px;line-height:25px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">31</span>
+              <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">try-on ready</span>
+            </span>
+            <span style="display:block">
+              <span style="display:block;font-size:19px;line-height:25px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">4,180</span>
+              <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">followers</span>
+            </span>
+          </div>
+          <button onClick="{{ toggleFollow }}" style="height:50px;width:100%;border:{{ followBorder }};border-radius:9999px;background:{{ followBg }};color:{{ followColor }};font-size:16px;font-weight:600;line-height:1">{{ followLabel }}</button>
+        </div>
+        <div style="padding:0 16px;display:grid;grid-template-columns:1fr 1fr;gap:14px 12px">
+          <sc-for list="{{ brandGrid }}" as="b" hint-placeholder-count="4">
+            <button onClick="{{ b.open }}" style="border:none;padding:0;background:none;text-align:left;display:block">
+              <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:14px;background:var(--surface)">
+                <img src="{{ b.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ b.pos }}" />
+                <sc-if value="{{ b.onYou }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute;left:8px;top:8px;background:rgba(0,0,0,.5);color:#fff;border-radius:9999px;padding:3px 8px;font-size:10px;font-weight:600;letter-spacing:.04em">ON YOU</span>
+                </sc-if>
+              </span>
+              <span style="display:block;margin-top:8px;font-size:14px;line-height:19px;color:var(--ink-800)">{{ b.name }}</span>
+              <span style="display:block;font-size:14px;line-height:19px;font-variant-numeric:tabular-nums;color:var(--ink)">{{ b.price }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sDesigner }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .3s var(--ease)">
+        <div style="padding:16px 16px 10px">
+          <p style="margin:0 0 3px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">DESIGNER</p>
+          <h1 style="margin:0 0 12px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">Loam Studio</h1>
+          <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none">
+            <sc-for list="{{ dTabs }}" as="t" hint-placeholder-count="4">
+              <button onClick="{{ t.pick }}" style="flex:none;height:34px;padding:0 14px;border-radius:9999px;border:{{ t.border }};background:{{ t.bg }};color:{{ t.color }};font-size:14px;font-weight:500;line-height:1">{{ t.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding:8px 16px 24px">
+          <sc-if value="{{ dReg }}" hint-placeholder-val="{{ true }}">
+            <h2 style="margin:0 0 12px;font-size:19px;line-height:25px;font-weight:500;color:var(--ink)">Verify the label</h2>
+            <sc-for list="{{ verifySteps }}" as="v" hint-placeholder-count="3">
+              <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line-soft)">
+                <span style="flex:none;width:22px;height:22px;border-radius:9999px;background:{{ v.bg }};color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">{{ v.mark }}</span>
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;color:var(--ink)">{{ v.title }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ v.meta }}</span>
+                </span>
+              </div>
+            </sc-for>
+            <button onClick="{{ dNext }}" style="margin-top:18px;height:48px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:500;line-height:1">Add products</button>
+          </sc-if>
+          <sc-if value="{{ dProd }}" hint-placeholder-val="{{ false }}">
+            <h2 style="margin:0 0 4px;font-size:19px;line-height:25px;font-weight:500;color:var(--ink)">Try-on readiness</h2>
+            <p style="margin:0 0 14px;font-size:14px;line-height:20px;color:var(--ink-700)">31 of 38 products are ready. Every piece needs the same four angles, shot the same way.</p>
+            <div style="border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:16px">
+              <p style="margin:0 0 8px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">HOUSE STYLE · NON-NEGOTIABLE</p>
+              <div style="display:flex;gap:8px">
+                <sc-for list="{{ houseStyle }}" as="hs" hint-placeholder-count="4">
+                  <span style="flex:1;display:block">
+                    <span style="display:block;aspect-ratio:3/4;overflow:hidden;border-radius:8px;background:var(--surface)">
+                      <img src="{{ hs.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ hs.pos }};transform:{{ hs.tf }}" />
+                    </span>
+                    <span style="display:block;margin-top:5px;font-size:10px;line-height:14px;color:var(--ink-600)">{{ hs.label }}</span>
+                  </span>
+                </sc-for>
+              </div>
+              <p style="margin:10px 0 0;font-size:12px;line-height:17px;color:var(--ink-700)">Same light, same crop, same order on every piece — that's what makes two try-ons comparable to a customer.</p>
+            </div>
+            <sc-for list="{{ readiness }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft)">
+                <span style="flex:none;width:40px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+                  <img src="{{ r.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ r.pos }}" />
+                </span>
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;color:var(--ink)">{{ r.name }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:{{ r.color }}">{{ r.note }}</span>
+                </span>
+                <span style="flex:none;font-size:16px;line-height:20px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ r.score }}</span>
+              </div>
+            </sc-for>
+            <button onClick="{{ dNext }}" style="margin-top:18px;height:48px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:500;line-height:1">Publish</button>
+          </sc-if>
+          <sc-if value="{{ dDrop }}" hint-placeholder-val="{{ false }}">
+            <h2 style="margin:0 0 14px;font-size:19px;line-height:25px;font-weight:500;color:var(--ink)">Autumn collection</h2>
+            <div style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px">
+              <p style="margin:0 0 4px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">GOES LIVE</p>
+              <p style="margin:0;font-size:16px;line-height:23px;color:var(--ink)">As soon as you publish · 6 pieces</p>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px">
+              <p style="margin:0 0 4px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">REACHES</p>
+              <p style="margin:0;font-size:16px;line-height:23px;color:var(--ink)">4,180 followers, rendered on each of them</p>
+            </div>
+            <button onClick="{{ dNext }}" style="height:48px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:500;line-height:1">Publish collection</button>
+          </sc-if>
+          <sc-if value="{{ dDash }}" hint-placeholder-val="{{ false }}">
+            <h2 style="margin:0 0 4px;font-size:19px;line-height:25px;font-weight:500;color:var(--ink)">Autumn collection, 24 hours in</h2>
+            <p style="margin:0 0 14px;font-size:14px;line-height:20px;color:var(--ink-700)">Aggregated and anonymised. You never see a person's try-on.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <sc-for list="{{ dStats }}" as="st" hint-placeholder-count="4">
+                <div style="border:1px solid var(--line);border-radius:12px;padding:14px">
+                  <p style="margin:0 0 2px;font-size:22px;line-height:28px;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)">{{ st.n }}</p>
+                  <p style="margin:0;font-size:12px;line-height:16px;color:var(--ink-600)">{{ st.label }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background:var(--surface);border-radius:12px;padding:14px;margin-top:16px">
+              <p style="margin:0;font-size:14px;line-height:20px;color:var(--ink-700)">318 people put the linen shirt in a list with two other labels. You lost 61% of those votes to Marchand.</p>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+
+    <div style="flex:none;height:64px;border-top:1px solid var(--line-soft);background:var(--canvas);display:flex;align-items:stretch">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.pick }}" style="flex:1;border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:{{ t.color }};position:relative">
+          <span style="display:block;width:18px;height:18px;border-radius:{{ t.radius }};border:1.5px solid currentColor;background:{{ t.fill }}"></span>
+          <span style="display:block;font-size:11px;line-height:14px;font-weight:{{ t.weight }}">{{ t.label }}</span>
+          <sc-if value="{{ t.dot }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute;top:12px;right:34px;width:8px;height:8px;border-radius:9999px;background:var(--danger)"></span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ sCam }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:#111;display:flex;flex-direction:column;animation:fade .2s var(--ease)">
+      <div style="flex:1;position:relative;overflow:hidden">
+        <img src="{{ camSrc }}" alt="" style="width:100%;height:100%;object-fit:cover;filter:brightness(.82)" />
+        <div style="position:absolute;inset:48px 56px 120px;border:2px solid rgba(255,255,255,.75);border-radius:140px 140px 28px 28px"></div>
+        <p style="position:absolute;left:0;right:0;bottom:150px;text-align:center;margin:0;font-size:22px;line-height:28px;font-weight:500;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5);padding:0 32px">{{ camCue }}</p>
+      </div>
+      <div style="flex:none;padding:18px 16px 26px;text-align:center;background:#111">
+        <p style="margin:0 0 12px;font-size:13px;line-height:18px;color:#B0B0B0">{{ camSub }}</p>
+        <button onClick="{{ camAccept }}" style="height:48px;width:100%;border:none;border-radius:9999px;background:#fff;color:#111;font-size:16px;font-weight:600;line-height:1">{{ camBtn }}</button>
+        <button onClick="{{ closeCam }}" style="background:none;border:none;padding:12px 0 0;font-size:14px;font-weight:500;color:#B0B0B0">Cancel</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;flex-direction:column;justify-content:flex-end;animation:fade .2s var(--ease)">
+      <button onClick="{{ closeSheet }}" style="flex:1;border:none;background:none;padding:0"></button>
+      <div style="flex:none;background:var(--canvas);border-radius:22px 22px 0 0;padding:20px 16px 24px;animation:sheetup .3s var(--ease)">
+
+        <sc-if value="{{ sheetTryOn }}" hint-placeholder-val="{{ true }}">
+          <p style="margin:0 0 12px;font-size:19px;line-height:25px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Try on the {{ curNameLower }}</p>
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">
+            <span style="flex:none;width:76px;aspect-ratio:3/4;overflow:hidden;border-radius:10px;display:block;background:var(--surface)">
+              <img src="{{ defaultPhotoSrc }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ defaultPhotoPos }}" />
+            </span>
+            <span style="flex:1;font-size:14px;line-height:20px;color:var(--ink-700)">Using your default {{ slotWord }} photo. Four poses come back in about ten seconds — you don't have to wait here.</span>
+          </div>
+          <button onClick="{{ confirmTryOn }}" style="height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Add to the queue</button>
+          <button onClick="{{ chooseOther }}" style="margin-top:10px;height:48px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Use a different photo</button>
+        </sc-if>
+
+        <sc-if value="{{ sheetList }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0 0 14px;font-size:19px;line-height:25px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Save to a list</p>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+            <sc-for list="{{ listChoices }}" as="lc" hint-placeholder-count="2">
+              <button onClick="{{ lc.pick }}" style="width:100%;display:flex;gap:12px;align-items:center;text-align:left;background:none;border:{{ lc.border }};border-radius:14px;padding:10px 12px">
+                <span style="flex:none;width:44px;aspect-ratio:3/4;overflow:hidden;border-radius:8px;display:block;background:var(--surface)">
+                  <img src="{{ lc.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ lc.pos }}" />
+                </span>
+                <span style="flex:1;display:block">
+                  <span style="display:block;font-size:15px;line-height:20px;font-weight:600;color:var(--ink)">{{ lc.name }}</span>
+                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ lc.meta }}</span>
+                </span>
+                <span style="flex:none;width:24px;height:24px;border-radius:9999px;background:{{ lc.dotBg }};border:{{ lc.dotBorder }};color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">{{ lc.mark }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <input value="{{ newListName }}" onChange="{{ setNewListName }}" placeholder="Name a new list, e.g. Wedding in September" style="height:48px;width:100%;padding:0 16px;border:1px solid var(--line);border-radius:12px;font-size:15px;color:var(--ink);background:var(--canvas);margin-bottom:10px" />
+          <button onClick="{{ createList }}" style="height:48px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Create list and add</button>
+          <button onClick="{{ closeSheet }}" style="margin-top:10px;height:48px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Done</button>
+        </sc-if>
+
+        <sc-if value="{{ sheetFit }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0 0 6px;font-size:19px;line-height:25px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Your measurements</p>
+          <p style="margin:0 0 16px;font-size:14px;line-height:20px;color:var(--ink-700)">Two answers, once. They turn every try-on into a sentence about where the hem lands on you.</p>
+          <p style="margin:0 0 8px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">HEIGHT</p>
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <sc-for list="{{ heightOptions }}" as="h" hint-placeholder-count="4">
+              <button onClick="{{ h.pick }}" style="flex:1;height:44px;border:{{ h.border }};border-radius:12px;background:{{ h.bg }};color:{{ h.color }};font-size:14px;font-weight:600;line-height:1">{{ h.label }}</button>
+            </sc-for>
+          </div>
+          <button onClick="{{ closeSheet }}" style="height:50px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Save</button>
+        </sc-if>
+
+        <sc-if value="{{ sheetPair }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0 0 3px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">ADD TO THE OUTFIT</p>
+          <h2 style="margin:0 0 14px;font-size:20px;line-height:26px;font-weight:500;letter-spacing:-.015em;color:var(--ink)">Worn with your {{ curNameShort }}</h2>
+          <div style="display:flex;gap:12px;margin-bottom:16px">
+            <span style="flex:none;width:116px;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--surface);display:block">
+              <img src="{{ pairSrc }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ pairPos }}" />
+            </span>
+            <span style="flex:1;min-width:0;display:block">
+              <span style="display:block;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">{{ pairBrand }}</span>
+              <span style="display:block;margin-top:2px;font-size:17px;line-height:23px;color:var(--ink)">{{ pairName }}</span>
+              <span style="display:block;font-size:16px;line-height:22px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ pairPrice }}</span>
+              <span style="display:block;margin-top:8px;font-size:13px;line-height:19px;color:var(--ink-700)">{{ pairDesc }}</span>
+              <span style="display:block;margin-top:6px;font-size:13px;line-height:18px;color:var(--ink-600)">{{ pairFit }}</span>
+            </span>
+          </div>
+          <button onClick="{{ confirmPair }}" style="height:50px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Add it — {{ pairTotal }} together</button>
+          <button onClick="{{ closeSheet }}" style="margin-top:10px;height:46px;width:100%;border:none;background:none;font-size:15px;font-weight:500;color:var(--ink-600)">Not this one</button>
+          <p style="margin:12px 0 0;font-size:12px;line-height:17px;color:var(--ink-600)">Both pieces stay in You as their own try-on, plus the outfit.</p>
+        </sc-if>
+
+        <sc-if value="{{ sheetAccount }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:12px;margin-bottom:16px">
+            <span style="flex:none;width:80px;aspect-ratio:3/4;overflow:hidden;border-radius:10px;display:block;background:var(--surface)">
+              <img src="{{ curOnYou }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ curOnYouPos }}" />
+            </span>
+            <span style="flex:1;display:block">
+              <span style="display:block;font-size:19px;line-height:25px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">{{ gateTitle }}</span>
+              <span style="display:block;margin-top:5px;font-size:14px;line-height:20px;color:var(--ink-700)">{{ gateSub }}</span>
+            </span>
+          </div>
+          <button onClick="{{ signIn }}" style="height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Continue with Apple</button>
+          <button onClick="{{ signIn }}" style="margin-top:10px;height:50px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:16px;font-weight:500;line-height:1">Continue with Google</button>
+          <p style="margin:12px 0 0;font-size:12px;line-height:17px;color:var(--ink-600);text-align:center">Your photos and try-ons carry over. {{ pendingLine }}</p>
+        </sc-if>
+
+        <sc-if value="{{ sheetBuy }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0 0 3px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">CHECKING OUT WITH {{ curBrand }}</p>
+          <h2 style="margin:0 0 14px;font-size:20px;line-height:26px;font-weight:500;letter-spacing:-.01em;color:var(--ink)">{{ curName }}, {{ curPrice }}</h2>
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <span style="flex:none;width:76px;aspect-ratio:3/4;overflow:hidden;border-radius:10px;display:block;background:var(--surface)">
+              <img src="{{ curOnYou }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ curOnYouPos }}" />
+            </span>
+            <span style="flex:1;display:block">
+              <span style="display:block;font-size:14px;line-height:20px;font-weight:600;color:var(--ink)">{{ buySizeLine }}</span>
+              <span style="display:block;margin-top:3px;font-size:14px;line-height:20px;color:var(--ink-700)">Size and colour carry over. Your try-on stays here, and we ask once whether it arrived.</span>
+            </span>
+          </div>
+          <button onClick="{{ confirmBuy }}" style="height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Open {{ curBrand }}</button>
+          <button onClick="{{ closeSheet }}" style="margin-top:10px;height:48px;width:100%;border:none;background:none;font-size:15px;font-weight:500;line-height:1;color:var(--ink-600)">Keep looking</button>
+        </sc-if>
+
+        <sc-if value="{{ sheetArrived }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:12px;margin-bottom:16px">
+            <span style="flex:none;width:76px;aspect-ratio:3/4;overflow:hidden;border-radius:10px;display:block;background:var(--surface)">
+              <img src="{{ curOnYou }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ curOnYouPos }}" />
+            </span>
+            <span style="flex:1;display:block">
+              <span style="display:block;font-size:19px;line-height:25px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">Did the {{ curNameLower }} arrive?</span>
+              <span style="display:block;margin-top:5px;font-size:14px;line-height:20px;color:var(--ink-700)">It tells us whether the render was honest, and we'll show you what goes with it.</span>
+            </span>
+          </div>
+          <button onClick="{{ arrivedYes }}" style="height:52px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1">Yes, it's mine</button>
+          <button onClick="{{ closeSheet }}" style="margin-top:10px;height:48px;width:100%;border:none;background:none;font-size:15px;font-weight:500;line-height:1;color:var(--ink-600)">Didn't buy it</button>
+        </sc-if>
+
+        <sc-if value="{{ sheetPrivacy }}" hint-placeholder-val="{{ false }}">
+          <h2 style="margin:0 0 12px;font-size:20px;line-height:26px;font-weight:500;letter-spacing:-.01em;color:var(--ink)">Your photos</h2>
+          <sc-for list="{{ privacyRows }}" as="p" hint-placeholder-count="4">
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line-soft)">
+              <span style="flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:9999px;background:var(--accent-tint);color:var(--accent);font-size:13px">{{ p.glyph }}</span>
+              <span style="flex:1;font-size:14px;line-height:20px;color:var(--ink-700)">{{ p.text }}</span>
+            </div>
+          </sc-for>
+          <button onClick="{{ closeSheet }}" style="margin-top:16px;height:48px;width:100%;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:500;line-height:1">Done</button>
+        </sc-if>
+
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:16px;right:16px;bottom:80px;background:var(--ink);color:#fff;border-radius:12px;padding:13px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 16px rgba(0,0,0,.18);animation:rise .25s var(--ease)">
+        <span style="flex:1;font-size:14px;line-height:20px">{{ toast }}</span>
+        <sc-if value="{{ toastAction }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ toastGo }}" style="flex:none;background:none;border:none;padding:0;font-size:14px;font-weight:600;color:#fff;text-decoration:underline">{{ toastAction }}</button>
+        </sc-if>
+      </div>
+    </sc-if>
+
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ sVote }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;max-width:980px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:var(--canvas);box-shadow:0 10px 20px rgba(0,0,0,.10)">
+    <div style="height:44px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px">
+      <span style="display:flex;gap:6px">
+        <span style="width:10px;height:10px;border-radius:9999px;background:var(--ink-400)"></span>
+        <span style="width:10px;height:10px;border-radius:9999px;background:var(--ink-400)"></span>
+        <span style="width:10px;height:10px;border-radius:9999px;background:var(--ink-400)"></span>
+      </span>
+      <span style="flex:1;font-size:12px;line-height:16px;color:var(--ink-600)">trailroom.ai/ask/8f2c</span>
+      <button onClick="{{ backToPhone }}" style="flex:none;height:26px;padding:0 11px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink-600);font-size:11px;font-weight:500;line-height:1">← back to the app</button>
+    </div>
+    <div style="padding:36px 32px 40px">
+      <div style="max-width:640px;margin:0 auto">
+        <span style="display:inline-flex;align-items:center;gap:7px">
+          <span style="flex:none;width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:-.02em">T</span>
+          <span style="font-size:14px;font-weight:600;letter-spacing:.06em;color:var(--ink)">TRAILROOM</span>
+        </span>
+        <h1 style="margin:12px 0 4px;font-size:30px;line-height:36px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ listName }}</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:22px;color:var(--ink-700)">Maya is asking. One tap, no sign-in.</p>
+        <div style="display:flex;gap:20px">
+          <sc-for list="{{ voteCards }}" as="vc" hint-placeholder-count="2">
+            <div style="flex:1 1 0;max-width:260px;display:flex;flex-direction:column">
+              <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:14px;background:var(--surface)">
+                <img src="{{ vc.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ vc.pos }}" />
+                <span style="position:absolute;left:10px;top:10px;background:rgba(0,0,0,.5);color:#fff;border-radius:9999px;padding:4px 9px;font-size:10px;font-weight:600;letter-spacing:.04em">AI PREVIEW</span>
+              </span>
+              <p style="margin:12px 0 10px;font-size:15px;line-height:21px;color:var(--ink-700);text-align:center">{{ vc.label }}</p>
+              <sc-if value="{{ notVoted }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ vc.vote }}" style="height:48px;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1;transition:transform 150ms var(--ease)" style-active="transform:scale(.98)">This one</button>
+              </sc-if>
+              <sc-if value="{{ hasVoted }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+                    <span style="font-size:14px;line-height:20px;color:var(--ink-700)">{{ vc.votesLabel }}</span>
+                    <span style="font-size:14px;line-height:20px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)">{{ vc.pctLabel }}</span>
+                  </div>
+                  <div style="height:8px;border-radius:9999px;background:var(--line-soft);overflow:hidden">
+                    <div style="height:100%;background:var(--ink);width:{{ vc.pct }}%;transition:width 500ms var(--ease)"></div>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hasVoted }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:30px;padding-top:26px;border-top:1px solid var(--line-soft);display:flex;gap:26px;align-items:center;animation:rise .4s var(--ease)">
+            <div style="flex:none;position:relative;width:172px;height:215px;border-radius:12px;overflow:hidden;background:var(--surface)">
+              <img src="{{ proofModel }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%" />
+              <span style="position:absolute;inset:0;clip-path:inset(0 calc(100% - {{ proofX }}%) 0 0)">
+                <img src="{{ proofOnYou }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%" />
+              </span>
+              <span style="position:absolute;top:0;bottom:0;left:{{ proofX }}%;width:2px;background:rgba(255,255,255,.95);box-shadow:0 0 8px rgba(0,0,0,.35)"></span>
+              <span style="position:absolute;top:50%;left:{{ proofX }}%;transform:translate(-50%,-50%);width:32px;height:32px;border-radius:9999px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:grid;place-items:center;font-size:12px;color:var(--ink)">↔</span>
+              <input type="range" min="8" max="92" value="{{ proofX }}" onChange="{{ setProofX }}" class="tr-slider" style="position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize" />
+            </div>
+            <div style="flex:1;min-width:0">
+              <p style="margin:0 0 5px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--accent)">THANKS — MAYA CAN SEE YOUR VOTE</p>
+              <h2 style="margin:0 0 8px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">Now put the {{ votedShort }} on you</h2>
+              <p style="margin:0 0 16px;font-size:15px;line-height:22px;color:var(--ink-700)">Drag the divider: the label's photo on one side, a real person's on the other. One picture of you and it comes back in four poses, with the fit spelled out. Free, private, yours to keep.</p>
+              <div style="display:flex;gap:10px;align-items:center">
+                <button onClick="{{ seeItOnYou }}" style="flex:none;height:48px;padding:0 24px;border:none;border-radius:9999px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;line-height:1;transition:transform 150ms var(--ease)" style-active="transform:scale(.99)">Upload your picture</button>
+                <button onClick="{{ voteBrowse }}" style="flex:none;height:48px;padding:0 20px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Just browse first</button>
+              </div>
+              <p style="margin:12px 0 0;font-size:12px;line-height:17px;color:var(--ink-600)">No account needed to look. Ten seconds to see yourself in it.</p>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:980},&quot;startSignedIn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Prototype state&quot;}}">
+const IMG = (id, w) => 'https://images.pexels.com/photos/' + id + '/pexels-photo-' + id + '.jpeg?auto=compress&cs=tinysrgb&w=' + (w || 900);
+
+const POSES = [
+  {label:'Front',         pos:'50% 20%', tf:'scale(1.02)'},
+  {label:'Three-quarter', pos:'38% 40%', tf:'scale(1.16)'},
+  {label:'Walking',       pos:'62% 58%', tf:'scale(1.08)'},
+  {label:'Close detail',  pos:'46% 30%', tf:'scale(1.55)'}
+];
+const MODEL_FRAMES = [
+  {pos:'50% 26%', tf:'scale(1.02)'},
+  {pos:'42% 46%', tf:'scale(1.14)'},
+  {pos:'58% 60%', tf:'scale(1.06)'}
+];
+
+const CATALOG = [
+  {id:'coat',   brand:'ANSEL WARD',  name:'Wool car coat',        price:'$328', cat:'apparel',    slot:'body', img:19299199, pos:'50% 25%', alt:8368060,  stock:'Only 3 left', low:true,
+   fit:{"5'2\"":'Falls below the calf on you','5\'6"':'Hits mid-calf on you','5\'9"':'Sits just under the knee on you','6\'0"':'Sits at the knee on you'},
+   pair:['hoops','chain'], desc:'Double-faced wool, drops to mid-calf. The length is the thing to check.'},
+  {id:'slip',   brand:'MARCHAND',    name:'Bias-cut slip dress',  price:'$245', cat:'apparel',    slot:'body', img:18526354, pos:'50% 35%', alt:1380587,  stock:'In stock',
+   fit:{"5'2\"":'Pools at the ankle on you','5\'6"':'Hits mid-calf on you','5\'9"':'Sits below the knee on you','6\'0"':'Sits at the knee on you'},
+   pair:['coat','hoops'], desc:'Bias-cut silk, mid-calf on a 5\u201910\u2033 model.'},
+  {id:'suit',   brand:'LOAM STUDIO', name:'Tailored linen suit',  price:'$410', cat:'apparel',    slot:'body', img:8368060,  pos:'50% 35%', alt:10201379, stock:'Only 2 left', low:true,
+   fit:{"5'2\"":'Needs the hem taken up on you','5\'6"':'Breaks once at the ankle on you','5\'9"':'Sits clean at the ankle on you','6\'0"':'Runs slightly short on you'},
+   pair:['chain','hoops'], desc:'Washed Belgian linen, dropped shoulder, wide leg. Runs long in the body.'},
+  {id:'hoops',  brand:'CYRA',        name:'Sculpted hoops',       price:'$86',  cat:'jewellery',  slot:'face', img:14411703, pos:'50% 30%', alt:18597841, stock:'In stock',
+   fit:{"5'2\"":'Sits at the jaw on you','5\'6"':'Sits at the jaw on you','5\'9"':'Sits at the jaw on you','6\'0"':'Sits at the jaw on you'},
+   pair:['chain','coat'], desc:'42mm across, hollow brass so they sit light. Scale is hard to read on white.'},
+  {id:'set',    brand:'LOAM STUDIO', name:'White trouser set',    price:'$298', cat:'apparel',    slot:'body', img:10201379, pos:'50% 40%', alt:18526354, stock:'In stock',
+   fit:{"5'2\"":'Trouser pools on you','5\'6"':'Breaks once on you','5\'9"':'Sits clean on you','6\'0"':'Runs short on you'},
+   pair:['hoops','chain'], desc:'Boxy jacket over a straight-leg trouser. Reads crisper in person.'},
+  {id:'blouse', brand:'MARCHAND',    name:'Printed silk blouse',  price:'$168', cat:'apparel',    slot:'body', img:1380587,  pos:'50% 30%', alt:19299199, stock:'In stock',
+   fit:{"5'2\"":'Hits low on the hip on you','5\'6"':'Crops at the hip on you','5\'9"':'Crops above the hip on you','6\'0"':'Runs short in the body on you'},
+   pair:['coat','hoops'], desc:'Silk twill, boxy through the body, cropped at the hip.'},
+  {id:'chain',  brand:'CYRA',        name:'Fine curb chain',      price:'$140', cat:'jewellery',  slot:'face', img:7615245,  pos:'50% 40%', alt:14411703, stock:'In stock',
+   fit:{"5'2\"":'Sits at the collarbone on you','5\'6"':'Sits at the collarbone on you','5\'9"':'Sits just below the collarbone on you','6\'0"':'Sits below the collarbone on you'},
+   pair:['hoops','slip'], desc:'18 inches, sits at the collarbone on most necks.'},
+  {id:'signet', brand:'FEN & ROW',   name:'Brushed signet ring',  price:'$210', cat:'accessories',slot:'hand', img:16274920, pos:'50% 45%', alt:16684965, stock:'In stock',
+   fit:{"5'2\"":'11mm face, reads chunky on you','5\'6"':'11mm face, reads chunky on you','5\'9"':'11mm face, reads chunky on you','6\'0"':'11mm face, reads chunky on you'},
+   pair:['hoops','chain'], desc:'11mm face, brushed silver. Reads chunkier in person than on white.'},
+  {id:'jacket', brand:'MARCHAND',    name:'Cropped leather jacket', price:'$520', cat:'apparel',  slot:'body', img:2036102,  pos:'50% 40%', alt:1380587,  stock:'In stock', hard:true,
+   fit:{}, pair:['slip','hoops'], desc:'Lamb leather, cropped at the waist. The label\u2019s only photo has it folded over an arm.'}
+];
+
+const BRAND_META = {
+  'ANSEL WARD':'Independent · London',
+  'MARCHAND':'Independent · Paris',
+  'LOAM STUDIO':'Independent · Los Angeles',
+  'CYRA':'Independent · Lisbon',
+  'FEN & ROW':'Independent · Portland'
+};
+
+const CATS = [
+  {id:'apparel', label:'Apparel', img:19299199, pos:'50% 30%'},
+  {id:'jewellery', label:'Jewellery', img:14411703, pos:'50% 25%'},
+  {id:'accessories', label:'Accessories', img:16274920, pos:'50% 45%'}
+];
+
+const PHOTO_CATS = [
+  {slot:'body', label:'Full body', hint:'Used for apparel. Tap a photo to make it the default.', seed:[{id:10201379, pos:'50% 40%', label:'Front, plain wall'}]},
+  {slot:'face', label:'Face and neck', hint:'Used for earrings and necklaces.', seed:[{id:7615245, pos:'50% 30%', label:'Head and shoulders'}]},
+  {slot:'hand', label:'Hand', hint:'Used for rings and bracelets.', seed:[]}
+];
+
+const CANDIDATES = {
+  body: [{id:10201379, pos:'50% 40%', label:'Yesterday'}, {id:1380587, pos:'50% 30%', label:'Last week'}, {id:18526354, pos:'50% 35%', label:'April'}],
+  face: [{id:7615245, pos:'50% 30%', label:'Yesterday'}, {id:14411703, pos:'50% 25%', label:'March'}, {id:18597841, pos:'50% 35%', label:'Last year'}],
+  hand: [{id:16274920, pos:'50% 45%', label:'Yesterday'}, {id:16684965, pos:'50% 40%', label:'Last month'}, {id:14709854, pos:'50% 40%', label:'January'}]
+};
+
+const HEIGHTS = ["5'2\"", "5'6\"", "5'9\"", "6'0\""];
+const ROOTS = ['feed','saved','you'];
+
+const JOURNEYS = [
+  {code:'C1', title:'Upload first, then browse',  sub:'Slider proof \u2192 upload \u2192 pick what to try', act:'c1'},
+  {code:'C2', title:'Try-on first, then upload',  sub:'Tap a product with no photo on file',      act:'c2'},
+  {code:'C3', title:'The try-on queue',            sub:'Default photo, 10s, keep browsing',        act:'queue'},
+  {code:'C4', title:'Fit in words',                sub:'Your height, then every hem',              act:'fit'},
+  {code:'C5', title:'Wear it with',                sub:'Preview, add, then one outfit render',     act:'outfit'},
+  {code:'C6', title:'When we can\u2019t render it', sub:'Honest failure and the closest three',     act:'fail'},
+  {code:'C7', title:'Lists and asks',              sub:'Save, ask, and the inbox of votes',        act:'saved'},
+  {code:'C8', title:'The vote page',               sub:'Cold visitor, slider, signup',             act:'vote'},
+  {code:'C9', title:'Buy and did it arrive',       sub:'Size carry-over and the return',           act:'buy'},
+  {code:'C10',title:'You',                         sub:'Try-ons, photo defaults, fit, email',      act:'you'},
+  {code:'D1', title:'Designer side',               sub:'House style, readiness, signal',           act:'designer'}
+];
+
+class Component extends DCLogic {
+  state = {
+    screen:'feed', stack:[], tab:'feed', savedTab:'mine', galIndex:0,
+    signedIn:false, current:CATALOG[0], cat:'apparel', proofX:52,
+    photos:{body:[], face:[], hand:[]}, defaults:{body:0, face:0, hand:0},
+    photoFrom:'product',
+    tried:[], job:null, ready:null, jobDone:0, openCat:null,
+    lists:[], listId:null, pendingItem:null, newListName:'',
+    outfit:null, height:"5'6\"", fitSet:false, pairId:null,
+    asks:[{id:'a1', who:'Priya', question:'Which one for Saturday?', items:['slip','coat'], unread:true},
+          {id:'a2', who:'Sam', question:'Suit or the trouser set?', items:['suit','set'], unread:true}],
+    askId:null, askVote:null,
+    email:'', emailOn:false, emailPrefs:{news:true, votes:true, price:false},
+    follows:{}, camStep:0, camOpen:false, sheet:null, gate:null,
+    toast:null, toastAction:null, toastTarget:null,
+    votes:{a:0,b:0}, voted:null, sentOnce:false, dTab:'register'
+  };
+
+  componentDidMount(){
+    if (this.props.startSignedIn) this.setState({
+      signedIn:true, emailOn:true, email:'maya@email.com', fitSet:true,
+      photos:{body:PHOTO_CATS[0].seed.slice(), face:PHOTO_CATS[1].seed.slice(), hand:[]},
+      tried:['coat','slip'], follows:{'ANSEL WARD':true,'MARCHAND':true,'CYRA':true},
+      lists:[{id:'l1', name:'Wedding in September', items:['coat','slip']}]
+    });
+  }
+  componentWillUnmount(){ this.clear(); }
+  scrollRef = React.createRef();
+  galRef = React.createRef();
+  onGalScroll = (e) => {
+    const w = e.target.clientWidth || 390;
+    const i = Math.round(e.target.scrollLeft / w);
+    if (i !== this.state.galIndex) this.setState({galIndex: i});
+  };
+  jumpPose = (i) => {
+    const gal = this.galRef.current || document.querySelector('[data-gal="poses"]');
+    if (gal && gal.scrollTo) { gal.scrollTo({left: i * gal.clientWidth, behavior:'smooth'}); return; }
+    this.setState({galIndex: i});
+  };
+  toTop(){
+    const hit = () => { if (this.scrollRef.current) this.scrollRef.current.scrollTop = 0; };
+    hit(); requestAnimationFrame(hit); requestAnimationFrame(()=>requestAnimationFrame(hit)); setTimeout(hit, 60);
+  }
+  clear(){ clearTimeout(this.t1); clearTimeout(this.t2); clearInterval(this.iv); clearTimeout(this.tt); }
+
+  go = (screen) => {
+    this.setState(s => ({
+      screen,
+      stack: ROOTS.includes(screen) ? [] : (s.screen === screen ? s.stack : [...s.stack, s.screen]),
+      tab: ROOTS.includes(screen) ? screen : s.tab,
+      galIndex: 0,
+      sheet:null
+    }));
+    if (this.galRef.current) this.galRef.current.scrollLeft = 0;
+    const g = document.querySelector('[data-gal="poses"]');
+    if (g) g.scrollLeft = 0;
+    this.toTop();
+  };
+  back = () => {
+    this.setState(s => {
+      if (!s.stack.length) return {screen:s.tab, stack:[], sheet:null};
+      const st = [...s.stack]; const prev = st.pop();
+      return {screen:prev, stack:st, sheet:null};
+    });
+    this.toTop();
+  };
+  say = (toast, action, target) => { clearTimeout(this.tt); this.setState({toast, toastAction:action||null, toastTarget:target||null}); this.tt = setTimeout(()=>this.setState({toast:null, toastAction:null}), 3600); };
+  item = (id) => CATALOG.find(i => i.id === id) || CATALOG[0];
+  poses = (it) => POSES.map(p => ({label:p.label, src:IMG(it.img), pos:p.pos, tf:p.tf}));
+  modelFrames = (it) => MODEL_FRAMES.map(f => ({src:IMG(it.img), pos:f.pos, tf:f.tf}));
+  hasPhoto = (slot) => this.state.photos[slot].length > 0;
+  defaultPhoto = (slot) => this.state.photos[slot][this.state.defaults[slot]] || this.state.photos[slot][0];
+  fitLineFor = (it) => (it.fit && it.fit[this.state.height]) || '';
+
+  startTry = () => {
+    const cur = this.state.current;
+    if (!this.hasPhoto(cur.slot)) { this.setState({photoFrom:'product'}); return this.go('photo'); }
+    this.setState({sheet:'tryon'});
+  };
+
+  runJob = (id) => {
+    this.clear();
+    const it = this.item(id);
+    if (it.hard) { this.setState({current:it, sheet:null}); return this.go('fail'); }
+    this.setState({job:id, jobDone:0, sheet:null, ready:null, current:it});
+    this.iv = setInterval(()=>this.setState(s => {
+      const n = s.jobDone + 1;
+      if (n >= 4) clearInterval(this.iv);
+      return {jobDone:n};
+    }), 2400);
+    this.t1 = setTimeout(()=>{
+      this.setState(s => ({
+        job:null, jobDone:4,
+        ready: s.screen === 'gen' ? null : id,
+        current: s.screen === 'gen' ? this.item(id) : s.current,
+        tried: s.tried.includes(id) ? s.tried : [...s.tried, id]
+      }));
+      if (this.state.screen === 'gen') {
+        if (!this.state.signedIn) { this.setState({gate:'reveal', sheet:'account'}); return; }
+        this.go('result'); return;
+      }
+      this.say('Four poses of the ' + it.name.toLowerCase() + ' are ready.', 'See it', id);
+    }, 10000);
+    this.go('gen');
+  };
+
+  usePhoto = (slot, photo) => {
+    this.setState(s => ({photos:{...s.photos, [slot]: [...s.photos[slot], photo]}}));
+  };
+
+  afterUpload = () => {
+    if (this.state.photoFrom === 'standalone') {
+      if (!this.state.signedIn) { this.setState({gate:'picknext', sheet:'account'}); return; }
+      return this.go('picknext');
+    }
+    this.runJob(this.state.current.id);
+  };
+
+  stepCam(){ const tick = () => { this.setState(s => ({camStep:s.camStep+1})); if (this.state.camStep < 3) this.t2 = setTimeout(tick, 1000); }; this.t2 = setTimeout(tick, 1000); }
+  gate = (kind) => { if (this.state.signedIn) return true; this.setState({gate:kind, sheet:'account'}); return false; };
+  resumeIntent = () => {
+    const g = this.state.gate;
+    if (!g) return false;
+    this.setState({gate:null});
+    const seen = this.state.tried.includes(this.state.current.id) ? 'result' : 'item';
+    if (g === 'buy')  { this.go(seen); this.setState({sheet:'buy'}); return true; }
+    if (g === 'list') { this.go(seen); this.setState({sheet:'list'}); return true; }
+    if (g === 'ask')  { this.go('share'); return true; }
+    if (g === 'picknext') { this.go('picknext'); return true; }
+    if (g === 'reveal')   { this.go('result'); return true; }
+    return false;
+  };
+  activeList = () => this.state.lists.find(l => l.id === this.state.listId) || this.state.lists[0];
+  savedIds = () => this.state.lists.reduce((acc, l) => acc.concat(l.items), []);
+
+  renderVals(){
+    const s = this.state;
+    const cur = s.current;
+    const followed = !!s.follows[cur.brand];
+    const saved = this.savedIds();
+    const list = this.activeList();
+    const listItems = list ? list.items.map(id => this.item(id)) : [];
+    const total = Math.max(1, s.votes.a + s.votes.b);
+    const dp = this.defaultPhoto(cur.slot);
+    const unread = s.asks.filter(a => a.unread).length;
+    const ask = s.asks.find(a => a.id === s.askId) || s.asks[0];
+    const outfitPieces = s.outfit ? s.outfit.map(id => this.item(id)) : [];
+    const pairItem = s.pairId ? this.item(s.pairId) : null;
+    const gateCopy = {
+      buy:  ['Create an account to buy', 'So we can keep this try-on and bring you back to it after checkout.'],
+      list: ['Create an account to save', 'Lists, votes and every try-on you make live in your account.'],
+      ask:  ['Create an account to ask friends', 'We need somewhere to put the votes when they come back.'],
+      picknext: ['Your photo is in \u2014 create an account', 'It saves your photo so you only ever do this once, and keeps every try-on you make.'],
+      reveal: ['Four poses are ready \u2014 create an account', 'They\u2019re yours to keep. An account is what saves them, and your photo, for next time.']
+    }[s.gate] || ['Create an account', 'Your photos and try-ons stay with you.'];
+
+    const feedIds = CATALOG.filter(i => i.cat === s.cat).map(i => i.id);
+    const shelves = {coat:'New in', slip:'New in', suit:'From a label you follow', hoops:'Goes with your slip dress', set:'Popular this month', blouse:'New in', chain:'Goes with your hoops', signet:'New in', jacket:'New in'};
+
+    return {
+      journeys: JOURNEYS.map(j => ({...j, go: () => {
+        this.clear();
+        const signed = {signedIn:true, emailOn:true, email:'maya@email.com', fitSet:true, job:null, ready:null,
+          photos:{body:PHOTO_CATS[0].seed.slice(), face:PHOTO_CATS[1].seed.slice(), hand:[]}, tried:['coat','slip']};
+        if (j.act === 'c1')      return this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], lists:[], follows:{}, emailOn:false, fitSet:false, job:null, ready:null, outfit:null, screen:'feed', stack:[], tab:'feed', sheet:null, photoFrom:'standalone'});
+        if (j.act === 'c2')      { this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], lists:[], follows:{}, emailOn:false, fitSet:false, job:null, ready:null, current:this.item('coat'), photoFrom:'product'}); return this.go('item'); }
+        if (j.act === 'queue')   { this.setState({...signed, current:this.item('suit')}); return this.runJob('suit'); }
+        if (j.act === 'fit')     { this.setState({...signed, current:this.item('coat'), tried:['coat'], screen:'result', stack:['feed'], sheet:'fit'}); return; }
+        if (j.act === 'outfit')  { this.setState({...signed, current:this.item('coat'), tried:['coat','slip'], outfit:['coat','slip']}); return this.go('outfit'); }
+        if (j.act === 'fail')    { this.setState({...signed, cat:'apparel', current:this.item('jacket')}); return this.go('fail'); }
+        if (j.act === 'saved')   { this.setState({...signed, savedTab:'mine', lists:[{id:'l1', name:'Wedding in September', items:['coat','slip']},{id:'l2', name:'Work capsule', items:['suit']}], listId:'l1'}); return this.go('saved'); }
+        if (j.act === 'vote')    { this.setState({...signed, voted:null, votes:{a:0,b:0}, lists:[{id:'l1', name:'Wedding in September', items:['coat','slip']}], listId:'l1'}); return this.go('vote'); }
+        if (j.act === 'buy')     { this.setState({...signed, current:this.item('coat'), tried:['coat'], screen:'result', stack:['feed'], sheet:'buy'}); return; }
+        if (j.act === 'you')     { this.setState({...signed, photos:{body:PHOTO_CATS[0].seed.concat([{id:1380587,pos:'50% 30%',label:'Three-quarter'}]), face:PHOTO_CATS[1].seed.slice(), hand:[]}, tried:['coat','slip','suit']}); return this.go('you'); }
+        this.go(j.act);
+      }})),
+      stateLine: (s.signedIn ? 'Signed in' : 'Guest') + ' · ' + (this.hasPhoto('body') ? s.photos.body.length + ' body photo(s)' : 'no photo') + ' · ' + s.height,
+      metricLine: 'Try-ons this week: ' + s.tried.length + ' · lists ' + s.lists.length + ' · asks waiting ' + unread,
+
+      scrollRef: this.scrollRef,
+      canBack: s.stack.length > 0 || !ROOTS.includes(s.screen),
+      back: this.back,
+      savedTabIcon: saved.length ? '\u2665' : '\u2661',
+      hasUnread: unread > 0, unreadCount: unread,
+      goSaved: () => this.go('saved'),
+      goFeed: () => this.go('feed'),
+      goNotify: () => this.go('notify'),
+      notVote: s.screen !== 'vote',
+      sFeed: s.screen==='feed', sItem: s.screen==='item', sPhoto: s.screen==='photo',
+      sPickNext: s.screen==='picknext', sLibrary: s.screen==='library', sGen: s.screen==='gen',
+      sResult: s.screen==='result', sOutfit: s.screen==='outfit', sFail: s.screen==='fail',
+      sNotify: s.screen==='notify', sFollows: s.screen==='follows', sSaved: s.screen==='saved',
+      sAskDetail: s.screen==='askdetail', sList: s.screen==='list', sShareSheet: s.screen==='share',
+      sSent: s.screen==='sent', sYou: s.screen==='you', sBrand: s.screen==='brand',
+      sDesigner: s.screen==='designer', sVote: s.screen==='vote', sCam: s.camOpen,
+
+      tabs: [['feed','Discover'],['saved','Lists'],['you','You']].map(([k,label]) => ({
+        label,
+        color: s.tab===k ? '#1A1A1A' : '#9E9E9E',
+        weight: s.tab===k ? '600' : '400',
+        fill: s.tab===k ? 'currentColor' : 'transparent',
+        radius: k==='feed' ? '4px' : (k==='saved' ? '4px 9999px 4px 9999px' : '9999px'),
+        dot: k === 'saved' && unread > 0,
+        pick: () => this.go(k)
+      })),
+
+      showProof: !this.hasPhoto('body') && ['feed','saved','you','item','brand','list'].includes(s.screen),
+      proofModel: IMG(6218357), proofOnYou: IMG(19299199),
+      proofX: s.proofX,
+      setProofX: (e) => this.setState({proofX: Number(e.target.value)}),
+      uploadStandalone: () => { this.setState({photoFrom:'standalone', current:this.item('coat')}); this.go('photo'); },
+
+      jobOn: !!s.job,
+      jobLine: s.job ? 'Putting the ' + this.item(s.job).name.toLowerCase() + ' on you' : '',
+      jobSub: 'Pose ' + Math.min(4, s.jobDone + 1) + ' of 4 · you can keep browsing',
+      openJob: () => this.go('gen'),
+      readyOn: !!s.ready && s.screen !== 'result',
+      readyThumb: s.ready ? IMG(this.item(s.ready).img, 200) : '',
+      readyLine: s.ready ? 'Your ' + this.item(s.ready).name.toLowerCase() + ' is ready in four poses' : '',
+      openReady: () => { if (s.ready) this.setState({current:this.item(s.ready), ready:null}); if (!s.signedIn) { this.setState({gate:'reveal', sheet:'account'}); return; } this.go('result'); },
+
+      cats: CATS.map(c => ({
+        label:c.label, src:IMG(c.img, 400), pos:c.pos,
+        border: s.cat===c.id ? '2px solid #1A1A1A' : '1px solid #E2E2E2',
+        pick: () => this.setState({cat:c.id})
+      })),
+
+      feed: feedIds.map(id => {
+        const it = this.item(id);
+        const onYou = s.tried.includes(id);
+        return {
+          brand:it.brand, name:it.name, price:it.price, shelf:shelves[id] || 'New in',
+          avatar: IMG(it.img, 200),
+          frames: onYou ? this.poses(it) : this.modelFrames(it),
+          count: onYou ? '↔ 4 poses' : '↔ 3 photos',
+          isModel: !onYou, isOnYou: onYou,
+          fitLine: onYou ? this.fitLineFor(it) : it.stock,
+          fitColor: onYou ? '#1A1A1A' : (it.low ? '#C62828' : '#7A7A7A'),
+          heart: saved.includes(id) ? '\u2665' : '\u2661',
+          followLabel: s.follows[it.brand] ? 'Following' : 'Follow',
+          open: () => { this.setState({current:it}); this.go(onYou ? 'result' : 'item'); },
+          openBrand: () => { this.setState({current:it}); this.go('brand'); },
+          tryOn: () => { this.setState({current:it}); this.startTry(); },
+          follow: () => this.setState(st => ({follows:{...st.follows, [it.brand]: !st.follows[it.brand]}})),
+          buy: () => { this.setState({current:it}); if (this.gate('buy')) this.setState({sheet:'buy'}); },
+          list: () => { this.setState({current:it, pendingItem:id}); if (this.gate('list')) this.setState({sheet:'list'}); }
+        };
+      }),
+
+      curNameShort: cur.name.toLowerCase(),
+      curBrand: cur.brand, curName: cur.name, curNameLower: cur.name.toLowerCase(),
+      curPrice: cur.price, curDesc: cur.desc, curStock: cur.stock,
+      stockColor: cur.low ? '#C62828' : '#7A7A7A',
+      curBrandMeta: BRAND_META[cur.brand] || 'Independent label',
+      curFrames: this.modelFrames(cur),
+      curAvatar: IMG(cur.img, 200),
+      curOnYou: IMG(cur.img), curOnYouPos: cur.pos,
+      curProductThumb: IMG(cur.img, 300),
+      curFitLine: this.fitLineFor(cur) || 'Add your height to see how this sits on you',
+      fitMeta: 'Based on your height, ' + s.height,
+      tryLabel: s.tried.includes(cur.id) ? 'See your four poses' : 'Try it on',
+      startTry: this.startTry,
+      savedIcon: saved.includes(cur.id) ? '\u2665' : '\u2661',
+      followLabel: followed ? 'Following' : 'Follow',
+      followBorder: followed ? '1px solid #E2E2E2' : 'none',
+      followBg: followed ? '#FFFFFF' : '#1A1A1A',
+      followColor: followed ? '#1A1A1A' : '#FFFFFF',
+      toggleFollow: () => { this.setState(st => ({follows:{...st.follows, [cur.brand]: !st.follows[cur.brand]}})); this.say(followed ? 'Unfollowed ' + cur.brand : 'Following ' + cur.brand + '. New pieces arrive on you.'); },
+      moreFromBrand: CATALOG.filter(i => i.brand === cur.brand && i.id !== cur.id).concat(CATALOG.filter(i => i.brand !== cur.brand)).slice(0,4).map(m => ({
+        name:m.name, price:m.price, src:IMG(m.img, 400), pos:m.pos,
+        open: () => { this.setState({current:m}); this.go('item'); }
+      })),
+      buy: () => { if (this.gate('buy')) this.setState({sheet:'buy'}); },
+      openList: () => { this.setState({pendingItem:cur.id}); if (this.gate('list')) this.setState({sheet:'list'}); },
+      openFit: () => this.setState({sheet:'fit'}),
+
+      photoTitle: cur.slot === 'hand' ? 'Upload a photo of your hand' : (cur.slot === 'face' ? 'Upload a photo of your face' : 'Upload your picture'),
+      photoSub: s.photoFrom === 'standalone'
+        ? 'One photo, then everything in Trailroom can be seen on you.'
+        : 'One photo and the ' + cur.name.toLowerCase() + ' comes straight back on you.',
+      candidates: (CANDIDATES[cur.slot] || CANDIDATES.body).map(c => ({
+        src:IMG(c.id, 400), pos:c.pos, label:c.label,
+        use: () => { this.usePhoto(cur.slot, c); this.afterUpload(); }
+      })),
+      pickRoll: () => { const c = (CANDIDATES[cur.slot] || CANDIDATES.body)[0]; this.usePhoto(cur.slot, c); this.afterUpload(); },
+      openCam: () => { this.clear(); this.setState({camStep:0, camOpen:true}); this.stepCam(); },
+      closeCam: () => { this.clear(); this.setState({camOpen:false}); },
+      camSrc: IMG(cur.slot === 'hand' ? 16684965 : 10201379),
+      camCue: ['Step back a little','A little more light','Hold it \u2014 3','Looks good'][Math.min(3, s.camStep)],
+      camSub: s.camStep < 3 ? 'We capture on our own when it\u2019s right.' : 'Full body in frame, even light, one person.',
+      camBtn: s.camStep < 3 ? 'Auto-capture on' : 'Use this photo',
+      camAccept: () => { if (s.camStep >= 3) { this.setState({camOpen:false}); const c = (CANDIDATES[cur.slot] || CANDIDATES.body)[0]; this.usePhoto(cur.slot, c); this.afterUpload(); } },
+      openPrivacy: () => this.setState({sheet:'privacy'}),
+
+      starters: CATALOG.filter(i => i.slot === 'body' && !i.hard).slice(0,4).map(st => ({
+        name:st.name, src:IMG(st.img, 400), pos:st.pos,
+        tryOn: () => this.runJob(st.id)
+      })),
+
+      slotWord: cur.slot === 'hand' ? 'hand' : (cur.slot === 'face' ? 'face' : 'full-body'),
+      defaultPhotoSrc: dp ? IMG(dp.id, 400) : IMG(10201379, 400),
+      defaultPhotoPos: dp ? dp.pos : '50% 40%',
+      confirmTryOn: () => this.runJob(cur.id),
+      chooseOther: () => { this.setState({sheet:null}); this.go('library'); },
+      libSub: 'Your ' + (cur.slot === 'hand' ? 'hand' : cur.slot === 'face' ? 'face' : 'full-body') + ' photos. Tap one to use it for this try-on.',
+      library: s.photos[cur.slot].map((p, i) => ({
+        src:IMG(p.id, 400), pos:p.pos, label:p.label,
+        isDefault: i === s.defaults[cur.slot],
+        ring: i === s.defaults[cur.slot] ? '2px solid #1A1A1A' : 'none',
+        use: () => this.runJob(cur.id)
+      })),
+      addPhotoForCat: () => { this.setState({photoFrom:'product'}); this.go('photo'); },
+
+      genTitle: s.jobDone >= 4 ? (s.signedIn ? 'Four poses, on you' : 'Four poses, ready') : 'Four poses, coming up',
+      genLine: s.jobDone >= 4 ? (s.signedIn ? 'The ' + cur.name.toLowerCase() + ', on your photo, from four angles.' : 'The ' + cur.name.toLowerCase() + ', on your photo, from four angles. Create an account to open them.') : 'Same photo, four angles of the ' + cur.name.toLowerCase() + '. Around ten seconds.',
+      genDone: s.jobDone >= 4,
+      genRunning: s.jobDone < 4,
+      poseTiles: POSES.map((p, i) => ({
+        label: i < s.jobDone ? p.label : 'Rendering\u2026',
+        src: IMG(cur.img), pos: p.pos, tf: p.tf,
+        done: i < s.jobDone,
+        color: i < s.jobDone ? '#5C5C5C' : '#C4C4C4'
+      })),
+      resultPoses: this.poses(cur),
+      galRef: this.galRef,
+      onGalScroll: this.onGalScroll,
+      galCounter: (Math.min(4, s.galIndex + 1)) + ' / 4',
+      galDots: POSES.map((p, i) => ({bg: i === s.galIndex ? '#FFFFFF' : 'rgba(255,255,255,.45)'})),
+      poseThumbs: POSES.map((p, i) => ({
+        label:p.label, src:IMG(cur.img, 300), pos:p.pos, tf:p.tf,
+        ring: i === s.galIndex ? '2px solid #1A1A1A' : 'none',
+        opacity: i === s.galIndex ? '1' : '.55',
+        color: i === s.galIndex ? '#1A1A1A' : '#7A7A7A',
+        go: () => this.jumpPose(i)
+      })),
+
+      nearMatches: CATALOG.filter(i => i.slot === 'body' && !i.hard).slice(0,3).map(n => ({
+        name:n.name, price:n.price, src:IMG(n.img, 400), pos:n.pos,
+        tryOn: () => this.runJob(n.id)
+      })),
+      notifyWhenReady: () => this.say('We\u2019ll email you if ' + cur.brand + ' sends better photos.'),
+
+      pairWith: (cur.pair || []).map(id => this.item(id)).map(p => ({
+        name:p.name, src:IMG(p.img, 400), pos:p.pos,
+        preview: () => this.setState({pairId:p.id, sheet:'pair'})
+      })),
+      pairSrc: pairItem ? IMG(pairItem.img, 500) : '',
+      pairPos: pairItem ? pairItem.pos : '50% 30%',
+      pairBrand: pairItem ? pairItem.brand : '',
+      pairName: pairItem ? pairItem.name : '',
+      pairPrice: pairItem ? pairItem.price : '',
+      pairDesc: pairItem ? pairItem.desc : '',
+      pairFit: pairItem ? (this.fitLineFor(pairItem) || pairItem.stock) : '',
+      pairTotal: '$' + [cur, pairItem].filter(Boolean).reduce((a,o) => a + Number(o.price.replace(/[^0-9]/g,'')), 0),
+      confirmPair: () => {
+        if (!pairItem) return;
+        this.setState(st => ({
+          outfit:[cur.id, pairItem.id], sheet:null,
+          tried: [cur.id, pairItem.id].reduce((acc,id) => acc.includes(id) ? acc : [...acc, id], st.tried.slice())
+        }));
+        this.say('Rendering both on you\u2026');
+        this.go('outfit');
+      },
+      outfitSrc: outfitPieces[0] ? IMG(outfitPieces[0].img) : IMG(19299199),
+      outfitTitle: outfitPieces.length ? outfitPieces.map(o => o.name.toLowerCase()).join(' over the ') : 'Your outfit',
+      outfitItems: outfitPieces.map(o => ({name:o.name, brand:o.brand, price:o.price, src:IMG(o.img, 300), pos:o.pos})),
+      outfitTotal: '$' + outfitPieces.reduce((a,o) => a + Number(o.price.replace(/[^0-9]/g,'')), 0),
+
+      email: s.email,
+      setEmail: (e) => this.setState({email:e.target.value}),
+      emailPrefs: [
+        {k:'news', label:'New pieces from labels you follow', meta:'A couple of times a week'},
+        {k:'votes', label:'When a friend votes on your list', meta:'As they come in'},
+        {k:'price', label:'Price changes on your lists', meta:'Only when something moves'}
+      ].map(p => {
+        const on = !!s.emailPrefs[p.k];
+        return {
+          label:p.label, meta:p.meta,
+          border: on ? '2px solid #00695C' : '1px solid #E2E2E2',
+          dotBg: on ? '#00695C' : 'transparent',
+          dotBorder: on ? 'none' : '1.5px solid #C4C4C4',
+          mark: on ? '\u2713' : '',
+          toggle: () => this.setState(st => ({emailPrefs:{...st.emailPrefs, [p.k]: !st.emailPrefs[p.k]}}))
+        };
+      }),
+      allowEmail: () => { this.setState({emailOn:true}); this.go('follows'); },
+      skipEmail: () => this.go('follows'),
+      emailState: s.emailOn ? 'Emails on' : 'Emails off',
+      emailMeta: s.emailOn ? (s.email || 'maya@email.com') : 'You won\u2019t hear about new pieces or votes',
+
+      heightOptions: HEIGHTS.map(h => ({
+        label:h,
+        border: s.height===h ? 'none' : '1px solid #E2E2E2',
+        bg: s.height===h ? '#1A1A1A' : '#FFFFFF',
+        color: s.height===h ? '#FFFFFF' : '#1A1A1A',
+        pick: () => this.setState({height:h, fitSet:true})
+      })),
+
+      followPicks: Object.keys(BRAND_META).map(b => {
+        const on = !!s.follows[b];
+        const it = CATALOG.find(i => i.brand === b) || CATALOG[0];
+        return {
+          brand:b, meta:BRAND_META[b], src:IMG(it.img, 300), pos:it.pos,
+          border: on ? '2px solid #00695C' : '1px solid #E2E2E2',
+          dotBg: on ? '#00695C' : 'transparent',
+          dotBorder: on ? 'none' : '1.5px solid #C4C4C4',
+          mark: on ? '\u2713' : '',
+          toggle: () => this.setState(st => ({follows:{...st.follows, [b]: !st.follows[b]}}))
+        };
+      }),
+      followsBtnBg: Object.values(s.follows).filter(Boolean).length >= 3 ? '#1A1A1A' : '#C4C4C4',
+      followsBtnLabel: (() => { const n = Object.values(s.follows).filter(Boolean).length; return n >= 3 ? 'Done' : 'Pick ' + (3 - n) + ' more'; })(),
+      doneFollows: () => { if (Object.values(s.follows).filter(Boolean).length >= 3) { if (!this.resumeIntent()) { this.say('Set. New pieces from those labels arrive on you.'); this.go('feed'); } } },
+
+      tabMine: s.savedTab==='mine', tabAsks: s.savedTab==='asks',
+      pickMine: () => this.setState({savedTab:'mine'}),
+      pickAsks: () => this.setState({savedTab:'asks'}),
+      mineBg: s.savedTab==='mine' ? '#FFFFFF' : 'transparent',
+      mineColor: s.savedTab==='mine' ? '#1A1A1A' : '#7A7A7A',
+      mineShadow: s.savedTab==='mine' ? '0 1px 3px rgba(0,0,0,.12)' : 'none',
+      asksBg: s.savedTab==='asks' ? '#FFFFFF' : 'transparent',
+      asksColor: s.savedTab==='asks' ? '#1A1A1A' : '#7A7A7A',
+      asksShadow: s.savedTab==='asks' ? '0 1px 3px rgba(0,0,0,.12)' : 'none',
+      listsMeta: s.lists.length ? s.lists.length + (s.lists.length === 1 ? ' list' : ' lists') : 'No lists yet',
+      listsEmpty: s.lists.length === 0,
+      newList: () => { this.setState({pendingItem:null, sheet:'list'}); },
+      lists: s.lists.map(l => {
+        const tot = s.votes.a + s.votes.b;
+        const leader = l.items[s.votes.b > s.votes.a ? 1 : 0];
+        return {
+          name:l.name,
+          meta: l.items.length + (l.items.length === 1 ? ' piece' : ' pieces') + (l.shared ? ' · shared with friends' : (l.items.length ? ' · ready to ask' : '')),
+          metaColor: l.items.length ? '#00695C' : '#7A7A7A',
+          shared: !!l.shared,
+          pct: tot ? Math.round(Math.max(s.votes.a, s.votes.b) / tot * 100) : 0,
+          voteLine: tot === 0 ? 'No votes yet — we’ll email you when one lands' : tot + (tot === 1 ? ' vote · ' : ' votes · ') + (leader ? this.item(leader).name.toLowerCase() + ' ahead' : ''),
+          thumbs: l.items.slice(0,3).map(id => ({src:IMG(this.item(id).img, 200), pos:this.item(id).pos})),
+          open: () => { this.setState({listId:l.id}); this.go('list'); }
+        };
+      }),
+      asks: s.asks.map(a => ({
+        who: a.who + ' is asking',
+        meta: a.question,
+        unread: a.unread,
+        border: a.unread ? '1px solid #1A1A1A' : '1px solid #E2E2E2',
+        thumbs: a.items.map(id => ({src:IMG(this.item(id).img, 200), pos:this.item(id).pos})),
+        open: () => { this.setState({askId:a.id, askVote:null, asks: s.asks.map(x => x.id === a.id ? {...x, unread:false} : x)}); this.go('askdetail'); }
+      })),
+      askWho: ask ? ask.who + ' is asking' : '',
+      askWhoFirst: ask ? ask.who : '',
+      askQuestion: ask ? ask.question : '',
+      askVoted: !!s.askVote,
+      askOptions: ask ? ask.items.map(id => {
+        const it = this.item(id);
+        const picked = s.askVote === id;
+        return {
+          name: it.name, src:IMG(it.img, 500), pos:it.pos,
+          label: picked ? 'Your pick' : 'This one',
+          border: picked ? 'none' : '1px solid #E2E2E2',
+          bg: picked ? '#1A1A1A' : '#FFFFFF',
+          color: picked ? '#FFFFFF' : '#1A1A1A',
+          vote: () => this.setState({askVote:id})
+        };
+      }) : [],
+      tryAsked: () => { const id = s.askVote || (ask && ask.items[0]); this.setState({current:this.item(id)}); this.startTry(); },
+
+      listName: list ? list.name : 'List',
+      listMeta: list ? (list.items.length + (list.items.length === 1 ? ' piece' : ' pieces')) : '',
+      listItems: listItems.map(it => ({
+        name:it.name, price:it.price, src:IMG(it.img, 500), pos:it.pos,
+        onYou: s.tried.includes(it.id),
+        open: () => { this.setState({current:it}); this.go(s.tried.includes(it.id) ? 'result' : 'item'); }
+      })),
+      askBlocked: !list || list.items.length < 1,
+      askBtnBg: (!list || list.items.length < 1) ? '#C4C4C4' : '#1A1A1A',
+      askBtnLabel: !list ? 'Add something first' : (list.items.length === 1 ? 'Ask friends about this one' : 'Ask friends to pick'),
+      askFromList: () => { if (list && list.items.length) { if (this.gate('ask')) this.go('share'); } },
+      sharePreview: listItems.slice(0,2).map(it => ({src:IMG(it.img, 400), pos:it.pos})),
+      confirmShare: () => { this.setState(st => ({sentOnce:true, votes:{a:0,b:0}, lists: st.lists.map(x => x.id === (list ? list.id : null) ? {...x, shared:true} : x)})); this.go('sent'); },
+
+      sentTitle: s.votes.a + s.votes.b > 0 ? 'Votes are landing' : 'Sent',
+      sentSub: s.votes.a + s.votes.b > 0 ? 'We\u2019ll email you as more come in.' : 'No votes yet. We\u2019ll email you the moment one lands.',
+      voteRows: listItems.slice(0,2).map((it, i) => {
+        const n = i === 0 ? s.votes.a : s.votes.b;
+        return {
+          name:it.name, src:IMG(it.img, 300), pos:it.pos,
+          pct: Math.round(n / total * 100), pctLabel: n === 0 ? '\u2014' : Math.round(n / total * 100) + '%',
+          barColor: i === 0 ? '#1A1A1A' : '#C4C4C4',
+          who: n === 0 ? 'no votes yet' : n + (n === 1 ? ' vote' : ' votes')
+        };
+      }),
+      winnerShort: listItems[0] ? listItems[0].name.toLowerCase() : 'piece',
+      votedShort: (listItems[s.voted === 'b' ? 1 : 0] || listItems[0] || CATALOG[0]).name.toLowerCase(),
+      buyWinner: () => { this.setState({current:listItems[0] || cur}); if (this.gate('buy')) this.setState({sheet:'buy'}); },
+      goVote: () => this.go('vote'),
+
+      tryOnCount: s.tried.length,
+      weekCount: s.tried.length,
+      listCount: s.lists.length,
+      noTryOns: s.tried.length === 0,
+      tryOnGrid: s.tried.map(id => {
+        const it = this.item(id);
+        return {src:IMG(it.img, 400), pos:it.pos, open: () => { this.setState({current:it}); this.go('result'); }};
+      }),
+      photoCats: PHOTO_CATS.map(pc => {
+        const arr = s.photos[pc.slot];
+        const def = arr[s.defaults[pc.slot]] || arr[0];
+        return {
+          label:pc.label, hint:pc.hint,
+          meta: arr.length ? arr.length + (arr.length === 1 ? ' photo · default' : ' photos · default set') : 'No photo yet',
+          defaultSrc: def ? IMG(def.id, 300) : IMG(pc.slot === 'hand' ? 16274920 : 10201379, 300),
+          defaultPos: def ? def.pos : '50% 40%',
+          opacity: def ? '1' : '.2',
+          chev: s.openCat === pc.slot ? 'Close' : 'Manage',
+          open: s.openCat === pc.slot,
+          toggle: () => this.setState(st => ({openCat: st.openCat === pc.slot ? null : pc.slot})),
+          photos: arr.map((p, i) => ({
+            src:IMG(p.id, 300), pos:p.pos,
+            isDefault: i === s.defaults[pc.slot],
+            ring: i === s.defaults[pc.slot] ? '2px solid #1A1A1A' : 'none',
+            action: i === s.defaults[pc.slot] ? 'Default' : 'Make default',
+            labelColor: i === s.defaults[pc.slot] ? '#1A1A1A' : '#00695C',
+            makeDefault: () => { this.setState(st => ({defaults:{...st.defaults, [pc.slot]: i}})); this.say(pc.label + ' default updated.'); }
+          })),
+          add: () => { const it = CATALOG.find(c => c.slot === pc.slot) || CATALOG[0]; this.setState({current:it, photoFrom:'standalone'}); this.go('photo'); }
+        };
+      }),
+      followList: Object.keys(BRAND_META).map(b => ({
+        brand:b, meta: s.follows[b] ? BRAND_META[b] : 'Not following',
+        src: IMG((CATALOG.find(i=>i.brand===b) || CATALOG[0]).img, 200),
+        label: s.follows[b] ? 'Following' : 'Follow',
+        toggle: () => this.setState(st => ({follows:{...st.follows, [b]: !st.follows[b]}}))
+      })),
+
+      brandGrid: CATALOG.filter(i => i.brand === cur.brand).concat(CATALOG.filter(i => i.brand !== cur.brand)).slice(0,4).map(b => ({
+        name:b.name, price:b.price, src:IMG(b.img, 500), pos:b.pos,
+        onYou: s.tried.includes(b.id),
+        open: () => { this.setState({current:b}); this.go('item'); }
+      })),
+
+      sheetOpen: !!s.sheet,
+      sheetTryOn: s.sheet==='tryon', sheetList: s.sheet==='list', sheetAccount: s.sheet==='account',
+      sheetBuy: s.sheet==='buy', sheetArrived: s.sheet==='arrived', sheetPrivacy: s.sheet==='privacy',
+      sheetFit: s.sheet==='fit',
+      closeSheet: () => this.setState({sheet:null}),
+      listChoices: s.lists.map(l => {
+        const inIt = s.pendingItem && l.items.includes(s.pendingItem);
+        return {
+          name:l.name, meta: l.items.length + (l.items.length === 1 ? ' piece' : ' pieces'),
+          src: l.items.length ? IMG(this.item(l.items[0]).img, 200) : IMG(10201379, 200),
+          pos: l.items.length ? this.item(l.items[0]).pos : '50% 40%',
+          border: inIt ? '2px solid #00695C' : '1px solid #E2E2E2',
+          dotBg: inIt ? '#00695C' : 'transparent',
+          dotBorder: inIt ? 'none' : '1.5px solid #C4C4C4',
+          mark: inIt ? '\u2713' : '',
+          pick: () => {
+            const id = s.pendingItem;
+            if (!id) { this.setState({listId:l.id, sheet:null}); return this.go('list'); }
+            this.setState(st => ({
+              lists: st.lists.map(x => x.id === l.id ? {...x, items: x.items.includes(id) ? x.items.filter(y=>y!==id) : [...x.items, id]} : x),
+              listId: l.id
+            }));
+            this.say(!inIt ? 'Added to ' + l.name : 'Removed from ' + l.name, !inIt ? 'Open list' : null, 'list:' + l.id);
+          }
+        };
+      }),
+      newListName: s.newListName,
+      setNewListName: (e) => this.setState({newListName:e.target.value}),
+      createList: () => {
+        const name = (s.newListName || '').trim() || 'New list';
+        const id = 'l' + Date.now().toString().slice(-5);
+        const items = s.pendingItem ? [s.pendingItem] : [];
+        this.setState(st => ({lists:[...st.lists, {id, name, items}], listId:id, newListName:'', sheet:null}));
+        this.say('Created ' + name, 'Open list', 'list:' + id);
+      },
+      gateTitle: gateCopy[0], gateSub: gateCopy[1],
+      pendingLine: {buy:'Then we\u2019ll take you back to checkout.', list:'Then we\u2019ll finish saving it to a list.', ask:'Then we\u2019ll send it to your friends.', picknext:'Then pick the first thing to see on yourself.', reveal:'Then your four poses open.'}[s.gate] || '',
+      signIn: () => { this.setState({signedIn:true, sheet:null}); this.go('notify'); },
+      buySizeLine: cur.stock,
+      confirmBuy: () => { this.clear(); this.setState({sheet:null}); this.say('Opening ' + cur.brand + '\u2026'); this.t1 = setTimeout(()=>this.setState({sheet:'arrived'}), 1600); },
+      arrivedYes: () => {
+        const p = (cur.pair || [])[0];
+        this.setState({sheet:null, outfit: p ? [cur.id, p] : null});
+        this.say('Marked as yours.', p ? 'See what goes with it' : null, 'outfit');
+      },
+      privacyRows: [
+        {glyph:'\u25C9', text:'Your photos and try-ons are private to you. Nothing is ever public.'},
+        {glyph:'\u25CB', text:'Everything you generate stays in You until you remove it yourself.'},
+        {glyph:'\u25B3', text:'Your live selfie is matched to any photo you upload, so you can only try things on yourself.'},
+        {glyph:'18', text:'18+ only. We estimate age from the live selfie and block under-18 and multi-person photos.'}
+      ],
+
+      toast: s.toast, toastAction: s.toastAction,
+      toastGo: () => {
+        const t = s.toastTarget || '';
+        this.setState({toast:null, toastAction:null});
+        if (t === 'outfit') return this.go('outfit');
+        if (t.indexOf('list:') === 0) { this.setState({listId:t.slice(5)}); return this.go('list'); }
+        if (t) { this.setState({current:this.item(t), ready:null}); return this.go('result'); }
+      },
+
+      notVoted: !s.voted, hasVoted: !!s.voted,
+      voteCards: ['a','b'].map((k,i) => {
+        const it = listItems[i] || CATALOG[i];
+        return {
+          src:IMG(it.img), pos:it.pos, label: it.name + ', ' + it.price,
+          pct: Math.round(s.votes[k] / total * 100), pctLabel: Math.round(s.votes[k] / total * 100) + '%',
+          votesLabel: s.votes[k] + (s.votes[k] === 1 ? ' vote' : ' votes'),
+          vote: () => this.setState(st => ({voted:k, votes:{...st.votes, [k]: st.votes[k]+1}}))
+        };
+      }),
+      seeItOnYou: () => { const v = listItems[s.voted === 'b' ? 1 : 0] || listItems[0] || CATALOG[0]; this.setState({current:v, signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], photoFrom:'product'}); this.go('photo'); },
+      voteBrowse: () => { const v = listItems[s.voted === 'b' ? 1 : 0] || listItems[0] || CATALOG[0]; this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], current:v}); this.go('feed'); },
+      backToPhone: () => this.go(s.sentOnce ? 'sent' : 'feed'),
+
+      dTabs: [['register','Verify'],['products','Products'],['drop','Publish'],['dash','Signal']].map(([k,label]) => ({
+        label,
+        border: s.dTab===k ? '1px solid #00695C' : '1px solid #E2E2E2',
+        bg: s.dTab===k ? '#E4EFED' : '#FFFFFF',
+        color: s.dTab===k ? '#00695C' : '#5C5C5C',
+        pick: () => this.setState({dTab:k})
+      })),
+      dReg: s.dTab==='register', dProd: s.dTab==='products', dDrop: s.dTab==='drop', dDash: s.dTab==='dash',
+      dNext: () => this.setState({dTab: {register:'products', products:'drop', drop:'dash', dash:'dash'}[s.dTab]}),
+      houseStyle: POSES.map(p => ({label:p.label, src:IMG(8368060, 300), pos:p.pos, tf:p.tf})),
+      verifySteps: [
+        {mark:'\u2713', bg:'#2E7D32', title:'Domain email verified', meta:'hello@loamstudio.com'},
+        {mark:'\u2713', bg:'#2E7D32', title:'Store linked', meta:'38 products imported with price and stock'},
+        {mark:'3', bg:'#7A7A7A', title:'Manual review', meta:'First 500 labels are reviewed by a human. Usually a day.'}
+      ],
+      readiness: [
+        {name:'Tailored linen suit', note:'Four angles, ready', color:'#2E7D32', score:'92', src:IMG(8368060,200), pos:'50% 35%'},
+        {name:'White trouser set', note:'Front view missing', color:'#C62828', score:'54', src:IMG(10201379,200), pos:'50% 40%'},
+        {name:'Cropped leather jacket', note:'Folded over an arm — can\u2019t isolate', color:'#C62828', score:'31', src:IMG(2036102,200), pos:'50% 40%'}
+      ],
+      dStats: [
+        {n:'0.42', label:'Try-ons per follower, per week'},
+        {n:'2,914', label:'Try-ons'},
+        {n:'31%', label:'Added to a list'},
+        {n:'6.4%', label:'Clicked through to buy'}
+      ],
+
+      reset: () => { this.clear(); this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, defaults:{body:0,face:0,hand:0}, tried:[], job:null, ready:null, lists:[], listId:null, follows:{}, emailOn:false, email:'', fitSet:false, outfit:null, voted:null, votes:{a:0,b:0}, sentOnce:false, openCat:null, savedTab:'mine', proofX:52, screen:'feed', stack:[], tab:'feed', sheet:null, current:CATALOG[0], cat:'apparel', photoFrom:'standalone', asks:[{id:'a1', who:'Priya', question:'Which one for Saturday?', items:['slip','coat'], unread:true},{id:'a2', who:'Sam', question:'Suit or the trouser set?', items:['suit','set'], unread:true}]}); }
+    };
+  }
+}
+
+</script>
+</body>
+</html>
