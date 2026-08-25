@@ -1,7 +1,7 @@
 # Trailroom
 
-Virtual try-on. One photo of you, and every piece from the labels you follow comes
-back on your body — in four poses — before you buy.
+Try fashion products without leaving your couch. One photo of you, and every piece
+from the labels you follow comes back on your body — in four poses — before you buy.
 
 ## What's here
 
