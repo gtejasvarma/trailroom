@@ -5,3 +5,6 @@
 # tooling
 node_modules/
 *.log
+
+# sandbox could not delete these; remove the folder yourself
+_to_delete/
