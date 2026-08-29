@@ -1,0 +1,13 @@
+{
+  "name": "trailroom",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "verify": "prettier --check \"packages/**/*.{ts,tsx,json}\" \"apps/**/*.{ts,tsx,json}\" && tsc --noEmit",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,json}\" \"apps/**/*.{ts,tsx,json}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}

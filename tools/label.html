@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trailroom — Contact Sheet Labeler</title>
+<style>
+  :root{
+    --bg:#12100e; --panel:#1b1917; --panel-2:#242120; --line:#332f2c;
+    --ink:#eae6e1; --ink-2:#a09a93; --ink-3:#6f6963;
+    --pass:#4a9d6e; --fail:#c25a3a; --mark:#c9a227;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:14px;line-height:1.5;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+
+  /* ---------- top bar ---------- */
+  .bar{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);
+    flex:0 0 auto;
+  }
+  .bar h1{font-size:13px;font-weight:600;margin:0;letter-spacing:.02em;white-space:nowrap}
+  .bar h1 span{color:var(--ink-3);font-weight:400}
+  .spacer{flex:1}
+  button,label.btn,select,input[type=text]{
+    font-family:var(--sans);font-size:12.5px;color:var(--ink);
+    background:var(--panel-2);border:1px solid var(--line);
+    border-radius:4px;padding:6px 11px;cursor:pointer;
+  }
+  input[type=text]{cursor:text;font-family:var(--mono);font-size:12px}
+  button:hover,label.btn:hover{border-color:var(--ink-3)}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--mark);outline-offset:1px}
+  button:disabled{opacity:.4;cursor:default}
+  #pick{display:none}
+  .counts{font-family:var(--mono);font-size:12px;color:var(--ink-2);white-space:nowrap}
+  .counts b{color:var(--ink);font-weight:500}
+  .counts .p{color:var(--pass)} .counts .f{color:var(--fail)}
+  .mode{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .mode button{border:0;border-radius:0;padding:6px 12px}
+  .mode button[aria-pressed=true]{background:var(--mark);color:#12100e;font-weight:600}
+
+  /* ---------- layout ---------- */
+  .wrap{flex:1;display:grid;grid-template-columns:1fr 320px;min-height:0}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr}.side{display:none}}
+  .stage{overflow-y:auto;padding:16px;min-height:0}
+  .side{
+    border-left:1px solid var(--line);background:var(--panel);
+    padding:16px;overflow-y:auto;min-height:0;
+  }
+
+  /* ---------- empty state ---------- */
+  .empty{max-width:620px;margin:8vh auto;color:var(--ink-2)}
+  .empty h2{color:var(--ink);font-size:18px;margin:0 0 12px}
+  .empty code{font-family:var(--mono);background:var(--panel-2);padding:.15em .4em;border-radius:3px;color:var(--ink)}
+  .empty ol{padding-left:1.2em}
+  .empty li{margin-bottom:9px}
+
+  /* ---------- the set ---------- */
+  .setbar{
+    display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap;
+  }
+  .setid{font-family:var(--mono);font-size:13px;color:var(--ink)}
+  .setpos{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .verdict{
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    padding:3px 8px;border-radius:3px;border:1px solid var(--line);
+  }
+  .verdict.pass{color:var(--pass);border-color:var(--pass)}
+  .verdict.fail{color:var(--fail);border-color:var(--fail)}
+  .verdict.none{color:var(--ink-3)}
+
+  .row{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start}
+  @media (max-width:900px){.row{grid-template-columns:1fr}}
+  .base{position:sticky;top:0}
+  .base img{width:100%;border-radius:5px;border:1px solid var(--line);display:block;background:var(--panel-2)}
+  .base .cap{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:6px;letter-spacing:.05em}
+  .poses{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+
+  .cell{
+    border:2px solid var(--line);border-radius:6px;overflow:hidden;
+    background:var(--panel);position:relative;
+  }
+  .cell.cur{border-color:var(--mark)}
+  .cell.pass{border-color:var(--pass)}
+  .cell.fail{border-color:var(--fail)}
+  .cell.cur.pass,.cell.cur.fail{box-shadow:0 0 0 2px var(--mark) inset}
+  .cell img{width:100%;display:block;aspect-ratio:3/4;object-fit:cover;background:var(--panel-2);cursor:zoom-in}
+  .cell .pose{
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-2);
+    padding:5px 8px;border-top:1px solid var(--line);display:flex;justify-content:space-between;
+  }
+  .cell .badge{font-weight:600}
+  .cell.pass .badge{color:var(--pass)}
+  .cell.fail .badge{color:var(--fail)}
+  .cell .tags{
+    padding:0 8px 6px;font-family:var(--mono);font-size:10px;color:var(--mark);
+    display:flex;flex-wrap:wrap;gap:4px;
+  }
+  .note-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--mark)}
+
+  /* ---------- side panel ---------- */
+  .side h3{
+    font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);
+    margin:0 0 8px;font-weight:600;
+  }
+  .side h3:not(:first-child){margin-top:22px}
+  textarea{
+    width:100%;min-height:120px;background:var(--panel-2);color:var(--ink);
+    border:1px solid var(--line);border-radius:4px;padding:9px 10px;
+    font-family:var(--sans);font-size:13px;line-height:1.5;resize:vertical;
+  }
+  textarea:focus-visible{outline:2px solid var(--mark);outline-offset:1px}
+  .hint{font-size:11.5px;color:var(--ink-3);margin:7px 0 0;line-height:1.45}
+  .taglist{display:flex;flex-direction:column;gap:5px}
+  .tagrow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px}
+  .tagrow .k{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:3px;
+    padding:1px 6px;color:var(--mark);min-width:20px;text-align:center;
+  }
+  .tagrow .n{flex:1;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tagrow.on .n{color:var(--mark)}
+  .tagrow .c{color:var(--ink-3);font-size:11px}
+  kbd{
+    font-family:var(--mono);font-size:11px;background:var(--panel-2);
+    border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:1px 5px;color:var(--ink-2);
+  }
+  .keys{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;font-size:12px;color:var(--ink-2);align-items:center}
+
+  /* ---------- zoom ---------- */
+  .zoom{
+    position:fixed;inset:0;background:rgba(10,9,8,.94);display:none;
+    align-items:center;justify-content:center;z-index:50;padding:24px;cursor:zoom-out;
+  }
+  .zoom.on{display:flex}
+  .zoom img{max-width:100%;max-height:100%;border-radius:6px}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>Contact Sheet <span>· Trailroom eval</span></h1>
+  <label class="btn" for="pick">Open folder…</label>
+  <input id="pick" type="file" webkitdirectory directory multiple accept="image/*">
+  <input id="pattern" type="text" size="26" value="(.+?)__(.+?)__(.+?)\." title="Regex: identity, item, pose">
+  <div class="mode" role="group" aria-label="Pass">
+    <button id="m1" aria-pressed="true">1 · open coding</button>
+    <button id="m2" aria-pressed="false">2 · tagging</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="counts" id="counts">no images loaded</div>
+  <button id="export" disabled>Export JSONL</button>
+</div>
+
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="empty">
+      <h2>A contact sheet is a tool, not a person.</h2>
+      <p>Photographers print every frame from a roll as thumbnails on one sheet, then mark the keepers with a grease pencil. This is that, for renders.</p>
+      <ol>
+        <li>Put your generated images in one folder, named <code>identity__item__pose.png</code> — e.g. <code>id07__coat-wool__walking.png</code>. Adjust the regex in the bar if you name them differently.</li>
+        <li>Put the base photo for each identity in the same folder as <code>id07__base__base.jpg</code> — it pins to the left so you can compare identity without switching windows.</li>
+        <li>Click <b>Open folder…</b> above. Nothing uploads; this page reads the files locally and never makes a network request.</li>
+      </ol>
+      <p><b>Pass 1 — open coding.</b> Move with <kbd>J</kbd>/<kbd>K</kbd>, mark <kbd>1</kbd> pass / <kbd>0</kbd> fail, and write what's wrong in prose in the notes box. Do not invent categories yet. Just describe.</p>
+      <p><b>Pass 2 — tagging.</b> Once you've read your own notes and grouped them into a failure taxonomy, type the tags into the side panel and re-run the sheet hitting number keys. Now you have counts.</p>
+      <p style="margin-top:22px;color:var(--ink-3)">Your work saves to this browser as you go, but <b>Export JSONL</b> is the real artifact — that file is your labeled set, and it's what you hold your judges against.</p>
+    </div>
+  </div>
+
+  <aside class="side">
+    <h3>Note · current image</h3>
+    <textarea id="note" placeholder="What is wrong with this render? Plain prose. &#10;&#10;&quot;face reads 10 years older than the base photo&quot;&#10;&quot;coat is navy in the product shot, black here&quot;&#10;&quot;left hand has six fingers&quot;&#10;&quot;walking pose is a different person than front&quot;"></textarea>
+    <p class="hint">In pass 1 this box is the whole point. The taxonomy comes out of what you write here — it does not go in first.</p>
+
+    <h3>Taxonomy · pass 2</h3>
+    <div class="taglist" id="taglist"></div>
+    <input id="newtag" type="text" placeholder="add a failure mode + ⏎" style="width:100%;margin-top:8px">
+    <p class="hint">Press the number key to toggle a tag on the current image.</p>
+
+    <h3>Keys</h3>
+    <div class="keys">
+      <kbd>J</kbd><span>next image</span>
+      <kbd>K</kbd><span>previous image</span>
+      <kbd>1</kbd><span>pass</span>
+      <kbd>0</kbd><span>fail</span>
+      <kbd>⇧1 / ⇧0</kbd><span>pass / fail the whole set</span>
+      <kbd>N</kbd><span>jump to notes</span>
+      <kbd>Space</kbd><span>zoom</span>
+      <kbd>1…9</kbd><span>toggle tag (pass 2)</span>
+    </div>
+
+    <h3>Why sets</h3>
+    <p class="hint">Cross-pose consistency only exists across four images, so the set is the unit and it gets its own verdict. PRD §10.3: ≥75% pass per image <i>and</i> ≥70% per complete set. Two numbers, two decisions.</p>
+  </aside>
+</div>
+
+<div class="zoom" id="zoom"><img id="zoomimg" alt=""></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "trailroom.labels.v1";
+  var imgs = [];        // {id,file,url,identity,item,pose,verdict,note,tags[]}
+  var sets = [];        // {key,identity,item,items[],base,verdict}
+  var bases = {};       // identity -> url
+  var cur = 0;
+  var mode = 1;
+  var tags = [];
+  var store = {};       // id -> {verdict,note,tags}
+  var setStore = {};    // setKey -> verdict
+
+  var $ = function(s){ return document.querySelector(s); };
+  var stage = $("#stage"), noteEl = $("#note"), countsEl = $("#counts");
+
+  // ---- persistence (best effort; Export is the real artifact) ----
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(raw){ var d = JSON.parse(raw); store = d.store||{}; setStore = d.sets||{}; tags = d.tags||[]; }
+    }catch(e){ /* private window, blocked storage — fine, Export still works */ }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify({store:store, sets:setStore, tags:tags})); }
+    catch(e){ /* ignore */ }
+  }
+
+  // ---- loading ----
+  $("#pick").addEventListener("change", function(ev){
+    var files = Array.prototype.slice.call(ev.target.files)
+      .filter(function(f){ return /\.(png|jpe?g|webp|avif)$/i.test(f.name); });
+    if(!files.length){ return; }
+
+    var re;
+    try{ re = new RegExp($("#pattern").value, "i"); }
+    catch(e){ alert("That regex doesn't parse: " + e.message); return; }
+
+    imgs = []; bases = {};
+    files.forEach(function(f){
+      var m = re.exec(f.name);
+      var identity = m ? m[1] : "unknown";
+      var item     = m ? m[2] : "unknown";
+      var pose     = m ? m[3] : f.name;
+      var url = URL.createObjectURL(f);
+      if(/^base$/i.test(item) || /^base$/i.test(pose)){ bases[identity] = url; return; }
+      var id = identity + "__" + item + "__" + pose;
+      var s = store[id] || {};
+      imgs.push({
+        id:id, name:f.name, url:url,
+        identity:identity, item:item, pose:pose,
+        verdict:s.verdict||null, note:s.note||"", tags:s.tags||[]
+      });
+    });
+
+    imgs.sort(function(a,b){ return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; });
+
+    var byKey = {};
+    sets = [];
+    imgs.forEach(function(im){
+      var k = im.identity + "__" + im.item;
+      if(!byKey[k]){
+        byKey[k] = { key:k, identity:im.identity, item:im.item, items:[], verdict:setStore[k]||null };
+        sets.push(byKey[k]);
+      }
+      byKey[k].items.push(im);
+      im.set = byKey[k];
+    });
+
+    cur = 0;
+    $("#export").disabled = false;
+    render(); renderTags();
+  });
+
+  // ---- rendering ----
+  function render(){
+    if(!imgs.length){ return; }
+    var c = imgs[cur];
+    var html = "";
+    sets.forEach(function(s){
+      var v = s.verdict;
+      html += '<div class="setbar">'
+        + '<span class="setid">' + esc(s.identity) + " · " + esc(s.item) + "</span>"
+        + '<span class="setpos">' + s.items.length + " poses</span>"
+        + '<span class="verdict ' + (v||"none") + '">set: ' + (v||"—") + "</span>"
+        + "</div>";
+      html += '<div class="row"><div class="base">';
+      if(bases[s.identity]){
+        html += '<img src="' + bases[s.identity] + '" alt="base photo">'
+             +  '<div class="cap">BASE · ' + esc(s.identity) + "</div>";
+      } else {
+        html += '<div class="cap">no base photo found for ' + esc(s.identity) + "</div>";
+      }
+      html += '</div><div class="poses">';
+      s.items.forEach(function(im){
+        var i = imgs.indexOf(im);
+        html += '<div class="cell ' + (im.verdict||"") + (i===cur?" cur":"") + '" data-i="' + i + '">'
+          + (im.note ? '<div class="note-dot" title="has a note"></div>' : "")
+          + '<img src="' + im.url + '" alt="' + esc(im.pose) + '" loading="lazy">'
+          + '<div class="pose"><span>' + esc(im.pose) + "</span>"
+          + '<span class="badge">' + (im.verdict==="pass"?"PASS":im.verdict==="fail"?"FAIL":"·") + "</span></div>"
+          + (im.tags.length ? '<div class="tags">' + im.tags.map(function(t){return "#"+esc(t);}).join(" ") + "</div>" : "")
+          + "</div>";
+      });
+      html += "</div></div>";
+    });
+    stage.innerHTML = html;
+
+    noteEl.value = c.note;
+    var el = stage.querySelector('.cell[data-i="' + cur + '"]');
+    if(el){ el.scrollIntoView({block:"nearest"}); }
+    counts();
+  }
+
+  function counts(){
+    var p=0,f=0,n=0;
+    imgs.forEach(function(i){ i.verdict==="pass"?p++:i.verdict==="fail"?f++:n++; });
+    var sp=0,sf=0;
+    sets.forEach(function(s){ s.verdict==="pass"?sp++:s.verdict==="fail"?sf++:0; });
+    countsEl.innerHTML =
+      "images <b>" + imgs.length + "</b> · <span class='p'>" + p + " pass</span> · "
+      + "<span class='f'>" + f + " fail</span> · " + n + " left &nbsp;|&nbsp; "
+      + "sets <b>" + sets.length + "</b> · <span class='p'>" + sp + "</span>/<span class='f'>" + sf + "</span>";
+  }
+
+  function renderTags(){
+    var c = imgs.length ? imgs[cur] : null;
+    $("#taglist").innerHTML = tags.map(function(t,i){
+      var on = c && c.tags.indexOf(t) > -1;
+      var n = imgs.filter(function(x){ return x.tags.indexOf(t) > -1; }).length;
+      return '<div class="tagrow ' + (on?"on":"") + '"><span class="k">' + (i+1) + '</span>'
+        + '<span class="n">' + esc(t) + '</span><span class="c">' + n + "</span></div>";
+    }).join("");
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  // ---- interaction ----
+  stage.addEventListener("click", function(e){
+    var cell = e.target.closest(".cell");
+    if(!cell) return;
+    if(e.target.tagName === "IMG" && cell.classList.contains("cur")){
+      $("#zoomimg").src = e.target.src; $("#zoom").classList.add("on"); return;
+    }
+    cur = +cell.dataset.i; render(); renderTags();
+  });
+  $("#zoom").addEventListener("click", function(){ this.classList.remove("on"); });
+
+  noteEl.addEventListener("input", function(){
+    if(!imgs.length) return;
+    var c = imgs[cur];
+    c.note = noteEl.value;
+    store[c.id] = {verdict:c.verdict, note:c.note, tags:c.tags};
+    save();
+  });
+  noteEl.addEventListener("blur", render);
+
+  $("#newtag").addEventListener("keydown", function(e){
+    if(e.key !== "Enter") return;
+    var v = this.value.trim();
+    if(v && tags.indexOf(v) === -1 && tags.length < 9){ tags.push(v); save(); renderTags(); }
+    this.value = "";
+  });
+
+  $("#m1").addEventListener("click", function(){ setMode(1); });
+  $("#m2").addEventListener("click", function(){ setMode(2); });
+  function setMode(m){
+    mode = m;
+    $("#m1").setAttribute("aria-pressed", m===1);
+    $("#m2").setAttribute("aria-pressed", m===2);
+  }
+
+  function mark(v, whole){
+    if(!imgs.length) return;
+    var c = imgs[cur];
+    if(whole){
+      c.set.verdict = (c.set.verdict === v) ? null : v;
+      setStore[c.set.key] = c.set.verdict;
+    } else {
+      c.verdict = (c.verdict === v) ? null : v;
+      store[c.id] = {verdict:c.verdict, note:c.note, tags:c.tags};
+      if(!whole && cur < imgs.length-1) cur++;
+    }
+    save(); render(); renderTags();
+  }
+
+  document.addEventListener("keydown", function(e){
+    if(e.target === noteEl || e.target === $("#newtag") || e.target === $("#pattern")){
+      if(e.key === "Escape") e.target.blur();
+      return;
+    }
+    if($("#zoom").classList.contains("on")){ $("#zoom").classList.remove("on"); return; }
+    if(!imgs.length) return;
+    var k = e.key;
+
+    if(k === "j" || k === "J" || k === "ArrowRight"){ cur = Math.min(cur+1, imgs.length-1); render(); renderTags(); e.preventDefault(); return; }
+    if(k === "k" || k === "K" || k === "ArrowLeft"){ cur = Math.max(cur-1, 0); render(); renderTags(); e.preventDefault(); return; }
+    if(k === "n" || k === "N"){ noteEl.focus(); e.preventDefault(); return; }
+    if(k === " "){ $("#zoomimg").src = imgs[cur].url; $("#zoom").classList.add("on"); e.preventDefault(); return; }
+    if(k === "!"){ mark("pass", true); e.preventDefault(); return; }
+    if(k === ")"){ mark("fail", true); e.preventDefault(); return; }
+    if(k === "1" && mode === 1){ mark("pass", false); e.preventDefault(); return; }
+    if(k === "0"){ mark("fail", false); e.preventDefault(); return; }
+
+    if(mode === 2 && /^[1-9]$/.test(k)){
+      var t = tags[+k - 1];
+      if(t){
+        var c = imgs[cur], i = c.tags.indexOf(t);
+        if(i > -1) c.tags.splice(i,1); else c.tags.push(t);
+        store[c.id] = {verdict:c.verdict, note:c.note, tags:c.tags};
+        save(); render(); renderTags(); e.preventDefault();
+      }
+    }
+  });
+
+  // ---- export ----
+  $("#export").addEventListener("click", function(){
+    var lines = imgs.map(function(i){
+      return JSON.stringify({
+        id:i.id, file:i.name,
+        identity:i.identity, item:i.item, pose:i.pose,
+        set_key:i.set.key, set_verdict:i.set.verdict,
+        human_verdict:i.verdict, note:i.note, tags:i.tags,
+        labeled_at:new Date().toISOString()
+      });
+    });
+    var blob = new Blob([lines.join("\n") + "\n"], {type:"application/x-ndjson"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "labels-" + new Date().toISOString().slice(0,10) + ".jsonl";
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  load(); renderTags();
+})();
+</script>
+</body>
+</html>

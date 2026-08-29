@@ -7,9 +7,14 @@ from the labels you follow comes back on your body — in four poses — before 
 
 | Path | What it is |
 |---|---|
-| `Trailroom_PRD_v0.6.md` | **The PRD.** Current. §19 is the mock↔PRD discrepancy register, §20 records the imported design docs, §21 holds the v0.6 decisions and their reasoning. |
-| `design/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Read before writing any UI; derive every value from §11 and do not invent tokens. |
+| `docs/PRD.md` | **The PRD** (v0.6). §19 is the mock↔PRD discrepancy register, §20 records the imported design docs, §21 holds the v0.6 decisions and their reasoning. |
+| `docs/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Read before writing any UI; derive every value from §11 and do not invent tokens. |
+| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code: the milestone ladder, the eval-first argument, render-engine cost routing. |
+| `docs/decisions/` | ADRs — one file per irreversible call (infra, vendor, architecture). |
+| `specs/` | Units of work — one spec file per increment being built. |
 | `mocks/` | Four interactive prototypes plus the runtime that makes them open in a browser. |
+| `packages/render-eval/` | The M1 eval harness (cross-pose consistency measurement). |
+| `apps/web/` | The M2 vertical slice. |
 | `archive/` | Superseded documents and the raw Claude Design export. Kept for provenance, not for reading. |
 
 ## Running the mocks
