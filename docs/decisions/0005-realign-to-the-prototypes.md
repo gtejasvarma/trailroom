@@ -37,7 +37,7 @@ Asked as eight questions; the answers are PRD §22.1 rows 1, 2, 4, 6, 7, 8, 9 to
 | Question | Answer |
 |---|---|
 | Fit sentences driven by height | Keep them cut |
-| Consent | A tick on the upload screen; no separate screen, no live selfie |
+| Consent | A tick on the upload screen; no separate screen, no live selfie (**the tick was replaced later the same day, see "Owner review of Phase A" below**) |
 | Guest result | As the prototype: an account is needed to open it |
 | Poses | Four fixed poses for every piece: Front, Three-quarter, Walking, Seated |
 | Platform | One responsive web app |
@@ -74,8 +74,8 @@ Three things Tejas decided after the table above. Each is an owner decision, not
   different from the prototype on purpose. The legal and trust argument in PRD §0.6 and §15 was
   put to Tejas directly and he kept it.
 - **Consent moved onto the upload screen instead of disappearing.** The prototype has no consent at
-  all. The hard rule (nothing opens a picker before consent) survives in a form that adds no
-  screen. The prototype's privacy copy claims a live-selfie match and age estimation that nothing
+  all. The first version added a tick and a rule that nothing opens a picker before it; that was
+  replaced by a notice line the same day (see the amendment below). The prototype's privacy copy claims a live-selfie match and age estimation that nothing
   performs; that copy is rewritten, because a false claim about biometric handling is a worse
   position than an absent feature.
 - **Account-to-open reverses a decision this repo argued for twice** (§19-B4, §21.1). The argument
@@ -105,10 +105,49 @@ prototype describes as "real pose sets photographed on one person".
 ## Consequences
 
 - `CLAUDE.md` hard rules are unchanged in substance. The consent rule is reworded for the upload
-  screen. A rule is added: the app never claims a check it does not perform.
+  screen (and again by the Phase A review amendment below). A rule is added: the app never claims a check it does not perform.
 - `docs/Design.md` stays the token and type system. Its Rule 2 gives way to the prototype's sheets,
   and its "never gate on the render completing" gives way to row 4.
 - ADR 0004's list of what is owed before the password gate comes off still stands. The image-rights
   question this ADR first added to it is answered and removed.
 - The lesson for the process is in BUILD_PLAN §12.1: a screenshot goes in front of Tejas at the
   end of every phase, next to the prototype.
+
+## Owner review of Phase A, 2026-10-07
+
+Tejas reviewed the first built screens (Phase A, deployed behind the password) and changed three
+recorded decisions. They are folded into Phase B (BUILD_PLAN §12.3). PRD §22.1 rows 2, 19 and 20
+carry them.
+
+1. **Discover's header text.** His words: *"The header where we describe Everything, Apparel etc.
+   based on filter selection is not great. Remove that textual description and keep the filters."*
+   There is no heading or sentence above the grid that changes with the filter; the chips and
+   category tiles stay. (Row 19.)
+2. **Follow on listing cards.** His words: *"Adding a designer follow button above every image on the
+   product listing page sucks. Remove it."* A card starts with its image; the label name is small
+   text with the piece name under the image. Following stays on the product page and the label page.
+   (Row 20.)
+3. **Consent.** His words: *"When uploading a picture remove consent. I don't want it. Add a subtext
+   that says, by uploading photo you confirm above 18 etc. as needed."* There is no tick and no
+   consent screen. Under every upload control sits one line: "By adding a photo you confirm you're 18
+   or over and agree to it being used to make your try-ons." The server records a consent record
+   (version, time) at the moment of upload and refuses an upload request without the current consent
+   version. This **replaces** the tick above (row 2 and the hard rule in `CLAUDE.md`, which said no
+   picker opens before the tick). (Row 2.)
+
+**The trade-off on consent, stated honestly.** A notice that uploading constitutes consent is weaker
+evidence of consent than an affirmative tick, particularly under biometric-privacy statutes such as
+Illinois BIPA that call for a written release. Tejas chose it knowingly, for a simpler upload. It is
+added to the legal-review item owed before the password gate comes off (ADR 0004) and to PRD §22.5
+question 6. The server-side version check is what keeps the record honest.
+
+**Decided by Claude in the owner's absence, and open to being overturned:**
+
+- The prototype's "on you" wording is restored in the build ("ON YOU" chip, "Stop guessing how it looks
+  on you", "Closest three we can put on you"). The fit-language rule bans fit sentences, not the phrase
+  "on you". (PRD §22.1 row 21.)
+- An account is required to open a result on desktop as well as mobile. The desktop prototype signs a
+  person in automatically when a photo is accepted; the build asks for Google sign-in instead, so there
+  is one rule on both layouts. (Row 22.)
+- Tinted bands and gradient scrims behind imagery in the prototypes are not carried into the build;
+  Design.md Rule 1 (colourless surround) stands. (Row 23.)

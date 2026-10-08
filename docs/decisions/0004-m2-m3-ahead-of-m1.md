@@ -96,7 +96,7 @@ Known and not fixed:
 
 - [ ] App Check or a per-device guest limit; Cloud Armor in front of the gate
 - [ ] Upload safety filters (Design.md §12)
-- [ ] A legal view on AI-content disclosure with a caption beside the render and nothing drawn on it
+- [ ] A legal view on AI-content disclosure with a caption beside the render and nothing drawn on it, and on consent by notice (a line under the upload controls instead of a tick, PRD §22.1 row 2, §22.5 question 6) under BIPA and similar statutes
 - [ ] M1's exit gate, and the real scorers in the gate's empty slots
 - [ ] The live-selfie face match (PRD §15; deferred, not dropped, PRD §22.1 row 3)
 - [ ] BIPA reviewed by someone qualified (BUILD_PLAN §7)

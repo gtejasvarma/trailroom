@@ -500,6 +500,8 @@ Nothing from M2 + M3 is thrown away below the screens. What carries over: the re
 
 V0 is a demonstration on Friday 9 October 2026. It is **Phases A, B and C**: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open, Google sign-in, the two post-signup steps (step 1's email preferences are stored, nothing is sent), the result, and honest failure. **Phase D without email** — lists, asks, the public vote page, the Asks inbox — is the stretch goal if A to C are done and seen. **Phases E to H follow after Friday**, and sending email (the first message of the old Phase D, now its own step below) is the first thing after V0. No email is sent in V0 (PRD §22.1 row 10): where the interface promises one, V0 shows the result in the app or does not show the promise.
 
+**Phase A was reviewed by the owner on 2026-10-07, and three changes were folded into Phase B:** no filter heading text on Discover, no Follow on listing cards, and consent by a line under the upload controls instead of a tick (PRD §22.1 rows 2, 19, 20; ADR 0005 amendment). Three calls Claude made in his absence ("on you" wording restored, account to open on desktop too, no tints or scrims) are rows 21 to 23 and open to being overturned.
+
 ### 12.1 Three process rules, learned the expensive way
 
 1. **The prototype is the spec for anything you can see.** Every phase that touches the interface starts from the matching screens in the aligned prototypes, `mocks/Trailroom Prototype.dc.html` and `mocks/Trailroom Desktop.dc.html` (markup, inline styles and state logic are all in those files; reference screenshots are in `mocks/screens/`), and from PRD §22.1 for the rows that decide where the build differs. The verbatim extracted source at `archive/prototypes-2026-10-07/` is for provenance. Design.md supplies tokens and type; it does not supply layouts.
@@ -510,7 +512,7 @@ Agents build, as before: one Sonnet subagent per phase, sequentially, because th
 
 ### 12.2 Deploy first, then build in the open
 
-The deploy that was in progress when this plan was written should be finished with the current build before Phase A. Three things about App Hosting could not be checked locally (workspace packages resolving in the build, the browser's Firebase config, the Workflow's first execution). Finding them now, on a small app, is cheaper than finding them in Phase H. The site is behind the password, so nobody sees the plain interface. From then on every phase rolls out by a push to `main`, and rule 2 above has a URL to point at.
+The deploy that was in progress when this plan was written should be finished with the current build before Phase A. Three things about App Hosting could not be checked locally (workspace packages resolving in the build, the browser's Firebase config, the Workflow's first execution). Finding them now, on a small app, is cheaper than finding them in Phase H. The site is behind the password, so nobody sees the plain interface. From then on every phase rolls out by a push to `main`, and rule 2 above has a URL to point at. *(In practice pushes have not triggered rollouts; they are started by hand, see `docs/DEPLOY.md`.)*
 
 ### 12.3 The phases
 
@@ -523,7 +525,7 @@ The first screen a person sees has to look like the prototype, so this goes firs
 - **Catalogue.** The prototype's twelve pieces and five labels move into `packages/catalog`: name, label and its "Independent · city" line, price, description, category, stock line, shelf, pairings, the label's own photographs (one to four per piece), and whether it can be rendered (apparel yes; jewellery and accessories not yet; the leather jacket never, for the honest-failure journey). The images are committed in `packages/catalog/assets/prototype/` (the owner cleared them, ADR 0005) and copied to `gs://<bucket>/catalog/`. The five museum-photo items are retired.
 - **Design foundation.** Inter, self-hosted. Tokens checked against the prototype's values and corrected where they differ. A component kit taken from the prototype: card with swipeable frames and a count chip, category tile, button set, sheet, toast, tab bar, top nav.
 - **Shell.** Discover, Lists and You as a tab bar on a phone and a top nav on a wide screen.
-- **Discover.** The proof slider for anyone without a photo; category tiles; shelves ("New in", "From a label you follow"); cards in their label-photo state with follow, heart and Try it on; "Start with these".
+- **Discover.** The proof slider for anyone without a photo; category tiles; shelves ("New in", "From a label you follow"); cards in their label-photo state with heart and Try it on, starting with the image and with the label name as small text under it; "Start with these". *Owner review, 2026-10-07: no heading or sentence above the grid that changes with the filter, and no label row or Follow on cards; Follow stays on the product and label pages.*
 - **Product page and label page.** Gallery of the label's photos, description, stock line, follow, more from the label.
 - **Following.** Stored for guests on the device and moved to the account at sign-up.
 
@@ -534,20 +536,20 @@ Tests: catalogue integrity (every image present in Storage, every pairing resolv
 #### Phase B — Photos and capture (M)
 
 - **Data model.** Several full-body photos per person with one default, replacing one photo per person. A try-on is keyed by person, photo and piece. Existing test data is discarded, not migrated; nothing real exists yet.
-- **Upload screen.** The prototype's screen, with the consent statement and the one required tick (PRD §22.1 row 2). The picker and camera controls do not exist in the page until the tick is recorded. A check runs in the browser the moment a photo is chosen (size, shape, one clear reason on a miss) and the server repeats it.
+- **Upload screen.** The prototype's screen, with one consent line directly under the upload controls ("By adding a photo you confirm you're 18 or over and agree to it being used to make your try-ons."), on every surface that can take a photo. No tick, no consent screen, nothing blocks the picker or camera (PRD §22.1 row 2 as amended 2026-10-07). The server records consent (version, time) with each upload and refuses an upload without the current consent version. A check runs in the browser the moment a photo is chosen (size, shape, one clear reason on a miss) and the server repeats it.
 - **Camera.** "Or take one now" opens the browser camera with a framing guide and a shutter. The prototype's automatic cues ("Step back a little") are shown only for things the browser can measure; the rest are static guidance. No invented feedback.
 - **Details sheet.** Rewritten to state only what happens: private to you, kept until you remove it, sent to Google's model to make the images and not used for training, 18 and over.
 - **Both entry paths.** Upload first (proof slider → upload → account → the two steps → "Pick anything below" with four starters) and try-on first (product → upload → straight into the queue).
 - **Photo library.** "Which photo?" sheet with the default preselected, "Use a different photo", add a photo, make default.
 
-Tests: no file input or camera call before consent, checked with a mutation observer from page load (the existing test, extended to the camera); every rejection reason through the real server; default switching; a second person can never read the first's photos (rules and route tests); deletion removes every photo.
+Tests: the consent line is present under the upload controls on every surface that can take a photo (upload screen, product-page upload, camera); an upload request without the current consent version is refused by the server and stores nothing; an accepted upload writes a consent record (version, time); every rejection reason through the real server; default switching; a second person can never read the first's photos (rules and route tests); deletion removes every photo.
 
 **Checkpoint:** both paths up to the moment a render would start.
 
 #### Phase C — The queue, the account, the result (L)
 
 - **Queue.** The walk-away chip across every screen ("Putting the wool car coat on you · Pose 2 of 4" becomes a true count of poses ready), the queue screen with tiles filling, "Keep browsing while it renders", and the ready toast with "See it". One job at a time, as the prototype.
-- **Account to open (row 4).** Enforced by the server, not the page: a guest's request gets tile-sized images only; full-size renders need an account. The sheet's copy and the five reasons it can appear (open, buy, list, ask, after upload) follow the prototype, and after sign-in the person lands where they were going.
+- **Account to open (row 4), on desktop as well as mobile (row 22).** Enforced by the server, not the page: a guest's request gets tile-sized images only; full-size renders need an account. The sheet's copy and the five reasons it can appear (open, buy, list, ask, after upload) follow the prototype, and after sign-in the person lands where they were going.
 - **Sign-in.** Google, by linking the guest session so the photo and the render carry over with no re-render.
 - **After sign-up.** Step 1 of 2, email preferences; step 2 of 2, pick three labels, when there is no render yet (row 5).
 - **Result.** The swipe gallery with pose thumbnails and labels, the AI caption beside it, Buy as the filled action, Add to a list, Build the outfit.

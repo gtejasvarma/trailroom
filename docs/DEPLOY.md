@@ -1,17 +1,34 @@
-# Deploy runbook — M2 + M3 on Firebase
+# Deploy runbook — Trailroom on Firebase
 
-> **Which build this describes.** This runbook is for the M2 + M3 build that is deployed first
-> (BUILD_PLAN §12.2), so that App Hosting, the workflow and the IAM bindings are exercised on a small
-> app. The screens and catalogue it mentions are replaced from Phase A on (PRD v0.7 §22). The
-> infrastructure steps stay valid; the garment-image step and the smoke test are repeated or
-> rewritten as noted in them.
+> **Where this stands.** The site is deployed: App Hosting backend `trailroom`, root directory
+> `apps/web`, live branch `main`, project `virtual-tryon-tejas`, behind the password gate. **Phase A
+> (the prototype's catalogue, shell, Discover, product and label pages) is what is live.** Pushes to
+> `main` have not been triggering rollouts, so each one is started by hand:
+>
+> ```bash
+> firebase apphosting:rollouts:create trailroom --git-branch main --project virtual-tryon-tejas --force
+> ```
+>
+> The steps below are the original runbook; the ones already done for this project are marked **done**.
+> The garment-image step is repeated whenever the catalogue's images change, and the smoke test will be
+> rewritten when Phase C ships.
+
+### What went wrong on the first deploy, and the fixes
+
+- **(a) `npm ci` failed in the build.** `package-lock.json` had been generated on macOS with
+  `node_modules` present, so it lacked other platforms' optional packages. Regenerate it in a clean
+  checkout with no `node_modules`, and check with `npm ci --dry-run --os=linux --cpu=x64`.
+- **(b) The backend's root directory was `/` instead of `apps/web`.** Set it to `apps/web`.
+- **(c) The backend had not been granted access to the three secrets.** Run
+  `firebase apphosting:secrets:grantaccess <NAME> --backend trailroom` for `GEMINI_API_KEY`,
+  `GATE_PASSWORD` and `GATE_COOKIE_SECRET`.
+- **(d) After sign-in the password gate redirected to the container's own address behind the proxy.**
+  Fixed in the app by a relative redirect.
 
 Every command here is run by Tejas, by hand. Agents do not deploy (`CLAUDE.md` hard rule; the
 `PreToolUse` guard blocks it). Project: `virtual-tryon-tejas`. Region assumed: `us-central1`.
 
-Steps marked **verify** were written from Google's docs and have not been exercised against this
-project. Nothing in this runbook has been run: the first rollout is the first real test of the
-App Hosting build, the workflow and the IAM bindings.
+Steps marked **verify** were written from Google's docs; check them against the project as you go. What broke on the first deploy is in the note above; this file records no other results.
 
 Set these once in your shell:
 
@@ -103,7 +120,7 @@ The four composite indexes (`jobs` and `photos` on `isGuest` + `expiresAt`, `job
 `updatedAt`, `spendLog` on `state` + `createdAt`) take a few minutes to build. The housekeeping
 endpoint fails until they are ready.
 
-## 5. Secrets
+## 5. Secrets (done: all three set and access granted to the backend)
 
 Use a paid-tier Gemini API key (inputs are not used for training on the paid tier).
 
@@ -126,7 +143,7 @@ Cloud console → Billing → Budgets & alerts → create a budget on this proje
 month, alerts at 50% and 90%). If the Gemini API console offers a per-day request quota for the
 key, set it to a few hundred requests.
 
-## 6. Create the App Hosting backend
+## 6. Create the App Hosting backend (done: backend `trailroom`, root `apps/web`, live branch `main`)
 
 Firebase console → App Hosting → Create backend (or `firebase apphosting:backends:create --project $PROJECT`).
 
@@ -215,8 +232,8 @@ gcloud workflows deploy render-pose-set \
 
 One endpoint, called every 15 minutes, does the housekeeping the product's promises depend on: it deletes
 guests' photos and renders about 48 hours after capture if no account was created, fails jobs
-that have been stuck rendering, and releases spend reservations that never settled. **The consent
-screen's deletion promise is only true while this job is running.**
+that have been stuck rendering, and releases spend reservations that never settled. **The deletion
+promise in the Details sheet is only true while this job is running.**
 
 ```bash
 gcloud scheduler jobs create http purge-guests \
@@ -236,9 +253,7 @@ Firebase console → Authentication → Settings → Authorised domains: add the
 
 ## 12. Smoke test, in this order
 
-*These steps describe the M2 build that is deployed first: its five garments, its consent screen and its
-account sheet. They will be rewritten when Phase C ships, against the prototype's screens (consent tick
-on the upload screen, account-to-open, no email sent).*
+*These steps describe the M2 build: its five garments, its consent screen and its account sheet. They will be rewritten when Phase C ships, against the prototype's screens (the consent line under the upload controls, account-to-open, no email sent).*
 
 1. Open `$APP_URL`. You should land on `/gate`. A wrong password is refused; the right one shows
    the catalogue with five garments **and their images** (images prove step 3 and the bucket

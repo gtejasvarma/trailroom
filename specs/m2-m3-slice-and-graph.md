@@ -8,7 +8,7 @@ Implements `docs/BUILD_PLAN.md` §8 (M2) and §9 (M3). PRD sections: §4, §6, �
 
 > **Superseded by PRD v0.7 §22.** This describes the M2 build, which is deployed first. The consent
 > screen, the dismissible account prompt and the visible full-size guest result below are replaced:
-> consent is a tick on the upload screen, and a guest opens the result with an account (§22.1 rows
+> consent is a line under the upload controls (no tick, no screen; amended 2026-10-07, PRD §22.1 row 2), and a guest opens the result with an account (§22.1 rows
 > 2 and 4). Phase C of BUILD_PLAN §12 rewrites these screens.
 
 A person behind a shared password opens a product page, taps **Try it on**, accepts a consent and
@@ -227,7 +227,7 @@ Tests (emulators, fake provider):
 
 > **Superseded by BUILD_PLAN §12 Phases A to C.** These are the M2 screens. The product list, the
 > consent and age gate screen, the account sheet that dismisses and the five-item demo catalogue are
-> replaced by the prototype's screens, a consent tick on the upload screen, account-to-open, and
+> replaced by the prototype's screens, a consent line under the upload controls (no tick, PRD §22.1 row 2 as amended 2026-10-07; the consent rows and tests below describe the superseded M2 gate), account-to-open, and
 > the prototype's catalogue (PRD §22.1 rows 2, 4, 8). The tests below describe the M2 build only.
 
 Build: product list (plain entry point), product page, consent and age gate, upload, queue with

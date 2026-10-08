@@ -237,6 +237,8 @@ Elevation maps to importance, not nesting depth. `--elev-8` appears once per scr
 
 The primary action is **Try it on**, not Buy. If the card sells buying, we're a store with a filter attached.
 
+**A card starts with its image.** No label row, avatar or Follow button above it (PRD §22.1 row 20, owner review of Phase A): the label name is small plain text under the image, in Label style, with the piece name below. Following a label lives on the product and label pages. Discover carries no heading or sentence above the grid that changes with the filter (row 19); the chips or category tiles stand alone.
+
 ```
 ┌─────────────────┐
 │                 │  3:4 garment image, --radius-lg, no border
@@ -277,7 +279,7 @@ Live capture rules, copied from Apple Camera / Warby Parker:
 
 Validation runs **before** generation, on both paths, and rejects with one specific fixable reason: `That photo is cropped below the knee — we need your full body.` Never `Invalid photo.`
 
-Privacy is stated on this screen, in mechanism terms, at the point of use: what we keep, for how long, who sees it. The same screen carries the consent statement and its one required tick (18 or over, and agree to the photo being used as described); the picker and camera controls do not exist until it is recorded (PRD §22.1 row 2). State only what the product does — no live-selfie match, no age estimation (row 3).
+Privacy is stated on this screen, in mechanism terms, at the point of use: what we keep, for how long, who sees it. Directly under the upload controls, in small `--ink-600` caption text, sits one consent line: "By adding a photo you confirm you're 18 or over and agree to it being used to make your try-ons." There is no tick and no consent screen, and the controls work at once; the server records consent with each upload (PRD §22.1 row 2, amended 2026-10-07). State only what the product does — no live-selfie match, no age estimation (row 3).
 
 ### Generating state
 
@@ -410,6 +412,7 @@ Claims must be verifiable in the panel. State the mechanism, not the vibe: *your
 | `Buy` as a catalogue or feed card's primary action | Makes us a store with a filter attached. (On the result screen Buy is the filled action by decision, PRD §22.1 row 13) |
 | Download as the primary result action | Leaks the image with no return path |
 | Borders around try-on cards | Competes with the garment silhouette |
+| A label row or Follow button above a listing card's image; a heading that changes with the filter | Pushes the garment down and repeats the chip (PRD §22.1 rows 19, 20) |
 | Tap targets under 44px | Phone-first product |
 | Poll with one option | "Do you like this?" gets left on read |
 

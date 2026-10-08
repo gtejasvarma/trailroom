@@ -27,8 +27,8 @@ but not sent in V0.
 
 Open `mocks/Trailroom Prototype.dc.html` (mobile) or `mocks/Trailroom Desktop.dc.html` (desktop)
 directly in a browser. Images are in `mocks/assets/`; reference screenshots are in `mocks/screens/`.
-They are the target prototypes with the PRD §22.1 decisions applied (no fit sentences, a consent tick
-on the upload screen, Google sign-in only, no promise of email).
+They are the target prototypes with the PRD §22.1 decisions applied (no fit sentences, a consent line
+under the upload controls, Google sign-in only, no promise of email).
 
 - `mocks/Trailroom Desktop Designer.dc.html` — the designer back office, a reference for a deferred
   milestone.

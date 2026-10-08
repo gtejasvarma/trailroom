@@ -2,7 +2,7 @@
 <!--
 Built from the target prototype of 2026-10-07 (https://claude.ai/artifact/577W6d53YdY79Qm86SMc9b), aligned to PRD v0.7 §22.1. Edits against the target:
 1. Fit sentences cut: no height picker, body inputs, fit lines, fit sheet or fit journey; descriptions describe the object only; the You section is "Email".
-2. Consent on the upload screen: one plain statement and a required 18+/agree tick (first time, session only) gate every way of adding a photo.
+2. Consent by notice (owner review of Phase A, 2026-10-07, replacing the tick): no consent box or tick; one line under the upload controls says "By adding a photo you confirm you're 18 or over and agree to it being used to make your try-ons." Adding a photo is the act of consent.
 3. Privacy copy states only what the product does: private, kept until removed (guests ~48h), photo sent to Google's image model and not used to train, 18 and over. No claim of a face match or an age check.
 4. Four poses for every piece, in order: Front, Three-quarter, Walking, Seated (Seated uses the back photo as a stand-in image).
 5. Google sign-in only: the Apple sign-in button is removed.
@@ -10,6 +10,8 @@ Built from the target prototype of 2026-10-07 (https://claude.ai/artifact/577W6d
 7. "AI-generated preview" caption beside or under every large on-you image; chips unchanged.
 8. Designer journey kept but marked "later" in the jump menu.
 9. Everything else is the target as designed (small logic fixes: a journey jump no longer cancels the toast timer; mobile only: the pair-preview sheet flag `sheetPair` was never defined, so it never opened, and sign-in no longer clears the pending intent before the two post-signup steps, so the starters screen is reached). Runs standalone: ./runtime/ (React, ReactDOM, dc runtime) and ./assets/ (images); no network needed for images.
+10. Listing cards start with the image: no label row or Follow button above it; the label name is small plain text with the piece name below the image (the grid already did this). Follow stays on the product screen (owner review of Phase A, 2026-10-07).
+11. Discover has no heading or sentence that changes with the filter: the "Everything" title and its descriptive line, and their Apparel, Jewellery and Accessories variants, are removed; the filter chips stay (owner review of Phase A, 2026-10-07).
 -->
 <html><head>
 <meta charset="utf-8">
@@ -295,11 +297,7 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:340px;border:non
 
       <sc-if value="{{ sDiscover }}" hint-placeholder-val="{{ true }}">
       <div style="animation:rise .3s var(--ease)">
-        <div style="padding:28px clamp(16px,3vw,40px) 18px;display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;border-bottom:1px solid var(--line-soft)">
-          <div style="flex:1 1 300px;min-width:0">
-            <h1 style="margin:0 0 4px;font-size:clamp(26px,2.6vw,32px);line-height:1.2;font-weight:500;letter-spacing:-.025em;color:var(--ink)">{{ catTitle }}</h1>
-            <p style="margin:0;font-size:15px;line-height:21px;color:var(--ink-700)">{{ catSub }}</p>
-          </div>
+        <div style="padding:22px clamp(16px,3vw,40px) 18px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;border-bottom:1px solid var(--line-soft)">
           <div style="flex:none;display:flex;gap:6px;flex-wrap:wrap">
             <sc-for list="{{ cats }}" as="c" hint-placeholder-count="4">
               <button sc-camel-on-click="{{ c.pick }}" style="height:36px;padding:0 16px;border:1px solid {{ c.border }};border-radius:9999px;background:{{ c.bg }};color:{{ c.color }};font-size:14px;font-weight:500;line-height:1;transition:all 150ms var(--ease)">{{ c.label }}</button>
@@ -972,7 +970,7 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:340px;border:non
 
     <sc-if value="{{ mCapture }}" hint-placeholder-val="{{ false }}">
     <div style="position:relative;width:920px;max-width:100%;background:var(--canvas);border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.3);animation:pop .3s var(--ease);display:flex;flex-wrap:wrap">
-      <div style="flex:1 1 380px;min-width:280px;position:relative;background:var(--surface);opacity:{{ gateOpacity }};pointer-events:{{ gatePointer }};transition:opacity var(--dur-fast) var(--ease)">
+      <div style="flex:1 1 380px;min-width:280px;position:relative;background:var(--surface)">
         <sc-if value="{{ capUpload }}" hint-placeholder-val="{{ true }}">
           <div style="min-height:560px;height:100%;padding:22px;display:flex">
             <div style="flex:1;border:{{ capDropBorder }};border-radius:14px;background:var(--canvas);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center">
@@ -981,7 +979,7 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:340px;border:non
               </span>
               <p style="margin:0;font-size:17px;line-height:23px;font-weight:600;letter-spacing:-.01em;color:var(--ink)">{{ capDropTitle }}</p>
               <p style="margin:0;max-width:264px;font-size:13px;line-height:19px;color:var(--ink-700)">{{ capDropSub }}</p>
-              <button sc-camel-on-click="{{ chooseFile }}" disabled="{{ consentOff }}" style="height:44px;padding:0 22px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:14px;font-weight:600;line-height:1">{{ capDropBtn }}</button>
+              <button sc-camel-on-click="{{ chooseFile }}" style="height:44px;padding:0 22px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:14px;font-weight:600;line-height:1">{{ capDropBtn }}</button>
             </div>
           </div>
         </sc-if>
@@ -1003,15 +1001,6 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:340px;border:non
         <p style="margin:0 0 4px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.09em;color:var(--ink-600)">{{ capKicker }}</p>
         <h2 style="margin:0 0 8px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ capTitle }}</h2>
         <p style="margin:0 0 20px;font-size:14px;line-height:21px;color:var(--ink-700)">{{ capSub }}</p>
-        <sc-if value="{{ showConsent }}" hint-placeholder-val="{{ true }}">
-        <div style="margin:0 0 20px;border:{{ consentBorder }};border-radius:12px;padding:14px;transition:border-color var(--dur-fast) var(--ease)">
-          <p style="margin:0 0 10px;font-size:13px;line-height:19px;color:var(--ink-700)">We use your photo only to make your try-ons. It stays private to you.</p>
-          <button sc-camel-on-click="{{ toggleConsent }}" role="checkbox" style="width:100%;display:flex;gap:12px;align-items:center;text-align:left;background:none;border:none;padding:0;cursor:pointer">
-            <span style="flex:1;display:block;font-size:15px;line-height:20px;font-weight:500;color:var(--ink)">I’m 18 or over, and I agree to my photo being used to make these try-ons.</span>
-            <span style="flex:none;width:24px;height:24px;border-radius:9999px;background:{{ consentDotBg }};border:{{ consentDotBorder }};color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">{{ consentMark }}</span>
-          </button>
-        </div>
-        </sc-if>
         <p style="margin:0 0 10px;font-size:10px;line-height:14px;font-weight:600;letter-spacing:.09em;color:var(--ink-600)">WHAT WORKS</p>
         <div style="display:flex;gap:8px;margin-bottom:20px">
           <sc-for list="{{ examples }}" as="ex" hint-placeholder-count="3">
@@ -1024,8 +1013,9 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:340px;border:non
           </sc-for>
         </div>
         <button sc-camel-on-click="{{ camAccept }}" disabled="{{ camBlocked }}" style="height:50px;width:100%;border:none;border-radius:9999px;background:{{ camBtnBg }};color:#fff;font-size:16px;font-weight:600;line-height:1">{{ camBtn }}</button>
-        <button sc-camel-on-click="{{ toggleCapMode }}" disabled="{{ consentOff }}" style="opacity:{{ gateOpacity }};margin-top:10px;height:46px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:14px;font-weight:500;line-height:1" data-comment-anchor="f25ad2c763-button">{{ capAltLabel }}</button>
-        <p style="margin:16px 0 0;font-size:12px;line-height:17px;color:var(--ink-600)">Private to you and not used to train models. <button sc-camel-on-click="{{ openPrivacy }}" style="border:none;background:none;padding:0;font-size:12px;font-weight:600;color:var(--accent)">Detail</button></p>
+        <button sc-camel-on-click="{{ toggleCapMode }}" style="margin-top:10px;height:46px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:14px;font-weight:500;line-height:1" data-comment-anchor="f25ad2c763-button">{{ capAltLabel }}</button>
+        <p style="margin:16px 0 0;font-size:12px;line-height:17px;color:var(--ink-600)">By adding a photo you confirm you’re 18 or over and agree to it being used to make your try-ons.</p>
+        <p style="margin:6px 0 0;font-size:12px;line-height:17px;color:var(--ink-600)">Private to you and not used to train models. <button sc-camel-on-click="{{ openPrivacy }}" style="border:none;background:none;padding:0;font-size:12px;font-weight:600;color:var(--accent)">Detail</button></p>
       </div>
     </div>
     </sc-if>
@@ -1243,12 +1233,6 @@ const SHELVES = {
 };
 
 const CATS = [{id:'all',label:'Everything'},{id:'apparel',label:'Apparel'},{id:'jewellery',label:'Jewellery'},{id:'accessories',label:'Accessories'}];
-const CAT_COPY = {
-  all:        ['Everything', 'Every piece from every label we carry. Try any apparel on your own photo.'],
-  apparel:    ['Apparel', 'Coats, dresses and tailoring from independent labels. Try any of it on your own photo.'],
-  jewellery:  ['Jewellery', 'Browse, save and buy. Trying jewellery on is not available yet.'],
-  accessories:['Accessories', 'Rings, cuffs and scarves. Browse, save and buy. Trying them on is not available yet.']
-};
 
 const PHOTO_CATS = [
   {slot:'body', label:'Full body', hint:'Used for apparel. Click a photo to make it the default.', empty:'Capture a full-body photo'},
@@ -1283,7 +1267,7 @@ class Component extends DCLogic {
     tray:[], poseSync:0,
     lists:[{id:'l1', name:'Wedding in September', items:['coat','slip'], shared:false}],
     listId:'l1', askId:null, askVote:null, pendingItem:null, newListName:'',
-    consent:false, consentDone:false, follows:{}, email:'', emailPrefs:{new:true, votes:true, price:false},
+    follows:{}, email:'', emailPrefs:{new:true, votes:true, price:false},
     modal:null, gate:null, capSlot:'body', camStep:0, capMode:'upload', capPicked:false,
     toast:null, toastAction:null, toastTarget:null,
     votes:{a:14,b:9}, voted:null,
@@ -1366,7 +1350,6 @@ class Component extends DCLogic {
   };
 
   acceptPhoto = () => {
-    this.setState({consentDone:true});
     const slot = this.state.capSlot;
     const cand = CANDIDATES[slot][0];
     this.setState(s => ({
@@ -1416,17 +1399,17 @@ class Component extends DCLogic {
     return {
       journeys: JOURNEYS.map(j => ({...j, border: '#E2E2E2', bg:'#FFF', color:'#5C5C5C', go: () => {
         this.clear();
-        if (j.act === 'cold') return this.setState({signedIn:false, consent:false, consentDone:false, cat:'all', photos:{body:[],face:[],hand:[]}, tried:[], tray:[], screen:'discover', modal:null, voted:null, capMode:'upload', capPicked:false});
-        if (j.act === 'browse') return this.setState({signedIn:false, consent:false, consentDone:false, photos:{body:[],face:[],hand:[]}, tried:[], current:CATALOG[0], screen:'product', frame:0, modal:null});
-        if (j.act === 'compare') return this.setState({signedIn:true, consentDone:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, tried:['coat','slip','suit'], tray:['coat','slip','suit'], screen:'compare', modal:null});
-        if (j.act === 'lists') return this.setState({signedIn:true, consentDone:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, tried:['coat','slip'], lists:[{id:'l1',name:'Wedding in September',items:['coat','slip'],shared:true}], listId:'l1', askId:null, votes:{a:14,b:9}, screen:'lists', modal:null});
-        if (j.act === 'ask')  return this.setState({signedIn:true, consentDone:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, askId:'a1', askVote:null, screen:'lists', modal:null});
-        if (j.act === 'studio') return this.setState({signedIn:true, consentDone:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, tried:['coat','slip'], follows:{'ANSEL WARD':true,'CYRA':true}, screen:'you', modal:null});
-        if (j.act === 'fail') return this.setState({signedIn:true, consentDone:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, current:this.item('jacket'), screen:'fail', modal:null});
+        if (j.act === 'cold') return this.setState({signedIn:false, cat:'all', photos:{body:[],face:[],hand:[]}, tried:[], tray:[], screen:'discover', modal:null, voted:null, capMode:'upload', capPicked:false});
+        if (j.act === 'browse') return this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], current:CATALOG[0], screen:'product', frame:0, modal:null});
+        if (j.act === 'compare') return this.setState({signedIn:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, tried:['coat','slip','suit'], tray:['coat','slip','suit'], screen:'compare', modal:null});
+        if (j.act === 'lists') return this.setState({signedIn:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, tried:['coat','slip'], lists:[{id:'l1',name:'Wedding in September',items:['coat','slip'],shared:true}], listId:'l1', askId:null, votes:{a:14,b:9}, screen:'lists', modal:null});
+        if (j.act === 'ask')  return this.setState({signedIn:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, askId:'a1', askVote:null, screen:'lists', modal:null});
+        if (j.act === 'studio') return this.setState({signedIn:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, tried:['coat','slip'], follows:{'ANSEL WARD':true,'CYRA':true}, screen:'you', modal:null});
+        if (j.act === 'fail') return this.setState({signedIn:true, photos:{body:[CANDIDATES.body[0]],face:[],hand:[]}, current:this.item('jacket'), screen:'fail', modal:null});
         if (j.act === 'vote') return this.setState({voted:null, screen:'vote', modal:null});
         if (j.act === 'designer') { window.location.href = 'Trailroom Desktop Designer.dc.html'; return; }
       }})),
-      reset: () => { this.clear(); this.setState({signedIn:false, consent:false, consentDone:false, cat:'all', photos:{body:[],face:[],hand:[]}, tried:[], tray:[], lists:[{id:'l1',name:'Wedding in September',items:['coat','slip'],shared:false}], follows:{}, voted:null, askId:null, askVote:null, screen:'discover', modal:null, capMode:'upload', capPicked:false, current:CATALOG[0], frame:0}); },
+      reset: () => { this.clear(); this.setState({signedIn:false, cat:'all', photos:{body:[],face:[],hand:[]}, tried:[], tray:[], lists:[{id:'l1',name:'Wedding in September',items:['coat','slip'],shared:false}], follows:{}, voted:null, askId:null, askVote:null, screen:'discover', modal:null, capMode:'upload', capPicked:false, current:CATALOG[0], frame:0}); },
 
       url: s.screen === 'vote' ? 'trailroom.ai/ask/8f2c' : 'trailroom.ai/' + (s.screen === 'discover' ? 'discover' : s.screen),
       isApp: s.screen !== 'vote',
@@ -1475,7 +1458,6 @@ class Component extends DCLogic {
       setProofX: (e) => this.setState({proofX: Number(e.target.value)}),
       openStudioCapture: () => { this.setState({current: CATALOG[0]}); this.openCapture('body'); },
 
-      catTitle: CAT_COPY[s.cat][0], catSub: CAT_COPY[s.cat][1],
       cats: CATS.map(c => ({
         label:c.label,
         border: s.cat === c.id ? '#1A1A1A' : '#E2E2E2',
@@ -1695,16 +1677,6 @@ class Component extends DCLogic {
       mBuy: s.modal === 'buy', mArrived: s.modal === 'arrived', mPrivacy: s.modal === 'privacy',
       closeModal: () => this.setState({modal:null}),
 
-      showConsent: !s.consentDone,
-      consentOk: !!(s.consent || s.consentDone),
-      consentOff: !(s.consent || s.consentDone),
-      gateOpacity: (s.consent || s.consentDone) ? '1' : '.38',
-      gatePointer: (s.consent || s.consentDone) ? 'auto' : 'none',
-      consentBorder: s.consent ? '2px solid #00695C' : '1px solid #E2E2E2',
-      consentDotBg: s.consent ? '#00695C' : 'transparent',
-      consentDotBorder: s.consent ? 'none' : '1.5px solid #C4C4C4',
-      consentMark: s.consent ? '\u2713' : '',
-      toggleConsent: () => this.setState(st => ({consent: !st.consent})),
       failKicker: cur.cat !== 'apparel' ? 'NOT YET' : 'COULDN\u2019T RENDER THIS ONE',
       failLine: cur.cat !== 'apparel'
         ? 'We can\u2019t put ' + cur.cat + ' on you yet. We\u2019d rather say so than show you a guess. You can still save it, ask friends about it and buy it.'
@@ -1721,17 +1693,17 @@ class Component extends DCLogic {
       capDropTitle: s.capPicked ? 'Ready to render' : 'Drop a photo here',
       capDropSub: s.capPicked ? 'You can swap it any time in the studio.' : 'Or browse for one. JPG or PNG, one person, plain background.',
       capDropBtn: s.capPicked ? 'Choose a different photo' : 'Browse files',
-      chooseFile: () => { if (!(s.consent || s.consentDone)) return; this.setState({capPicked:true}); },
+      chooseFile: () => { this.setState({capPicked:true}); },
       capAltLabel: s.capMode === 'camera' ? 'Upload a photo instead' : 'Use my camera instead',
-      toggleCapMode: () => { if (!(s.consent || s.consentDone)) return; if (s.capMode === 'camera') { clearInterval(this.cam); this.setState({capMode:'upload'}); } else this.startCam(); },
+      toggleCapMode: () => { if (s.capMode === 'camera') { clearInterval(this.cam); this.setState({capMode:'upload'}); } else this.startCam(); },
       camSrc: IMG(s.capSlot === 'hand' ? 7615245 : s.capSlot === 'face' ? 7615245 : 10201379),
       camCue: ['Step back a little','A little more light','Hold still \u2014 3','Got it'][Math.min(3, s.camStep)],
       camSub: s.camStep < 3 ? 'One thing at a time, we\u2019ll capture automatically' : 'Full body in frame, even light, one person',
       camPct: [15, 45, 75, 100][Math.min(3, s.camStep)],
       camBtn: s.capMode === 'camera' ? (s.camStep < 3 ? 'Waiting for a clean frame\u2026' : 'Use this photo') : (s.capPicked ? 'Use this photo' : 'Choose a photo to continue'),
-      camBlocked: !(s.consent || s.consentDone) || (s.capMode === 'camera' ? s.camStep < 3 : !s.capPicked),
-      camBtnBg: (s.consent || s.consentDone) && (s.capMode === 'camera' ? s.camStep >= 3 : s.capPicked) ? '#1A1A1A' : '#C4C4C4',
-      camAccept: () => { if (!(s.consent || s.consentDone)) return; if (s.capMode === 'camera' ? s.camStep >= 3 : s.capPicked) this.acceptPhoto(); },
+      camBlocked: (s.capMode === 'camera' ? s.camStep < 3 : !s.capPicked),
+      camBtnBg: (s.capMode === 'camera' ? s.camStep >= 3 : s.capPicked) ? '#1A1A1A' : '#C4C4C4',
+      camAccept: () => { if (s.capMode === 'camera' ? s.camStep >= 3 : s.capPicked) this.acceptPhoto(); },
       examples: (s.capSlot === 'hand'
         ? [{id:14411703,pos:'50% 45%',ok:true},{id:7615245,pos:'50% 40%',ok:true},{id:18597841,pos:'50% 40%',ok:false}]
         : s.capSlot === 'face'
@@ -1802,7 +1774,7 @@ class Component extends DCLogic {
         };
       }),
       voteWinnerShort: this.item((list ? list.items : ['coat'])[0]).name.toLowerCase(),
-      voteSignup: () => { this.setState({screen:'discover', signedIn:false, consent:false, consentDone:false, photos:{body:[],face:[],hand:[]}, tried:[], current:this.item((list ? list.items : ['coat'])[0])}); this.openCapture('body'); window.scrollTo({top:0}); },
+      voteSignup: () => { this.setState({screen:'discover', signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], current:this.item((list ? list.items : ['coat'])[0])}); this.openCapture('body'); window.scrollTo({top:0}); },
       voteBrowse: () => { this.setState({screen:'discover', signedIn:false}); window.scrollTo({top:0}); },
       backToApp: () => this.go(s.signedIn ? 'lists' : 'discover'),
 

@@ -8,10 +8,10 @@ Trailroom (trailroom.ai) — virtual try-on: one photo, four poses (Front, Three
 Seated), garments from labels the user follows.
 **The experience being built is the two aligned prototypes in `mocks/`** (`Trailroom Prototype.dc.html`,
 `Trailroom Desktop.dc.html`; ADR 0005). They win on flow, layout and copy, and the PRD (v0.7) agrees
-with them except where §22.1 says the build differs (no fit sentences, a consent tick, no live selfie
+with them except where §22.1 says the build differs (no fit sentences, consent by a line under the upload controls, no live selfie
 claim, no email sent in V0). The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
 **V0 is a demonstration on Friday 9 October 2026: Phases A, B and C.** Phase D without email is the
-stretch goal; E to H and sending email come after Friday. **Phase A is in progress.**
+stretch goal; E to H and sending email come after Friday. **Phase A is done and deployed behind the password; Phase B is in progress.**
 
 Where things stand: M0 is done. M2 + M3 (one plain journey, the pipeline, the Cloud Workflow) are
 built but not deployed; their screens and catalogue are being replaced, everything beneath them
@@ -61,8 +61,11 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
   render how a piece looks; we make no claim about fit. (PRD Principle 3, and a legal posture — §15.)
 - **Never alter body proportion.** No slimming, lengthening, smoothing, or "enhancing" — not a feature,
   not a default, not a model parameter. The proportion guard in the QA gate is non-negotiable. (Principle 2.)
-- **Consent blocks capture.** No code path opens a camera or picker before the consent tick on the
-  upload screen is recorded. Guests included. (Principle 8, §15, §22.1 row 2.)
+- **Consent line on every upload surface.** Every surface that can take a photo shows, directly under
+  the upload control, "By adding a photo you confirm you're 18 or over and agree to it being used to
+  make your try-ons." The server records consent (version, time) with each upload and refuses an upload
+  that does not carry the current consent version. No tick, no separate consent screen (§22.1 row 2;
+  Tejas, 2026-10-07). Weaker evidence than a tick: it is a question for the legal review.
 - **Never claim a check the product doesn't perform.** No copy about a live-selfie match, age
   estimation or any other safeguard unless the code does it; and in V0 no copy promises an email,
   because none is sent. (§22.1 rows 3 and 10.)

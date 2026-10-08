@@ -2,7 +2,7 @@
 <!--
 Built from the target prototype of 2026-10-07 (https://claude.ai/artifact/EKTrBk2wLDDc3EBwDeUix4), aligned to PRD v0.7 §22.1. Edits against the target:
 1. Fit sentences cut: no height picker, body inputs, fit lines, fit sheet or fit journey; descriptions describe the object only; the You section is "Email".
-2. Consent on the upload screen: one plain statement and a required 18+/agree tick (first time, session only) gate every way of adding a photo.
+2. Consent by notice (owner review of Phase A, 2026-10-07, replacing the tick): no consent box or tick; one line under the upload controls says "By adding a photo you confirm you're 18 or over and agree to it being used to make your try-ons." Adding a photo is the act of consent.
 3. Privacy copy states only what the product does: private, kept until removed (guests ~48h), photo sent to Google's image model and not used to train, 18 and over. No claim of a face match or an age check.
 4. Four poses for every piece, in order: Front, Three-quarter, Walking, Seated (Seated uses the back photo as a stand-in image).
 5. Google sign-in only: the Apple sign-in button is removed.
@@ -10,6 +10,8 @@ Built from the target prototype of 2026-10-07 (https://claude.ai/artifact/EKTrBk
 7. "AI-generated preview" caption beside or under every large on-you image; chips unchanged.
 8. Designer journey kept but marked "later" in the jump menu.
 9. Everything else is the target as designed (small logic fixes: a journey jump no longer cancels the toast timer; mobile only: the pair-preview sheet flag `sheetPair` was never defined, so it never opened, and sign-in no longer clears the pending intent before the two post-signup steps, so the starters screen is reached). Runs standalone: ./runtime/ (React, ReactDOM, dc runtime) and ./assets/ (images); no network needed for images.
+10. Listing cards start with the image: the label row (avatar, label name, Follow button) above the image is removed; the label name is small plain text with the piece name below the image. Follow stays on the product and label screens (owner review of Phase A, 2026-10-07).
+11. Discover carries no heading or sentence that changes with the filter (owner review of Phase A, 2026-10-07; the desktop file had one). The filter chips and category tiles stay.
 -->
 <html><head>
 <meta charset="utf-8">
@@ -359,16 +361,6 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:100%;background:
         <div style="display:flex;flex-direction:column;gap:26px">
           <sc-for list="{{ feed }}" as="f" hint-placeholder-count="4">
             <div style="animation:rise .4s var(--ease)">
-              <div style="display:flex;align-items:center;gap:10px;padding:0 16px 10px">
-                <button sc-camel-on-click="{{ f.openBrand }}" style="flex:none;width:34px;height:34px;border-radius:9999px;overflow:hidden;border:1px solid var(--line);padding:0;background:none">
-                  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-src="{{ f.avatar }}" alt="" style="width:100%;height:100%;object-fit:cover">
-                </button>
-                <button sc-camel-on-click="{{ f.openBrand }}" style="flex:1;text-align:left;background:none;border:none;padding:0">
-                  <span style="display:block;font-size:14px;line-height:18px;font-weight:600;color:var(--ink)">{{ f.brand }}</span>
-                  <span style="display:block;font-size:12px;line-height:16px;color:var(--ink-600)">{{ f.shelf }}</span>
-                </button>
-                <button sc-camel-on-click="{{ f.follow }}" style="flex:none;height:32px;padding:0 14px;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:13px;font-weight:500;line-height:1">{{ f.followLabel }}</button>
-              </div>
               <div style="position:relative">
                 <div style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none">
                   <sc-for list="{{ f.frames }}" as="fr" hint-placeholder-count="4">
@@ -385,6 +377,7 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:100%;background:
                 <span style="position:absolute;right:12px;top:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:9999px;padding:5px 10px;font-size:11px;font-weight:600;display:flex;gap:5px;align-items:center">{{ f.count }}</span>
               </div>
               <div style="padding:12px 16px 0">
+                <button sc-camel-on-click="{{ f.openBrand }}" style="display:block;background:none;border:none;padding:0;text-align:left;font-size:10px;line-height:14px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">{{ f.brand }}</button>
                 <div style="display:flex;align-items:baseline;gap:8px">
                   <span style="flex:1;font-size:15px;line-height:20px;color:var(--ink)">{{ f.name }}</span>
                   <span style="flex:none;font-size:15px;line-height:20px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink)">{{ f.price }}</span>
@@ -466,20 +459,11 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:100%;background:
       <div style="padding:16px;animation:rise .3s var(--ease)">
         <h1 style="margin:0 0 4px;font-size:24px;line-height:30px;font-weight:500;letter-spacing:-.02em;color:var(--ink)">{{ photoTitle }}</h1>
         <p style="margin:0 0 16px;font-size:15px;line-height:22px;color:var(--ink-700)">{{ photoSub }}</p>
-        <sc-if value="{{ showConsent }}" hint-placeholder-val="{{ true }}">
-        <div style="margin:0 0 18px;border:{{ consentBorder }};border-radius:12px;padding:12px;transition:border-color var(--dur-fast) var(--ease)">
-          <p style="margin:0 0 10px;font-size:13px;line-height:19px;color:var(--ink-700)">We use your photo only to make your try-ons. It stays private to you.</p>
-          <button sc-camel-on-click="{{ toggleConsent }}" role="checkbox" aria-checked="{{ consentMark }}" style="width:100%;display:flex;gap:12px;align-items:center;text-align:left;background:none;border:none;padding:0">
-            <span style="flex:1;display:block;font-size:15px;line-height:20px;font-weight:500;color:var(--ink)">I’m 18 or over, and I agree to my photo being used to make these try-ons.</span>
-            <span style="flex:none;width:24px;height:24px;border-radius:9999px;background:{{ consentDotBg }};border:{{ consentDotBorder }};color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">{{ consentMark }}</span>
-          </button>
-        </div>
-        </sc-if>
-        <div style="opacity:{{ gateOpacity }};pointer-events:{{ gatePointer }};transition:opacity var(--dur-fast) var(--ease)">
+        <div>
         <p style="margin:0 0 10px;font-size:11px;line-height:15px;font-weight:600;letter-spacing:.08em;color:var(--ink-600)">FROM YOUR CAMERA ROLL · THESE THREE WILL WORK</p>
         <div style="display:flex;gap:8px;margin-bottom:14px">
           <sc-for list="{{ candidates }}" as="cd" hint-placeholder-count="3">
-            <button sc-camel-on-click="{{ cd.use }}" disabled="{{ consentOff }}" style="flex:1;border:none;padding:0;background:none;text-align:left;display:block">
+            <button sc-camel-on-click="{{ cd.use }}" style="flex:1;border:none;padding:0;background:none;text-align:left;display:block">
               <span style="display:block;position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:12px;background:var(--surface)">
                 <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-src="{{ cd.src }}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{{ cd.pos }}">
                 <span style="position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:9999px;background:var(--success);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">✓</span>
@@ -488,12 +472,13 @@ input[type=range].tr-slider::-moz-range-thumb{width:44px;height:100%;background:
             </button>
           </sc-for>
         </div>
-        <button sc-camel-on-click="{{ pickRoll }}" disabled="{{ consentOff }}" style="height:50px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Browse all photos</button>
+        <button sc-camel-on-click="{{ pickRoll }}" style="height:50px;width:100%;border:1px solid var(--line);border-radius:9999px;background:var(--canvas);color:var(--ink);font-size:15px;font-weight:500;line-height:1">Browse all photos</button>
         <div style="display:flex;justify-content:center;margin-top:12px">
-          <button sc-camel-on-click="{{ openCam }}" disabled="{{ consentOff }}" style="background:none;border:none;padding:6px 8px;font-size:14px;font-weight:500;color:var(--accent)">or take one now</button>
+          <button sc-camel-on-click="{{ openCam }}" style="background:none;border:none;padding:6px 8px;font-size:14px;font-weight:500;color:var(--accent)">or take one now</button>
         </div>
         </div>
-        <p style="margin:18px 0 0;font-size:13px;line-height:19px;color:var(--ink-600);text-align:center">Private to you, never public, never used to train. <button sc-camel-on-click="{{ openPrivacy }}" style="background:none;border:none;padding:0;font-size:13px;font-weight:500;line-height:19px;color:var(--accent)">Details</button></p>
+        <p style="margin:16px 0 0;font-size:13px;line-height:19px;color:var(--ink-600);text-align:center">By adding a photo you confirm you’re 18 or over and agree to it being used to make your try-ons.</p>
+        <p style="margin:6px 0 0;font-size:13px;line-height:19px;color:var(--ink-600);text-align:center">Private to you, never public, never used to train. <button sc-camel-on-click="{{ openPrivacy }}" style="background:none;border:none;padding:0;font-size:13px;font-weight:500;line-height:19px;color:var(--accent)">Details</button></p>
       </div>
       </sc-if>
 
@@ -1507,8 +1492,7 @@ class Component extends DCLogic {
     photoFrom:'product',
     tried:[], job:null, ready:null, jobDone:0, openCat:null,
     lists:[], listId:null, pendingItem:null, newListName:'',
-    outfit:null, pairId:null, consent:false, consentDone:false,
-    asks:[{id:'a1', who:'Priya', question:'Which one for Saturday?', items:['slip','coat'], unread:true},
+    outfit:null, pairId:null, asks:[{id:'a1', who:'Priya', question:'Which one for Saturday?', items:['slip','coat'], unread:true},
           {id:'a2', who:'Sam', question:'Suit or the trouser set?', items:['suit','set'], unread:true}],
     askId:null, askVote:null,
     email:'', emailOn:false, emailPrefs:{news:true, votes:true, price:false},
@@ -1519,7 +1503,7 @@ class Component extends DCLogic {
 
   componentDidMount(){
     if (this.props.startSignedIn) this.setState({
-      signedIn:true, consentDone:true, emailOn:true, email:'maya@email.com',
+      signedIn:true, emailOn:true, email:'maya@email.com',
       photos:{body:PHOTO_CATS[0].seed.slice(), face:[], hand:[]},
       tried:['coat','slip'], follows:{'ANSEL WARD':true,'MARCHAND':true,'CYRA':true},
       lists:[{id:'l1', name:'Wedding in September', items:['coat','slip']}]
@@ -1626,7 +1610,6 @@ class Component extends DCLogic {
   };
 
   afterUpload = () => {
-    this.setState({consentDone:true});
     if (this.state.photoFrom === 'standalone') {
       if (!this.state.signedIn) { this.setState({gate:'picknext', sheet:'account'}); return; }
       return this.go('picknext');
@@ -1677,15 +1660,14 @@ class Component extends DCLogic {
     }[s.gate] || ['Create an account', 'Your photos and try-ons stay with you.'];
 
     const feedIds = CATALOG.filter(i => i.cat === s.cat).map(i => i.id);
-    const shelves = {coat:'New in', slip:'New in', suit:'From a label you follow', hoops:'Goes with your slip dress', set:'Popular this month', blouse:'New in', chain:'Goes with your hoops', jacket:'New in'};
 
     return {
       journeys: JOURNEYS.map(j => ({...j, go: () => {
         this.clear();
-        const signed = {signedIn:true, consentDone:true, emailOn:true, email:'maya@email.com', job:null, ready:null,
+        const signed = {signedIn:true, emailOn:true, email:'maya@email.com', job:null, ready:null,
           photos:{body:PHOTO_CATS[0].seed.slice(), face:[], hand:[]}, tried:['coat','slip']};
-        if (j.act === 'c1')      return this.setState({signedIn:false, consent:false, consentDone:false, photos:{body:[],face:[],hand:[]}, tried:[], lists:[], follows:{}, emailOn:false, job:null, ready:null, outfit:null, screen:'feed', stack:[], tab:'feed', sheet:null, photoFrom:'standalone'});
-        if (j.act === 'c2')      { this.setState({signedIn:false, consent:false, consentDone:false, photos:{body:[],face:[],hand:[]}, tried:[], lists:[], follows:{}, emailOn:false, job:null, ready:null, current:this.item('coat'), photoFrom:'product'}); return this.go('item'); }
+        if (j.act === 'c1')      return this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], lists:[], follows:{}, emailOn:false, job:null, ready:null, outfit:null, screen:'feed', stack:[], tab:'feed', sheet:null, photoFrom:'standalone'});
+        if (j.act === 'c2')      { this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], lists:[], follows:{}, emailOn:false, job:null, ready:null, current:this.item('coat'), photoFrom:'product'}); return this.go('item'); }
         if (j.act === 'queue')   { this.setState({...signed, current:this.item('suit')}); return this.runJob('suit'); }
                 if (j.act === 'outfit')  { this.setState({...signed, current:this.item('coat'), tried:['coat','slip'], outfit:['coat','slip']}); return this.go('outfit'); }
         if (j.act === 'fail')    { this.setState({...signed, cat:'apparel', current:this.item('jacket')}); return this.go('fail'); }
@@ -1758,19 +1740,16 @@ class Component extends DCLogic {
         const it = this.item(id);
         const onYou = s.tried.includes(id);
         return {
-          brand:it.brand, name:it.name, price:it.price, shelf:shelves[id] || 'New in',
-          avatar: SRC(it, 200),
+          brand:it.brand, name:it.name, price:it.price,
           frames: onYou ? this.poses(it) : this.modelFrames(it),
           count: onYou ? '↔ ' + this.poseWord(it) : '↔ ' + this.photoWord(it),
           isModel: !onYou, isOnYou: onYou,
           stockLine: it.stock, hasStock: !onYou,
           fitColor: onYou ? '#1A1A1A' : (it.low ? '#C62828' : '#7A7A7A'),
           heart: saved.includes(id) ? '\u2665' : '\u2661',
-          followLabel: s.follows[it.brand] ? 'Following' : 'Follow',
           open: () => { this.setState({current:it}); this.go(onYou ? 'result' : 'item'); },
           openBrand: () => { this.setState({current:it}); this.go('brand'); },
           tryOn: () => { this.setState({current:it}); this.startTry(); },
-          follow: () => this.setState(st => ({follows:{...st.follows, [it.brand]: !st.follows[it.brand]}})),
           buy: () => { this.setState({current:it}); if (this.gate('buy')) this.setState({sheet:'buy'}); },
           list: () => { this.setState({current:it, pendingItem:id}); if (this.gate('list')) this.setState({sheet:'list'}); }
         };
@@ -1801,15 +1780,6 @@ class Component extends DCLogic {
       buy: () => { if (this.gate('buy')) this.setState({sheet:'buy'}); },
       openList: () => { this.setState({pendingItem:cur.id}); if (this.gate('list')) this.setState({sheet:'list'}); },
 
-      showConsent: !s.consentDone,
-      consentOff: !(s.consent || s.consentDone),
-      gateOpacity: (s.consent || s.consentDone) ? '1' : '.38',
-      gatePointer: (s.consent || s.consentDone) ? 'auto' : 'none',
-      consentBorder: s.consent ? '2px solid #00695C' : '1px solid #E2E2E2',
-      consentDotBg: s.consent ? '#00695C' : 'transparent',
-      consentDotBorder: s.consent ? 'none' : '1.5px solid #C4C4C4',
-      consentMark: s.consent ? '\u2713' : '',
-      toggleConsent: () => this.setState(st => ({consent: !st.consent})),
       failTitle: noTry(cur) && cur.cat !== 'apparel' ? 'Not yet for ' + cur.cat : 'We couldn\u2019t render this one honestly',
       failLine: cur.cat !== 'apparel'
         ? 'We can\u2019t put ' + cur.cat + ' on you yet. We\u2019d rather say so than show you a guess.'
@@ -1821,10 +1791,10 @@ class Component extends DCLogic {
         : 'One photo and the ' + cur.name.toLowerCase() + ' comes straight back on you.',
       candidates: (CANDIDATES[cur.slot] || CANDIDATES.body).map(c => ({
         src:IMG(c.id, 400), pos:c.pos, label:c.label,
-        use: () => { if (!(s.consent || s.consentDone)) return; this.usePhoto(cur.slot, c); this.afterUpload(); }
+        use: () => { this.usePhoto(cur.slot, c); this.afterUpload(); }
       })),
-      pickRoll: () => { if (!(s.consent || s.consentDone)) return; const c = (CANDIDATES[cur.slot] || CANDIDATES.body)[0]; this.usePhoto(cur.slot, c); this.afterUpload(); },
-      openCam: () => { if (!(s.consent || s.consentDone)) return; this.clear(); this.setState({camStep:0, camOpen:true}); this.stepCam(); },
+      pickRoll: () => { const c = (CANDIDATES[cur.slot] || CANDIDATES.body)[0]; this.usePhoto(cur.slot, c); this.afterUpload(); },
+      openCam: () => { this.clear(); this.setState({camStep:0, camOpen:true}); this.stepCam(); },
       closeCam: () => { this.clear(); this.setState({camOpen:false}); },
       camSrc: IMG(cur.slot === 'hand' ? 7615245 : 10201379),
       camCue: ['Step back a little','A little more light','Hold it \u2014 3','Looks good'][Math.min(3, s.camStep)],
@@ -2156,8 +2126,8 @@ class Component extends DCLogic {
           vote: () => this.setState(st => ({voted:k, votes:{...st.votes, [k]: st.votes[k]+1}}))
         };
       }),
-      seeItOnYou: () => { const v = listItems[s.voted === 'b' ? 1 : 0] || listItems[0] || CATALOG[0]; this.setState({current:v, signedIn:false, consent:false, consentDone:false, photos:{body:[],face:[],hand:[]}, tried:[], photoFrom:'product'}); this.go('photo'); },
-      voteBrowse: () => { const v = listItems[s.voted === 'b' ? 1 : 0] || listItems[0] || CATALOG[0]; this.setState({signedIn:false, consent:false, consentDone:false, photos:{body:[],face:[],hand:[]}, tried:[], current:v}); this.go('feed'); },
+      seeItOnYou: () => { const v = listItems[s.voted === 'b' ? 1 : 0] || listItems[0] || CATALOG[0]; this.setState({current:v, signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], photoFrom:'product'}); this.go('photo'); },
+      voteBrowse: () => { const v = listItems[s.voted === 'b' ? 1 : 0] || listItems[0] || CATALOG[0]; this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, tried:[], current:v}); this.go('feed'); },
       backToPhone: () => this.go(s.sentOnce ? 'sent' : 'feed'),
 
       dTabs: [['register','Verify'],['products','Products'],['drop','Publish'],['dash','Signal']].map(([k,label]) => ({
@@ -2187,7 +2157,7 @@ class Component extends DCLogic {
         {n:'6.4%', label:'Clicked through to buy'}
       ],
 
-      reset: () => { this.clear(); this.setState({signedIn:false, consent:false, consentDone:false, photos:{body:[],face:[],hand:[]}, defaults:{body:0,face:0,hand:0}, tried:[], job:null, ready:null, lists:[], listId:null, follows:{}, emailOn:false, email:'', outfit:null, voted:null, votes:{a:0,b:0}, sentOnce:false, openCat:null, savedTab:'mine', proofX:52, screen:'feed', stack:[], tab:'feed', sheet:null, current:CATALOG[0], cat:'apparel', photoFrom:'standalone', asks:[{id:'a1', who:'Priya', question:'Which one for Saturday?', items:['slip','coat'], unread:true},{id:'a2', who:'Sam', question:'Suit or the trouser set?', items:['suit','set'], unread:true}]}); }
+      reset: () => { this.clear(); this.setState({signedIn:false, photos:{body:[],face:[],hand:[]}, defaults:{body:0,face:0,hand:0}, tried:[], job:null, ready:null, lists:[], listId:null, follows:{}, emailOn:false, email:'', outfit:null, voted:null, votes:{a:0,b:0}, sentOnce:false, openCat:null, savedTab:'mine', proofX:52, screen:'feed', stack:[], tab:'feed', sheet:null, current:CATALOG[0], cat:'apparel', photoFrom:'standalone', asks:[{id:'a1', who:'Priya', question:'Which one for Saturday?', items:['slip','coat'], unread:true},{id:'a2', who:'Sam', question:'Suit or the trouser set?', items:['suit','set'], unread:true}]}); }
     };
   }
 }
