@@ -161,6 +161,25 @@ describe("catalogue", () => {
       }
   });
 
+  it('bans fit sentences that end in "on you" but allows the plain phrase', () => {
+    for (const bad of [
+      "Hits mid-calf on you",
+      "Sits at the hip on you",
+      "Needs the hem taken up on you",
+      "Falls past the knee on you",
+    ])
+      expect(findFitLanguage(bad), bad).not.toBeNull();
+    for (const ok of [
+      "See it on you",
+      "Closest three we can put on you",
+      "Pick anything below and it comes back on you, in four poses.",
+      "Stop guessing how it looks on you",
+      "ON YOU",
+      "pieces rendered on you",
+    ])
+      expect(findFitLanguage(ok), ok).toBeNull();
+  });
+
   it("does not trip on garment descriptors", () => {
     for (const ok of ["Cropped denim jacket", "hooded technical shell jacket"])
       expect(findFitLanguage(ok), ok).toBeNull();

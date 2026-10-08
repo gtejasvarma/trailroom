@@ -99,7 +99,7 @@ export function FailureScreen({
         {kind === "render_failed" ? (
           <>
             {tryAgain}
-            <Link href={paths.photo(itemId)} className={btnSecondary}>
+            <Link href={paths.library(itemId)} className={btnSecondary}>
               {copy.failure.differentPhoto}
             </Link>
           </>

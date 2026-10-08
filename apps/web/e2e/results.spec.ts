@@ -1,5 +1,6 @@
 import {
   card,
+  confirmWhichPhoto,
   exhaustBudget,
   expect,
   listDocs,
@@ -57,18 +58,19 @@ test("failed set: honest failure with retry, a different photo, and three altern
     screen.getByRole("link", { name: "Use a different photo" }),
   ).toBeVisible();
   await expect(
-    screen.getByRole("heading", { name: "Closest three we can render" }),
+    screen.getByRole("heading", { name: "Closest three we can put on you" }),
   ).toBeVisible();
   await expect(screen.getByTestId("item-card")).toHaveCount(3);
   // No image from the failed set is shown.
   await expect(page.locator("img[data-render]")).toHaveCount(0);
 
-  // One tap into an alternative starts that item's flow (consent and photo are on file).
+  // One tap into an alternative starts that item's flow (a photo is on file).
   await screen
     .getByTestId("item-card")
     .first()
     .getByRole("button", { name: "Try it on" })
     .click();
+  await confirmWhichPhoto(page);
   await expect(page).not.toHaveURL(failedUrl);
   await expect(page).toHaveURL(/\/try-on\//);
 });
@@ -113,14 +115,12 @@ test("unready item: honest failure without any upload asked for", async ({
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 
   expect(
-    requests.filter((r) => /\/api\/(photo|try-on|consent)/.test(r)),
+    requests.filter((r) => /\/api\/(photo|photos|try-on)/.test(r)),
   ).toEqual([]);
   expect(await listDocs("spendLog")).toHaveLength(0);
 });
 
-test("unready item for a user who already has consent and a photo", async ({
-  page,
-}) => {
+test("unready item for a user who already has a photo", async ({ page }) => {
   await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
 

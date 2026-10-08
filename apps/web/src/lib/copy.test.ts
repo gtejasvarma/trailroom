@@ -76,10 +76,14 @@ describe("copy.ts lint", () => {
   it("has sentence-case buttons that name the outcome", () => {
     expect(copy.item.tryItOn).toBe("Try it on");
     expect(copy.photo.use).toBe("Use this photo");
-    expect(copy.you.delete).toBe("Delete my photo");
+    expect(copy.you.deleteAll).toBe("Delete everything");
     for (const label of [
       copy.item.tryItOn,
       copy.photo.use,
+      copy.photo.chooseAnother,
+      copy.photo.browse,
+      copy.whichPhoto.confirm,
+      copy.whichPhoto.different,
       copy.result.addAnother,
       copy.result.addToList,
       copy.failure.tryAgain,

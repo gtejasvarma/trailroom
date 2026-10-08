@@ -81,10 +81,16 @@ export function ProofSlider({ uploadHref }: { uploadHref: string }) {
       </div>
       <div className="px-4 pt-3.5 pb-4 md:px-0 md:pt-5 md:pb-0">
         <h2 className="mb-1 text-[19px] leading-[25px] font-semibold tracking-[-0.015em] text-ink md:text-[24px] md:leading-8">
-          {copy.discover.proofTitle}
+          <span className="md:hidden">{copy.discover.proofTitle}</span>
+          <span className="hidden md:inline">
+            {copy.discover.proofTitleDesktop}
+          </span>
         </h2>
         <p className="mb-3 text-[14px] leading-5 text-ink-700 md:mx-auto md:mb-5 md:max-w-[460px] md:text-[16px] md:leading-6">
-          {copy.discover.proofBody}
+          <span className="md:hidden">{copy.discover.proofBody}</span>
+          <span className="hidden md:inline">
+            {copy.discover.proofBodyDesktop}
+          </span>
         </p>
         <ButtonLink
           href={uploadHref}

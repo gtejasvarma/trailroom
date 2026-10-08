@@ -3,7 +3,6 @@ import sharp from "sharp";
 import { clearFirestore } from "../../../../packages/db/src/emu-helpers";
 import { clearBucket } from "../../../../packages/pipeline/src/testkit";
 import { CONSENT_VERSION } from "../lib/consent";
-import { POST as consentPOST } from "../app/api/consent/route";
 import { POST as photoPOST } from "../app/api/photo/route";
 
 const host = () => process.env.FIREBASE_AUTH_EMULATOR_HOST!;
@@ -59,25 +58,17 @@ export function photoForm(
   buf: Buffer,
   filename = "me.jpg",
   type = "image/jpeg",
+  withConsent = true,
 ): FormData {
   const form = new FormData();
   form.set("photo", new Blob([new Uint8Array(buf)], { type }), filename);
+  if (withConsent) form.set("consent", CONSENT_VERSION);
   return form;
 }
 
 export async function reset(): Promise<void> {
   await clearFirestore();
   await clearBucket();
-}
-
-export async function consent(token: string): Promise<void> {
-  const res = await consentPOST(
-    req("POST", "/api/consent", {
-      token,
-      json: { version: CONSENT_VERSION, ageAttested18: true, accepted: true },
-    }),
-  );
-  if (res.status !== 200) throw new Error(`consent failed ${res.status}`);
 }
 
 /** A smooth gradient JPEG of the given pixel size. */
@@ -99,6 +90,7 @@ export async function image(
     .toBuffer();
 }
 
+/** Uploads a photo and returns its id. */
 export async function uploadOk(token: string, w = 800, h = 1000) {
   const res = await photoPOST(
     req("POST", "/api/photo", {
@@ -107,6 +99,7 @@ export async function uploadOk(token: string, w = 800, h = 1000) {
     }),
   );
   if (res.status !== 200) throw new Error(`upload failed ${res.status}`);
+  return (await res.json()).photoId as string;
 }
 
 export async function waitForJob(

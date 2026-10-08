@@ -1,65 +1,68 @@
-// Upload validation and the stripped re-encode. Nothing is stored until consent is on file and
-// the bytes decode as an allowed image of usable shape.
+// Upload validation and the stripped re-encode. Nothing is stored until the request carries the
+// current consent version and the bytes decode as an allowed image of usable shape. The consent
+// document is written at that moment, after validation and before the photo is stored.
 import sharp, { type Metadata, type OutputInfo } from "sharp";
 import {
-  deletePhoto,
+  addPhoto,
+  countPhotos,
+  deleteAllPhotoDocs,
   deletePhotoObject,
   isConsentCurrent,
-  listPoseSetsForUser,
+  MAX_PHOTOS,
+  newPhotoId,
+  PhotoLimitError,
   putPhoto,
-  savePhoto,
+  recordConsent,
 } from "@trailroom/db";
 import { CONSENT_VERSION } from "../lib/consent";
+import {
+  checkPhotoFacts,
+  MAX_INPUT_PIXELS,
+  MAX_LONG_SIDE,
+  MAX_UPLOAD_BYTES,
+} from "../lib/photo-check";
 import { err, ok, type Result } from "./http";
 import type { User } from "./auth";
 
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
-export const MIN_SHORT_SIDE = 768;
-export const MAX_LONG_SIDE = 2048;
-/** Wider than tall by more than 4:3, or taller than 1:3, is refused. */
-export const MAX_WIDE_RATIO = 4 / 3;
-export const MAX_TALL_RATIO = 3;
-const ALLOWED = new Set(["jpeg", "png", "webp"]);
+export { MAX_UPLOAD_BYTES };
 // Multipart framing adds a little to the file itself.
 const BODY_SLACK = 64 * 1024;
-/** Decompression-bomb guard: a tiny file can declare enormous dimensions. */
-export const MAX_INPUT_PIXELS = 50_000_000;
 const sharpOf = (bytes: Buffer) =>
   sharp(bytes, { limitInputPixels: MAX_INPUT_PIXELS });
 const isPixelLimit = (e: unknown) =>
   /pixel limit/i.test(e instanceof Error ? e.message : "");
 
 export interface PhotoBody {
-  identityVersion: number;
+  photoId: string;
+  isDefault: boolean;
+  label: string;
   width: number;
   height: number;
+}
+
+/** What a request carries: the image, and the consent version the client says it showed. */
+interface UploadParts {
+  bytes: Buffer;
+  consent: string | null;
 }
 
 export async function uploadPhoto(
   user: User,
   request: Request,
 ): Promise<Result<PhotoBody>> {
-  // Consent first: before the body is parsed or any byte is kept.
-  if (!(await isConsentCurrent(user.uid, CONSENT_VERSION))) {
-    return err("consent_required");
-  }
-  // A job in flight reads the photo by its cache key; replacing the photo now would let it read
-  // different bytes than the key names.
-  const sets = await listPoseSetsForUser(user.uid);
-  if (sets.some((s) => s.poseSet.status === "rendering")) {
-    return err("render_in_progress");
-  }
-
   const declared = Number(request.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MAX_UPLOAD_BYTES + BODY_SLACK) {
     return err("too_large");
   }
 
-  const bytes = await readBytes(request);
-  if (bytes === "too_large") return err("too_large");
-  if (bytes === null) return err("invalid_request");
-  if (bytes.length > MAX_UPLOAD_BYTES) return err("too_large");
-  return processPhoto(user, bytes);
+  const parts = await readParts(request);
+  if (parts === "too_large") return err("too_large");
+  if (parts === null) return err("invalid_request");
+  // Without the current version in the request, nothing is stored and nothing is recorded.
+  if (parts.consent !== CONSENT_VERSION) return err("consent_required");
+  if (parts.bytes.length > MAX_UPLOAD_BYTES) return err("too_large");
+  if ((await countPhotos(user.uid)) >= MAX_PHOTOS) return err("photo_limit");
+  return processPhoto(user, parts.bytes);
 }
 
 /**
@@ -87,9 +90,9 @@ export async function readCapped(
   return Buffer.concat(chunks);
 }
 
-async function readBytes(
+async function readParts(
   request: Request,
-): Promise<Buffer | "too_large" | null> {
+): Promise<UploadParts | "too_large" | null> {
   const type = (request.headers.get("content-type") ?? "").toLowerCase();
   const isMultipart = type.startsWith("multipart/form-data");
   if (
@@ -104,7 +107,10 @@ async function readBytes(
     MAX_UPLOAD_BYTES + (isMultipart ? BODY_SLACK : 0),
   );
   if (raw === null) return "too_large";
-  if (!isMultipart) return raw;
+  if (!isMultipart) {
+    // A raw image body carries the consent version in a header.
+    return { bytes: raw, consent: request.headers.get("x-consent-version") };
+  }
   let form: FormData;
   try {
     form = await new Response(new Uint8Array(raw), {
@@ -115,7 +121,11 @@ async function readBytes(
   }
   const file = form.get("photo");
   if (!file || typeof file === "string") return null;
-  return Buffer.from(await file.arrayBuffer());
+  const consent = form.get("consent");
+  return {
+    bytes: Buffer.from(await file.arrayBuffer()),
+    consent: typeof consent === "string" ? consent : null,
+  };
 }
 
 export async function processPhoto(
@@ -132,17 +142,15 @@ export async function processPhoto(
     if (isPixelLimit(e)) return err("too_large");
     return err("not_an_image");
   }
-  if (!meta.format || !meta.width || !meta.height) return err("not_an_image");
-  if (!ALLOWED.has(meta.format)) return err("unsupported_type");
-  if (meta.width * meta.height > MAX_INPUT_PIXELS) return err("too_large");
-
   // EXIF orientations 5-8 swap the axes.
   const swap = (meta.orientation ?? 1) >= 5;
-  const w = swap ? meta.height : meta.width;
-  const h = swap ? meta.width : meta.height;
-  if (Math.min(w, h) < MIN_SHORT_SIDE) return err("too_small");
-  if (w / h > MAX_WIDE_RATIO || h / w > MAX_TALL_RATIO)
-    return err("bad_aspect");
+  const rejection = checkPhotoFacts({
+    bytes: bytes.length,
+    format: meta.format ?? null,
+    width: (swap ? meta.height : meta.width) ?? 0,
+    height: (swap ? meta.width : meta.height) ?? 0,
+  });
+  if (rejection) return err(rejection);
 
   let out: { data: Buffer; info: OutputInfo };
   try {
@@ -163,22 +171,35 @@ export async function processPhoto(
     return err("not_an_image");
   }
 
-  await putPhoto(user.uid, out.data, "image/jpeg");
-  const doc = await savePhoto(user.uid, {
-    width: out.info.width,
-    height: out.info.height,
-    isGuest: user.isGuest,
-  });
+  // Consent first, then the photo: the consent record is never later than the photo it covers.
+  await recordConsent(user.uid, CONSENT_VERSION);
+  const photoId = newPhotoId();
+  await putPhoto(user.uid, photoId, out.data, "image/jpeg");
+  let added;
+  try {
+    added = await addPhoto(user.uid, {
+      photoId,
+      width: out.info.width,
+      height: out.info.height,
+      isGuest: user.isGuest,
+    });
+  } catch (e) {
+    await deletePhotoObject(user.uid, photoId);
+    if (e instanceof PhotoLimitError) return err("photo_limit");
+    throw e;
+  }
   await hooks.afterStore?.();
-  // Consent may have been withdrawn (Delete my photo) while we were storing: leave nothing.
+  // "Delete everything" may have run while we were storing: leave nothing.
   if (!(await isConsentCurrent(user.uid, CONSENT_VERSION))) {
-    await deletePhotoObject(user.uid);
-    await deletePhoto(user.uid);
+    await deletePhotoObject(user.uid, photoId);
+    await deleteAllPhotoDocs(user.uid);
     return err("consent_required");
   }
   return ok({
-    identityVersion: doc.identityVersion,
-    width: doc.width,
-    height: doc.height,
+    photoId,
+    isDefault: added.isDefault,
+    label: added.photo.label,
+    width: added.photo.width,
+    height: added.photo.height,
   });
 }

@@ -4,7 +4,7 @@ import { bucket } from "./app";
 import { createJob } from "./jobs";
 import { claimPoseSet } from "./poseSets";
 import { getConsent, recordConsent } from "./consent";
-import { getPhoto, savePhoto } from "./photos";
+import { addPhoto, getPhoto } from "./photos";
 import {
   deleteRender,
   deleteStagingForJob,
@@ -23,8 +23,8 @@ const buf = (s: string) => Buffer.from(s);
 
 describe("storage helpers", () => {
   it("round-trips photo, staging and render", async () => {
-    await putPhoto("u1", buf("photo"), "image/jpeg");
-    expect((await getPhotoBytes("u1"))!.data.toString()).toBe("photo");
+    await putPhoto("u1", "p1", buf("photo"), "image/jpeg");
+    expect((await getPhotoBytes("u1", "p1"))!.data.toString()).toBe("photo");
 
     await putStaging("j1", "front", 1, buf("raw"), "image/png");
     const s = await getStaging("j1", "front", 1);
@@ -43,15 +43,28 @@ describe("storage helpers", () => {
   });
 
   it("deleteAllForUser removes that user's data and leaves another's", async () => {
+    const jobIds: Record<string, string> = {};
     for (const uid of ["u1", "u2"]) {
       await recordConsent(uid, "v");
-      await savePhoto(uid, { width: 1, height: 1, isGuest: false });
-      await putPhoto(uid, buf("p"), "image/jpeg");
-      const id = `${uid}_1_blouse`;
+      await addPhoto(uid, {
+        width: 1,
+        height: 1,
+        isGuest: false,
+        photoId: "p1",
+      });
+      await addPhoto(uid, {
+        width: 1,
+        height: 1,
+        isGuest: false,
+        photoId: "p2",
+      });
+      await putPhoto(uid, "p1", buf("p"), "image/jpeg");
+      await putPhoto(uid, "p2", buf("p"), "image/jpeg");
+      const id = `${uid}_p1_blouse`;
       await claimPoseSet({
         uid,
         itemId: "blouse",
-        identityVersion: 1,
+        photoId: "p1",
         jobId: "x",
         isGuest: false,
       });
@@ -59,7 +72,7 @@ describe("storage helpers", () => {
       const { id: jobId } = await createJob({
         uid,
         itemId: "blouse",
-        identityVersion: 1,
+        photoId: "p1",
         poseSetId: id,
         poseOrder: [],
         poses: {},
@@ -68,16 +81,20 @@ describe("storage helpers", () => {
         promptVersion: "p",
         isGuest: false,
       });
+      jobIds[uid] = jobId;
       await putStaging(jobId, "front", 1, buf("s"), "image/png");
     }
     await deleteAllForUser("u1");
 
     expect(await getConsent("u1")).toBeNull();
-    expect(await getPhoto("u1")).toBeNull();
-    expect(await getPhotoBytes("u1")).toBeNull();
-    expect(await getRender("u1", "u1_1_blouse", "front")).toBeNull();
-    const [staging] = await bucket().getFiles({ prefix: "staging/" });
-    expect(staging).toHaveLength(1);
+    expect(await getPhoto("u1", "p1")).toBeNull();
+    expect(await getPhoto("u1", "p2")).toBeNull();
+    expect(await getPhotoBytes("u1", "p1")).toBeNull();
+    expect(await getPhotoBytes("u1", "p2")).toBeNull();
+    expect(await getRender("u1", "u1_p1_blouse", "front")).toBeNull();
+    // Only these two users' staging: the bucket is shared with other test files.
+    expect(await getStaging(jobIds.u1!, "front", 1)).toBeNull();
+    expect(await getStaging(jobIds.u2!, "front", 1)).not.toBeNull();
     const db = (await import("./app")).firestore();
     expect(
       (await db.collection("jobs").where("uid", "==", "u1").get()).size,
@@ -87,9 +104,9 @@ describe("storage helpers", () => {
     ).toBe(0);
 
     expect(await getConsent("u2")).not.toBeNull();
-    expect(await getPhoto("u2")).not.toBeNull();
-    expect(await getPhotoBytes("u2")).not.toBeNull();
-    expect(await getRender("u2", "u2_1_blouse", "front")).not.toBeNull();
+    expect(await getPhoto("u2", "p2")).not.toBeNull();
+    expect(await getPhotoBytes("u2", "p1")).not.toBeNull();
+    expect(await getRender("u2", "u2_p1_blouse", "front")).not.toBeNull();
     expect(
       (await db.collection("jobs").where("uid", "==", "u2").get()).size,
     ).toBe(1);

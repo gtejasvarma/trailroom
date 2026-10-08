@@ -1,12 +1,4 @@
-import {
-  acceptConsent,
-  card,
-  expect,
-  PHOTO,
-  setScript,
-  test,
-  waitForResult,
-} from "./helpers";
+import { card, expect, PHOTO, setScript, test, waitForResult } from "./helpers";
 
 test("happy path: catalogue to four tiles to result", async ({ page }) => {
   // Slow the renders a little so the queue can be watched.
@@ -22,17 +14,7 @@ test("happy path: catalogue to four tiles to result", async ({ page }) => {
   ).toBeVisible();
   await page.getByRole("button", { name: "Try it on" }).click();
 
-  // Consent: the accept button stays disabled until both boxes are checked.
-  await expect(page).toHaveURL(/\/consent$/);
-  const accept = page.getByRole("button", { name: "Agree and add my photo" });
-  await expect(accept).toBeDisabled();
-  await page.getByLabel("I am 18 or older").check();
-  await expect(accept).toBeDisabled();
-  await page.getByLabel(/I agree to my photo/).check();
-  await expect(accept).toBeEnabled();
-  await accept.click();
-
-  // Photo.
+  // Photo (adding one is the consent; the line says so).
   await expect(page).toHaveURL(/\/photo$/);
   await page.locator("input[type=file]").setInputFiles(PHOTO);
   await expect(page.getByAltText("The photo you chose")).toBeVisible();
@@ -70,12 +52,4 @@ test("happy path: catalogue to four tiles to result", async ({ page }) => {
       .getByText("A preview, not a fitting — it can't tell you size or fit."),
   ).toBeVisible();
   await expect(page.getByTestId("partial-line")).toHaveCount(0);
-});
-
-test("consent is accepted once, then the photo screen is next", async ({
-  page,
-}) => {
-  await page.goto("/item/vest/consent");
-  await acceptConsent(page);
-  await expect(page.locator("input[type=file]")).toBeAttached();
 });

@@ -22,7 +22,7 @@ test("right password lands on /", async ({ page, context }) => {
   await page.getByLabel("Password").fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Open Trailroom" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "Everything" })).toBeVisible();
+  await expect(page.getByTestId("item-card")).toHaveCount(12);
   const cookie = (await context.cookies()).find(
     (c) => c.name === "trailroom_gate",
   );

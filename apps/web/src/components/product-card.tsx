@@ -1,8 +1,7 @@
 "use client";
 import Link from "next/link";
-import { catalogUrl, getLabel, type CatalogItem } from "@trailroom/catalog";
+import { catalogUrl, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
-import { BrandRow } from "./ui/brand-row";
 import { Button } from "./ui/button";
 import { HeartIcon } from "./ui/icons";
 import { PhotoFrames } from "./ui/photo-frames";
@@ -22,7 +21,6 @@ export function ProductCard({
   onYou?: boolean;
 }) {
   const say = useToast();
-  const label = getLabel(item.labelSlug)!;
   const price = copy.item.price(item.priceUsd);
   const soon = () => say(copy.toasts.soon);
 
@@ -32,9 +30,6 @@ export function ProductCard({
       data-testid="item-card"
       data-item={item.id}
     >
-      <div className="pb-2.5">
-        <BrandRow label={label} line={item.shelf} />
-      </div>
       <PhotoFrames
         name={item.name}
         state={onYou ? "onYou" : "label"}
@@ -47,6 +42,12 @@ export function ProductCard({
         rounded="md:rounded-md"
       />
       <div className="px-4 pt-3 md:px-0">
+        <p
+          data-testid="card-label"
+          className="mb-0.5 text-[12px] leading-4 text-ink-600"
+        >
+          {item.label}
+        </p>
         <div className="flex items-baseline gap-2">
           <Link
             href={`/item/${item.id}`}

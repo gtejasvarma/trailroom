@@ -665,5 +665,7 @@ describe("invariant", () => {
 
 it("fixture sanity: photo is stored", async () => {
   const j = await makeJob("u-sanity");
-  expect(await getPhotoBytes(j.uid)).not.toBeNull();
+  expect(
+    await getPhotoBytes(j.uid, (await getJob(j.jobId))!.photoId),
+  ).not.toBeNull();
 });

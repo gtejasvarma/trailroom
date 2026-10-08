@@ -28,15 +28,31 @@ export interface FollowsDoc {
   updatedAt: Timestamp;
 }
 
+/** photos/{uid}/items/{photoId}: one full-body photo. The object lives at photos/{uid}/{photoId}.jpg. */
 export interface PhotoDoc {
   storagePath: string;
   width: number;
   height: number;
-  identityVersion: number;
+  label: string;
   isGuest: boolean;
   createdAt: Timestamp;
   expiresAt: Timestamp | null;
 }
+
+/**
+ * photos/{uid}: the small parent doc. It names the default photo and carries the guest expiry
+ * (refreshed on every add), so the purge can find expired guests without a collection-group query.
+ */
+export interface PhotosDoc {
+  defaultPhotoId: string | null;
+  isGuest: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  expiresAt: Timestamp | null;
+}
+
+/** At most this many photos per person. */
+export const MAX_PHOTOS = 6;
 
 /** What the pipeline durably records per (pose, attempt); this is what makes its nodes replayable. */
 export interface AttemptRecord {
@@ -56,7 +72,7 @@ export interface PoseState {
 export interface JobDoc {
   uid: string;
   itemId: string;
-  identityVersion: number;
+  photoId: string;
   poseSetId: string;
   status: JobStatus;
   failure: null | { code: FailureCode };
@@ -77,7 +93,7 @@ export type PoseSetStatus =
 export interface PoseSetDoc {
   uid: string;
   itemId: string;
-  identityVersion: number;
+  photoId: string;
   jobId: string;
   status: PoseSetStatus;
   poses: string[];

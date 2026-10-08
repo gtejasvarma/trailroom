@@ -33,15 +33,17 @@ async function get(path: string): Promise<StoredObject | null> {
 
 export async function putPhoto(
   uid: string,
+  photoId: string,
   buf: Buffer,
   contentType = "image/jpeg",
 ): Promise<string> {
-  const path = photoPath(uid);
+  const path = photoPath(uid, photoId);
   await put(path, buf, contentType);
   return path;
 }
 
-export const getPhotoBytes = (uid: string) => get(photoPath(uid));
+export const getPhotoBytes = (uid: string, photoId: string) =>
+  get(photoPath(uid, photoId));
 
 export async function putStaging(
   jobId: string,
@@ -108,7 +110,15 @@ export async function deleteRendersForPoseSet(
   });
 }
 
-export async function deletePhotoObject(uid: string): Promise<void> {
+export async function deletePhotoObject(
+  uid: string,
+  photoId: string,
+): Promise<void> {
+  await bucket().file(photoPath(uid, photoId)).delete({ ignoreNotFound: true });
+}
+
+/** Every photo object a person has. */
+export async function deleteAllPhotoObjects(uid: string): Promise<void> {
   await bucket().deleteFiles({ prefix: photoPrefix(uid), force: true });
 }
 

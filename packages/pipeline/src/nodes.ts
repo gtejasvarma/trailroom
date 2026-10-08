@@ -175,7 +175,7 @@ export async function renderPose(
 
     const item = getItem(job.itemId);
     if (!item) throw new Error(`unknown catalogue item ${job.itemId}`);
-    const person = await getPhotoBytes(job.uid);
+    const person = await getPhotoBytes(job.uid, job.photoId);
     if (!person) throw new Error(`no photo stored for ${job.uid}`);
     if (!item.category) throw new Error(`${item.id} has no prompt category`);
     const garment = await loadItemImage(item.id);
@@ -265,7 +265,7 @@ export async function qaPose(input: PoseAttemptInput): Promise<QaPoseOutput> {
     reasons = [REASON_FOR_OUTCOME[rec.outcome]];
   } else {
     const staged = await getStaging(jobId, pose, attempt);
-    const person = await getPhotoBytes(job.uid);
+    const person = await getPhotoBytes(job.uid, job.photoId);
     if (!staged || !person) {
       throw new Error(`missing staged render or photo for ${pose} #${attempt}`);
     }

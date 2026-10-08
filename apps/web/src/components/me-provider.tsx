@@ -20,7 +20,7 @@ import { useToast } from "./ui/toast";
 interface MeState {
   /** False until we know whether a session (and so a photo) exists. */
   loaded: boolean;
-  hasPhoto: boolean;
+  photoCount: number;
   isGuest: boolean;
   follows: ReadonlySet<string>;
   toggleFollow: (slug: string) => Promise<void>;
@@ -28,7 +28,7 @@ interface MeState {
 
 const MeContext = createContext<MeState>({
   loaded: false,
-  hasPhoto: false,
+  photoCount: 0,
   isGuest: true,
   follows: new Set(),
   toggleFollow: async () => {},
@@ -39,7 +39,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
   const say = useToast();
   const pathname = usePathname();
   const [loaded, setLoaded] = useState(false);
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [photoCount, setPhotoCount] = useState(0);
   const [isGuest, setIsGuest] = useState(true);
   const [follows, setFollows] = useState<ReadonlySet<string>>(new Set());
 
@@ -50,7 +50,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
         if (await peekUser()) {
           const me = await api.me();
           if (cancelled) return;
-          setHasPhoto(me.hasPhoto);
+          setPhotoCount(me.photoCount);
           setIsGuest(me.isGuest);
           setFollows(new Set(me.follows));
         }
@@ -91,8 +91,8 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ loaded, hasPhoto, isGuest, follows, toggleFollow }),
-    [loaded, hasPhoto, isGuest, follows, toggleFollow],
+    () => ({ loaded, photoCount, isGuest, follows, toggleFollow }),
+    [loaded, photoCount, isGuest, follows, toggleFollow],
   );
   return <MeContext.Provider value={value}>{children}</MeContext.Provider>;
 }

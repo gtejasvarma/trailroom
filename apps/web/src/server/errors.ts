@@ -11,14 +11,10 @@ export const ERRORS = {
     message:
       "That request was not in the expected format, so check it and retry.",
   },
-  invalid_consent: {
-    status: 400,
-    message:
-      "Consent needs the current version, the age confirmation and your acceptance, so accept all three and retry.",
-  },
   consent_required: {
     status: 403,
-    message: "Accept the consent and age confirmation first, then retry.",
+    message:
+      "Adding a photo needs your confirmation that you are 18 or over and agree to it being used, so add it again from the upload screen.",
   },
   not_an_image: {
     status: 400,
@@ -70,10 +66,15 @@ export const ERRORS = {
     status: 429,
     message: "Today's try-ons are used up, so come back tomorrow.",
   },
-  render_in_progress: {
+  photo_in_use: {
     status: 409,
     message:
-      "A try-on is still rendering, so wait for it to finish before changing your photo.",
+      "A try-on is still rendering with that photo, so wait for it to finish before removing it.",
+  },
+  photo_limit: {
+    status: 409,
+    message:
+      "You can keep up to 6 photos, so remove one before adding another.",
   },
   start_failed: {
     status: 503,

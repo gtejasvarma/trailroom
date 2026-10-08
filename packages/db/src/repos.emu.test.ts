@@ -15,7 +15,7 @@ import {
   poseSetId,
 } from "./poseSets";
 import { getConsent, recordConsent } from "./consent";
-import { getPhoto, savePhoto } from "./photos";
+import { addPhoto, getPhoto } from "./photos";
 import { getFollows, setFollow } from "./follows";
 import { deleteAllForUser } from "./users";
 import { GUEST_TTL_MS } from "./types";
@@ -26,8 +26,8 @@ beforeEach(clearFirestore);
 const base = (over: Partial<NewJob> = {}): NewJob => ({
   uid: "u1",
   itemId: "blouse",
-  identityVersion: 1,
-  poseSetId: "u1_1_blouse",
+  photoId: "p1",
+  poseSetId: "u1_p1_blouse",
   poseOrder: ["front", "side"],
   poses: {
     front: { status: "pending", attempt: 0, reasons: [] },
@@ -45,12 +45,12 @@ describe("pose sets", () => {
     const input = {
       uid: "u1",
       itemId: "blouse",
-      identityVersion: 1,
+      photoId: "p1",
       jobId: "job-a",
       isGuest: false,
     };
     const first = await claimPoseSet(input);
-    expect(first.id).toBe(poseSetId("u1", 1, "blouse"));
+    expect(first.id).toBe(poseSetId("u1", "p1", "blouse"));
     const err = await claimPoseSet({ ...input, jobId: "job-b" }).catch(
       (e) => e,
     );
@@ -111,14 +111,13 @@ describe("jobs", () => {
 });
 
 describe("consent and photo", () => {
-  it("records consent and increments identityVersion", async () => {
+  it("records consent and adds a photo with a guest expiry", async () => {
     expect(await getConsent("u1")).toBeNull();
     await recordConsent("u1", "2026-01");
     expect((await getConsent("u1"))!.ageAttested18).toBe(true);
-    const p1 = await savePhoto("u1", { width: 10, height: 20, isGuest: true });
-    const p2 = await savePhoto("u1", { width: 10, height: 20, isGuest: true });
-    expect([p1.identityVersion, p2.identityVersion]).toEqual([1, 2]);
-    expect((await getPhoto("u1"))!.expiresAt).not.toBeNull();
+    const p1 = await addPhoto("u1", { width: 10, height: 20, isGuest: true });
+    expect(p1.isDefault).toBe(true);
+    expect((await getPhoto("u1", p1.photo.id))!.expiresAt).not.toBeNull();
   });
 });
 

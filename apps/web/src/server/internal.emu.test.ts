@@ -13,7 +13,7 @@ import {
   getPhotoBytes,
   putPhoto,
   recordConsent,
-  savePhoto,
+  addPhoto,
   poseSetId,
   updateJob,
 } from "@trailroom/db";
@@ -284,19 +284,19 @@ describe("purge", () => {
     opts: { guest: boolean; at: Date; withJob: boolean },
   ) {
     await recordConsent(uid, "v1");
-    await putPhoto(uid, await personPhoto());
-    const photo = await savePhoto(
+    await putPhoto(uid, "p1", await personPhoto());
+    const { photo } = await addPhoto(
       uid,
-      { width: 768, height: 1024, isGuest: opts.guest },
+      { width: 768, height: 1024, isGuest: opts.guest, photoId: "p1" },
       opts.at,
     );
     if (opts.withJob) {
-      const psId = poseSetId(uid, photo.identityVersion, "blouse");
+      const psId = poseSetId(uid, photo.id, "blouse");
       const { id } = await createJob(
         {
           uid,
           itemId: "blouse",
-          identityVersion: photo.identityVersion,
+          photoId: photo.id,
           poseSetId: psId,
           poseOrder: POSE_LIST,
           poses: Object.fromEntries(
@@ -317,7 +317,7 @@ describe("purge", () => {
         {
           uid,
           itemId: "blouse",
-          identityVersion: photo.identityVersion,
+          photoId: photo.id,
           jobId: id,
           isGuest: opts.guest,
         },
@@ -354,8 +354,8 @@ describe("purge", () => {
     expect(await res.json()).toMatchObject({ purged: 2 });
 
     for (const uid of [expiredUid, photoOnlyUid]) {
-      expect(await getPhoto(uid)).toBeNull();
-      expect(await getPhotoBytes(uid)).toBeNull();
+      expect(await getPhoto(uid, "p1")).toBeNull();
+      expect(await getPhotoBytes(uid, "p1")).toBeNull();
       expect(await listObjects(`renders/${uid}/`)).toEqual([]);
       const jobs = await firestore()
         .collection("jobs")
@@ -367,8 +367,8 @@ describe("purge", () => {
       });
     }
     for (const uid of [freshUid, promotedUid]) {
-      expect(await getPhoto(uid)).not.toBeNull();
-      expect(await getPhotoBytes(uid)).not.toBeNull();
+      expect(await getPhoto(uid, "p1")).not.toBeNull();
+      expect(await getPhotoBytes(uid, "p1")).not.toBeNull();
       expect((await listObjects(`renders/${uid}/`)).length).toBe(1);
       const jobs = await firestore()
         .collection("jobs")
@@ -384,7 +384,7 @@ describe("purge", () => {
   it("tolerates a guest whose Auth user is already gone", async () => {
     await seedUser("ghost-guest", { guest: true, at: PAST, withJob: true });
     expect(await (await purge()).json()).toMatchObject({ purged: 1 });
-    expect(await getPhoto("ghost-guest")).toBeNull();
+    expect(await getPhoto("ghost-guest", "p1")).toBeNull();
   });
 
   it("promotes (never deletes) an expired 'guest' whose Auth user was linked to a provider", async () => {
@@ -407,7 +407,7 @@ describe("purge", () => {
       expiresAt: null,
     });
     expect((await auth().getUser(linked)).uid).toBe(linked);
-    expect(await getPhotoBytes(linked)).not.toBeNull();
+    expect(await getPhotoBytes(linked, "p1")).not.toBeNull();
     await expect(auth().getUser(anon)).rejects.toMatchObject({
       code: "auth/user-not-found",
     });

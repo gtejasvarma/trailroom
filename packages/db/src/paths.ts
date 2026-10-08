@@ -18,8 +18,8 @@ export function assertSegment(name: string, value: string): string {
   return value;
 }
 
-export function photoPath(uid: string): string {
-  return `photos/${assertSegment("uid", uid)}/base.jpg`;
+export function photoPath(uid: string, photoId: string): string {
+  return `photos/${assertSegment("uid", uid)}/${assertSegment("photoId", photoId)}.jpg`;
 }
 
 export function photoPrefix(uid: string): string {

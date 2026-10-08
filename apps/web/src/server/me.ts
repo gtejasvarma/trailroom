@@ -1,6 +1,7 @@
 import {
   getFollows,
-  getPhoto,
+  countPhotos,
+  getDefaultPhotoId,
   isConsentCurrent,
   listPoseSetsForUser,
 } from "@trailroom/db";
@@ -12,12 +13,11 @@ export interface MeBody {
   uid: string;
   isGuest: boolean;
   consented: boolean;
-  hasPhoto: boolean;
-  /** 0 when there is no photo. */
-  identityVersion: number;
+  photoCount: number;
+  defaultPhotoId: string | null;
   /** Slugs of the labels this session follows. */
   follows: string[];
-  /** Pose sets for the current photo that are not failed. */
+  /** Pose sets that are not failed, for any of the person's photos. */
   activePoseSets: {
     poseSetId: string;
     itemId: string;
@@ -27,27 +27,23 @@ export interface MeBody {
 }
 
 export async function getMe(user: User): Promise<Result<MeBody>> {
-  const [consent, photo, sets, follows] = await Promise.all([
-    isConsentCurrent(user.uid, CONSENT_VERSION),
-    getPhoto(user.uid),
-    listPoseSetsForUser(user.uid),
-    getFollows(user.uid),
-  ]);
-  const iv = photo?.identityVersion ?? 0;
+  const [consent, photoCount, defaultPhotoId, sets, follows] =
+    await Promise.all([
+      isConsentCurrent(user.uid, CONSENT_VERSION),
+      countPhotos(user.uid),
+      getDefaultPhotoId(user.uid),
+      listPoseSetsForUser(user.uid),
+      getFollows(user.uid),
+    ]);
   return ok({
     uid: user.uid,
     isGuest: user.isGuest,
     consented: consent,
-    hasPhoto: photo !== null,
-    identityVersion: iv,
+    photoCount,
+    defaultPhotoId,
     follows,
     activePoseSets: sets
-      .filter(
-        (s) =>
-          photo &&
-          s.poseSet.identityVersion === iv &&
-          s.poseSet.status !== "failed",
-      )
+      .filter((s) => s.poseSet.status !== "failed")
       .map((s) => ({
         poseSetId: s.id,
         itemId: s.poseSet.itemId,

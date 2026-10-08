@@ -38,14 +38,14 @@ describe("/catalog/[file]", () => {
 
   it("404s for unknown names, traversal, encoded slashes and other prefixes", async () => {
     await putCatalogImage("not-a-garment.jpg", Buffer.from("x"));
-    await putPhoto("someone", Buffer.from("private"));
+    await putPhoto("someone", "p1", Buffer.from("private"));
     for (const name of [
       "nope.jpg",
       "not-a-garment.jpg",
       "..",
-      "../photos/someone/base.jpg",
-      "..%2Fphotos%2Fsomeone%2Fbase.jpg",
-      "photos%2Fsomeone%2Fbase.jpg",
+      "../photos/someone/p1.jpg",
+      "..%2Fphotos%2Fsomeone%2Fp1.jpg",
+      "photos%2Fsomeone%2Fp1.jpg",
       "p19299199.jpg%2F..%2F..",
       "commons-parka.jpg",
       "p12144990.jpg",

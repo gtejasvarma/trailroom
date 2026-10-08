@@ -86,7 +86,7 @@ for (const size of SIZES) {
       await expect(range).toHaveValue("53");
       await expect(
         proof.getByRole("link", { name: "Upload your picture" }),
-      ).toHaveAttribute("href", "/item/coat/photo");
+      ).toHaveAttribute("href", "/upload");
     });
 
     test("the category filter changes the cards", async ({ page }) => {
@@ -135,38 +135,76 @@ for (const size of SIZES) {
       await expect(coat.getByTestId("dot")).toHaveCount(0);
     });
 
-    test("Follow toggles, shows the toast, and persists across a reload", async ({
+    test("no heading or description sits above the grid, and the filters still work", async ({
       page,
     }) => {
       await page.goto("/");
+      const main = page.getByRole("main");
+      for (const text of [
+        "Every piece from every label we carry",
+        "Coats, dresses and tailoring from independent labels",
+      ])
+        await expect(main.getByText(text)).toHaveCount(0);
+      // The only visible heading before the grid belongs to the proof slider or the start row.
+      const visibleH1 = await main
+        .getByRole("heading", { level: 1 })
+        .evaluateAll(
+          (els) =>
+            els.filter((e) => e.getBoundingClientRect().width > 2).length,
+        );
+      expect(visibleH1).toBe(0);
+      await expect(page.getByTestId("item-card")).toHaveCount(12);
+      if (phone) {
+        await page.getByRole("button", { name: "Jewellery" }).click();
+        await expect(page.getByTestId("item-card")).toHaveCount(2);
+        await expect(main.getByText("Earrings and necklaces")).toHaveCount(0);
+      } else {
+        await page.getByRole("button", { name: "Jewellery" }).click();
+        await expect(page.getByTestId("item-card")).toHaveCount(2);
+        await expect(
+          main.getByText("Trying jewellery on is not built"),
+        ).toHaveCount(0);
+      }
+    });
+
+    test("listing cards have no Follow control and start with the image; product and label pages still follow", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await expect(page.getByTestId("item-card")).toHaveCount(12);
+      await expect(
+        page.getByTestId("item-card").getByRole("button", { name: /Follow/ }),
+      ).toHaveCount(0);
       const jump = page.locator("article[data-item=jump]");
-      await jump.getByRole("button", { name: "Follow MARCHAND" }).click();
+      // The first thing in the card is the image frames; the label name is plain text below.
+      expect(
+        await jump.evaluate(
+          (el) => (el.firstElementChild as HTMLElement).dataset.testid,
+        ),
+      ).toBe("frames-wrap");
+      await expect(jump.getByTestId("card-label")).toHaveText("MARCHAND");
+      expect(
+        await jump
+          .getByTestId("card-label")
+          .evaluate((el) => el.querySelectorAll("a,button,img").length),
+      ).toBe(0);
+      const imgBox = await jump.getByTestId("frames").boundingBox();
+      const labelBox = await jump.getByTestId("card-label").boundingBox();
+      expect(labelBox!.y).toBeGreaterThan(imgBox!.y + imgBox!.height - 1);
+
+      // Follow lives on the product page and persists.
+      await page.goto("/item/jump");
+      await page.getByRole("button", { name: "Follow MARCHAND" }).click();
       await expect(page.getByTestId("toast")).toHaveText("Following MARCHAND.");
-      await expect(
-        jump.getByRole("button", { name: /^Following MARCHAND/ }),
-      ).toBeVisible();
-      // Every MARCHAND card follows.
-      await expect(
-        page.getByRole("button", { name: /^Following MARCHAND/ }),
-      ).toHaveCount(5);
       expect(await listDocs("follows")).toHaveLength(1);
       await page.reload();
       await expect(
-        page
-          .locator("article[data-item=jump]")
-          .getByRole("button", { name: /^Following MARCHAND/ }),
+        page.getByRole("button", { name: /^Following MARCHAND/ }),
       ).toBeVisible();
-      await page
-        .locator("article[data-item=jump]")
-        .getByRole("button", { name: /^Following MARCHAND/ })
-        .click();
+      await page.getByRole("button", { name: /^Following MARCHAND/ }).click();
       await expect(page.getByTestId("toast")).toHaveText(
         "Unfollowed MARCHAND.",
       );
-      await page.reload();
-      await expect(
-        page.getByRole("button", { name: "Follow MARCHAND" }),
-      ).toHaveCount(5);
     });
 
     test("navigation: tab bar on a phone, top navigation on a desktop", async ({
@@ -277,6 +315,10 @@ for (const size of SIZES) {
       ).toBeVisible();
       await page.getByRole("button", { name: "Follow MARCHAND" }).click();
       await expect(page.getByTestId("toast")).toHaveText("Following MARCHAND.");
+      await page.getByRole("button", { name: /^Following MARCHAND/ }).click();
+      await expect(page.getByTestId("toast")).toHaveText(
+        "Unfollowed MARCHAND.",
+      );
       await page.goto("/label/nobody");
       await expect(
         page.getByText("This page could not be found"),
@@ -288,13 +330,7 @@ for (const size of SIZES) {
     }) => {
       await page.goto("/item/blouse");
       await page.getByRole("button", { name: "Try it on" }).click();
-      await expect(page).toHaveURL(/\/item\/blouse\/consent$/);
-      await page.getByLabel("I am 18 or older").check();
-      await page.getByLabel(/I agree to my photo/).check();
-      await page
-        .getByRole("button", { name: "Agree and add my photo" })
-        .click();
-      await expect(page).toHaveURL(/\/photo$/);
+      await expect(page).toHaveURL(/\/item\/blouse\/photo$/);
       await page.locator("input[type=file]").setInputFiles(PHOTO);
       await page.getByRole("button", { name: "Use this photo" }).click();
       await expect(page).toHaveURL(/\/try-on\//);
@@ -308,7 +344,7 @@ for (const size of SIZES) {
       const calls: string[] = [];
       page.on("request", (r) => {
         const u = new URL(r.url());
-        if (/\/api\/(photo|try-on|consent)/.test(u.pathname))
+        if (/\/api\/(photo|photos|try-on)/.test(u.pathname))
           calls.push(u.pathname);
       });
       await page.goto("/item/jacket");

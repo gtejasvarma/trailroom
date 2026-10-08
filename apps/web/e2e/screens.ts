@@ -1,9 +1,10 @@
 import type { Page } from "@playwright/test";
 import {
+  confirmWhichPhoto,
   dismissSheet,
-  acceptConsent,
   expect,
   setScript,
+  uploadFirst,
   tryOnFromScratch,
   waitForResult,
 } from "./helpers";
@@ -24,7 +25,7 @@ export const SCREENS: Screen[] = [
       await expect(page.getByTestId("item-card")).toHaveCount(12);
       await expect(page.getByTestId("proof")).toBeVisible();
     },
-    primary: "article[data-item=jump] button",
+    primary: 'article[data-item=jump] button:has-text("Try it on")',
   },
   {
     name: "product",
@@ -51,21 +52,78 @@ export const SCREENS: Screen[] = [
     primary: "main button",
   },
   {
-    name: "consent",
+    name: "upload",
     go: async (page) => {
-      await page.goto("/item/vest/consent");
+      await page.goto("/upload");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     },
-    primary: "input[type=checkbox]",
+    primary: "main button:visible",
   },
   {
-    name: "photo",
+    name: "photo for a piece",
     go: async (page) => {
-      await page.goto("/item/vest/consent");
-      await acceptConsent(page);
+      await page.goto("/item/vest/photo");
       await expect(page.locator("input[type=file]")).toBeAttached();
     },
-    primary: "input[type=file]",
+    primary: "main button:visible",
+  },
+  {
+    name: "camera view",
+    go: async (page) => {
+      await page.goto("/upload");
+      await page.getByRole("button", { name: "or take one now" }).click();
+      await expect(page.getByTestId("camera-frame")).toBeVisible();
+    },
+    primary: "[data-testid=camera] button:not([disabled])",
+  },
+  {
+    name: "details sheet",
+    go: async (page) => {
+      await page.goto("/upload");
+      await page.getByRole("button", { name: "Details" }).click();
+      await expect(
+        page.getByRole("dialog", { name: "Your photos" }),
+      ).toBeVisible();
+      await page.evaluate(() =>
+        Promise.all(
+          document.getAnimations().map((a) => a.finished.catch(() => {})),
+        ),
+      );
+    },
+    primary: "dialog button",
+  },
+  {
+    name: "starters",
+    go: async (page) => {
+      await uploadFirst(page);
+    },
+    primary: "main button:visible",
+  },
+  {
+    name: "which photo sheet",
+    go: async (page) => {
+      await uploadFirst(page);
+      await page.goto("/item/vest");
+      await page.getByRole("button", { name: "Try it on" }).click();
+      await expect(
+        page.getByRole("dialog", { name: "Which photo?" }),
+      ).toBeVisible();
+      await page.evaluate(() =>
+        Promise.all(
+          document.getAnimations().map((a) => a.finished.catch(() => {})),
+        ),
+      );
+    },
+    primary: "dialog button",
+  },
+  {
+    name: "library",
+    go: async (page) => {
+      await uploadFirst(page);
+      await page.goto("/item/vest/photos");
+      await expect(page.getByTestId("library-photo")).toHaveCount(1);
+    },
+    primary: "[data-testid=library-photo]",
   },
   {
     name: "queue",
@@ -99,7 +157,17 @@ export const SCREENS: Screen[] = [
     name: "you",
     go: async (page) => {
       await page.goto("/you");
-      await expect(page.getByTestId("photo-state")).toBeVisible();
+      await expect(page.getByTestId("you-photos")).toBeVisible();
+    },
+    primary: "main a",
+  },
+  {
+    name: "you with photos managed",
+    go: async (page) => {
+      await uploadFirst(page);
+      await page.goto("/you");
+      await page.getByRole("button", { name: "Manage" }).click();
+      await expect(page.getByTestId("manage-photo")).toHaveCount(1);
     },
     primary: "main a",
   },
@@ -121,6 +189,7 @@ export const SCREENS: Screen[] = [
         .locator("article[data-item=coat]")
         .getByRole("button", { name: "Try it on" })
         .click();
+      await confirmWhichPhoto(page);
       await expect(page).toHaveURL(/\/signup$/);
     },
     primary: "main button",

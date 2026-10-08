@@ -2,7 +2,6 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { E2E_PORT } from "../playwright.config";
 import {
-  acceptConsent,
   exhaustBudget,
   PHOTO,
   expect,
@@ -117,11 +116,8 @@ test("axe: /gate", async ({ browser }) => {
   await ctx.close();
 });
 
-test("axe: photo screen with a chosen photo, and with a rejection", async ({
-  page,
-}) => {
-  await page.goto("/item/vest/consent");
-  await acceptConsent(page);
+test("axe: photo screen with a chosen photo", async ({ page }) => {
+  await page.goto("/item/vest/photo");
   await page.locator("input[type=file]").setInputFiles(PHOTO);
   await expect(
     page.getByRole("button", { name: "Use this photo" }),
@@ -134,14 +130,6 @@ test("Enter activates the primary action", async ({ page }) => {
   await page.goto("/item/vest");
   const button = page.getByRole("button", { name: "Try it on" });
   await button.focus();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/consent$/);
-
-  await page.getByLabel("I am 18 or older").focus();
-  await page.keyboard.press("Space");
-  await page.getByLabel(/I agree to my photo/).focus();
-  await page.keyboard.press("Space");
-  await page.getByRole("button", { name: "Agree and add my photo" }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/photo$/);
 

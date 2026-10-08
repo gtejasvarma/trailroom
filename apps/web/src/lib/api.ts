@@ -1,6 +1,7 @@
 "use client";
 // Every call to /api/* carries a fresh Firebase ID token. Errors are { error, message }.
 import type { MeBody } from "../server/me";
+import { CONSENT_VERSION } from "./consent";
 import { ensureUser } from "./firebase";
 
 export class ApiError extends Error {
@@ -55,23 +56,51 @@ const json = (body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
+export interface PhotoSummary {
+  id: string;
+  label: string;
+  isDefault: boolean;
+  thumbUrl: string;
+}
+
+export interface UploadedPhoto {
+  photoId: string;
+  isDefault: boolean;
+  label: string;
+  width: number;
+  height: number;
+}
+
 export const api = {
   me: () => apiFetch<MeBody>("/api/me"),
-  consent: (version: string) =>
-    apiFetch<unknown>(
-      "/api/consent",
-      json({ version, ageAttested18: true, accepted: true }),
-    ),
-  uploadPhoto: (file: File) => {
+  /** The consent version rides along with every upload; the server records it, then stores. */
+  uploadPhoto: (file: Blob, filename = "photo.jpg") => {
     const form = new FormData();
-    form.set("photo", file);
-    return apiFetch<unknown>("/api/photo", { method: "POST", body: form });
+    form.set("photo", file, filename);
+    form.set("consent", CONSENT_VERSION);
+    return apiFetch<UploadedPhoto>("/api/photo", {
+      method: "POST",
+      body: form,
+    });
   },
-  deletePhoto: () => apiFetch<unknown>("/api/photo", { method: "DELETE" }),
-  tryOn: (itemId: string) =>
+  photos: () =>
+    apiFetch<{ photos: PhotoSummary[]; defaultPhotoId: string | null }>(
+      "/api/photos",
+    ),
+  makeDefault: (photoId: string) =>
+    apiFetch<{ defaultPhotoId: string }>(`/api/photos/${photoId}/default`, {
+      method: "POST",
+    }),
+  removePhoto: (photoId: string) =>
+    apiFetch<{ defaultPhotoId: string | null }>(`/api/photos/${photoId}`, {
+      method: "DELETE",
+    }),
+  /** Everything: every photo, try-on and the consent record. */
+  deleteEverything: () => apiFetch<unknown>("/api/photo", { method: "DELETE" }),
+  tryOn: (itemId: string, photoId?: string) =>
     apiFetch<{ jobId: string; poseSetId: string; reused: boolean }>(
       "/api/try-on",
-      json({ itemId }),
+      json({ itemId, photoId }),
     ),
   attach: () => apiFetch<{ isGuest: false }>("/api/account/attach", json({})),
 };

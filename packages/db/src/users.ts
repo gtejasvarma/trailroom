@@ -1,8 +1,9 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./app";
 import { assertSegment } from "./paths";
+import { deleteAllPhotoDocs } from "./photos";
 import {
-  deletePhotoObject,
+  deleteAllPhotoObjects,
   deleteRendersForUser,
   deleteStagingForJob,
 } from "./storage";
@@ -19,7 +20,7 @@ async function commitDeletes(refs: FirebaseFirestore.DocumentReference[]) {
 }
 
 /**
- * Removes everything held for a user: photo + renders objects, staging for their jobs, and the
+ * Removes everything held for a user: photo and renders objects, staging for their jobs, and the
  * consent, photo, job, jobInternals and poseSet docs. Other users' data is untouched. It leaves
  * usage/{uid}_{day} alone on purpose, so deleting data cannot reset a daily limit.
  * Objects are deleted again after the docs, to catch anything a racing render or upload wrote
@@ -31,40 +32,45 @@ export async function deleteAllForUser(uid: string): Promise<void> {
   const jobs = await db.collection("jobs").where("uid", "==", uid).get();
   const deleteObjects = async () => {
     for (const j of jobs.docs) await deleteStagingForJob(j.id);
-    await deletePhotoObject(uid);
+    await deleteAllPhotoObjects(uid);
     await deleteRendersForUser(uid);
   };
   await deleteObjects();
+  await deleteAllPhotoDocs(uid);
   const sets = await db.collection("poseSets").where("uid", "==", uid).get();
   await commitDeletes([
     ...jobs.docs.map((d) => d.ref),
     ...jobs.docs.map((d) => db.collection("jobInternals").doc(d.id)),
     ...sets.docs.map((d) => d.ref),
     db.collection("consents").doc(uid),
-    db.collection("photos").doc(uid),
     db.collection("follows").doc(uid),
   ]);
+  await deleteAllPhotoDocs(uid);
   await deleteObjects();
-  await db.collection("photos").doc(uid).delete();
 }
 
 /**
- * A guest has linked a real account: their records stop expiring. Updates photo, jobs and pose
- * sets for the uid; returns how many docs changed.
+ * A guest has linked a real account: their records stop expiring. Updates every photo, jobs and
+ * pose sets for the uid; returns how many docs changed.
  */
 export async function promoteGuest(uid: string): Promise<number> {
   assertSegment("uid", uid);
   const db = firestore();
   const photo = db.collection("photos").doc(uid);
-  const [jobs, sets, photoSnap] = await Promise.all([
+  const [jobs, sets, photoSnap, items] = await Promise.all([
     db.collection("jobs").where("uid", "==", uid).get(),
     db.collection("poseSets").where("uid", "==", uid).get(),
     photo.get(),
+    photo.collection("items").get(),
   ]);
   const batch = db.batch();
   let n = 0;
   if (photoSnap.exists) {
     batch.update(photo, { isGuest: false, expiresAt: null });
+    n++;
+  }
+  for (const d of items.docs) {
+    batch.update(d.ref, { isGuest: false, expiresAt: null });
     n++;
   }
   for (const d of jobs.docs) {

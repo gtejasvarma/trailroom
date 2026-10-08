@@ -11,6 +11,7 @@ import {
   deletePoseSetIfFailed,
   deleteRendersForPoseSet,
   deleteStagingForJob,
+  getDefaultPhotoId,
   getPhoto,
   getPoseSet,
   listPoseSetsForUser,
@@ -40,11 +41,20 @@ export async function startTryOn(
   input: unknown,
   now: Date = new Date(),
 ): Promise<Result<TryOnBody>> {
-  const itemId = (input as { itemId?: unknown } | null)?.itemId;
+  const body = (input ?? {}) as { itemId?: unknown; photoId?: unknown };
+  const itemId = body.itemId;
   if (
     typeof itemId !== "string" ||
     itemId.length === 0 ||
     itemId.length > 100
+  ) {
+    return err("invalid_request");
+  }
+  if (
+    body.photoId !== undefined &&
+    (typeof body.photoId !== "string" ||
+      body.photoId.length === 0 ||
+      body.photoId.length > 100)
   ) {
     return err("invalid_request");
   }
@@ -53,8 +63,17 @@ export async function startTryOn(
   if (!(await isConsentCurrent(user.uid, CONSENT_VERSION))) {
     return err("consent_required");
   }
-  const photo = await getPhoto(user.uid);
-  if (!photo) return err("photo_required");
+  // The chosen photo, or the default. Someone else's id is simply not found: no spend, no hint.
+  const photoId = body.photoId ?? (await getDefaultPhotoId(user.uid));
+  if (!photoId) return err("photo_required");
+  let photo;
+  try {
+    photo = await getPhoto(user.uid, photoId as string);
+  } catch {
+    return err("not_found");
+  }
+  if (!photo)
+    return err(body.photoId === undefined ? "photo_required" : "not_found");
 
   const item = getItem(itemId);
   if (!item) return err("unknown_item");
@@ -65,7 +84,7 @@ export async function startTryOn(
     });
   }
 
-  const psId = poseSetId(user.uid, photo.identityVersion, itemId);
+  const psId = poseSetId(user.uid, photo.id, itemId);
   let existing = await getPoseSet(psId);
   if (existing?.status === "rendering") {
     // A job that stopped moving (workflow died, fail-job lost) must not be reused forever.
@@ -129,7 +148,7 @@ export async function startTryOn(
   const { id: jobId } = await createJob({
     uid: user.uid,
     itemId,
-    identityVersion: photo.identityVersion,
+    photoId: photo.id,
     poseSetId: psId,
     poseOrder: poses,
     poses: Object.fromEntries(
@@ -144,7 +163,7 @@ export async function startTryOn(
     await claimPoseSet({
       uid: user.uid,
       itemId,
-      identityVersion: photo.identityVersion,
+      photoId: photo.id,
       jobId,
       isGuest: user.isGuest,
     });

@@ -8,7 +8,7 @@ import {
   getJob,
   putPhoto,
   recordConsent,
-  savePhoto,
+  addPhoto,
   poseSetId,
   type JobDoc,
 } from "@trailroom/db";
@@ -39,17 +39,18 @@ export async function makeJob(
   poses: string[] = POSE_LIST,
 ): Promise<{ jobId: string; poseSetId: string; uid: string }> {
   await recordConsent(uid, "v1");
-  await putPhoto(uid, await personPhoto());
-  const photo = await savePhoto(uid, {
+  const { photo } = await addPhoto(uid, {
     width: 768,
     height: 1024,
     isGuest: false,
+    photoId: "photo1",
   });
-  const psId = poseSetId(uid, photo.identityVersion, itemId);
+  await putPhoto(uid, photo.id, await personPhoto());
+  const psId = poseSetId(uid, photo.id, itemId);
   const { id } = await createJob({
     uid,
     itemId,
-    identityVersion: photo.identityVersion,
+    photoId: photo.id,
     poseSetId: psId,
     poseOrder: poses,
     poses: Object.fromEntries(
@@ -63,7 +64,7 @@ export async function makeJob(
   await claimPoseSet({
     uid,
     itemId,
-    identityVersion: photo.identityVersion,
+    photoId: photo.id,
     jobId: id,
     isGuest: false,
   });

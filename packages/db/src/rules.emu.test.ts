@@ -56,7 +56,8 @@ beforeAll(async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, "consents/alice"), { version: "v1" });
-    await setDoc(doc(db, "photos/alice"), { storagePath: "x" });
+    await setDoc(doc(db, "photos/alice"), { defaultPhotoId: "p1" });
+    await setDoc(doc(db, "photos/alice/items/p1"), { storagePath: "x" });
     await setDoc(doc(db, "jobs/j1"), { uid: "alice" });
     await setDoc(doc(db, "poseSets/alice_1_blouse"), { uid: "alice" });
     await setDoc(doc(db, "spend/2026-01-01"), { committedMicros: 0 });
@@ -70,7 +71,7 @@ beforeAll(async () => {
     await setDoc(doc(db, "jobs/j2"), { uid: "bob" });
     // A real object, so a denied read is a permission error and not a not-found.
     await uploadBytes(
-      ref(ctx.storage(), "photos/alice/base.jpg"),
+      ref(ctx.storage(), "photos/alice/p1.jpg"),
       new Uint8Array([1, 2, 3]),
     );
   });
@@ -157,6 +158,27 @@ describe("firestore rules: no client writes", () => {
   });
 });
 
+describe("photos subcollection", () => {
+  it("a client reads and writes nothing under photos, not even its own", async () => {
+    for (const ctx of [
+      env.authenticatedContext("alice"),
+      env.authenticatedContext("bob"),
+      env.unauthenticatedContext(),
+    ]) {
+      const db = ctx.firestore();
+      await assertFails(getDoc(doc(db, "photos/alice/items/p1")));
+      await assertFails(getDocs(collection(db, "photos/alice/items")));
+      await assertFails(
+        setDoc(doc(db, "photos/alice/items/p2"), { storagePath: "y" }),
+      );
+      await assertFails(deleteDoc(doc(db, "photos/alice/items/p1")));
+      await assertFails(
+        updateDoc(doc(db, "photos/alice"), { defaultPhotoId: "p2" }),
+      );
+    }
+  });
+});
+
 describe("storage rules", () => {
   it("denies every read and write for owner and stranger", async () => {
     for (const ctx of [
@@ -165,7 +187,7 @@ describe("storage rules", () => {
       env.unauthenticatedContext(),
     ]) {
       const st = ctx.storage();
-      const r = ref(st, "photos/alice/base.jpg");
+      const r = ref(st, "photos/alice/p1.jpg");
       await expect(getBytes(r)).rejects.toMatchObject({
         code: "storage/unauthorized",
       });

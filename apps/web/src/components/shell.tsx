@@ -31,6 +31,7 @@ function sectionOf(pathname: string): Section | null {
   if (pathname === "/you") return "you";
   if (
     pathname === "/" ||
+    pathname.startsWith("/upload") ||
     pathname.startsWith("/item/") ||
     pathname.startsWith("/label/")
   )
@@ -41,10 +42,10 @@ function sectionOf(pathname: string): Section | null {
 /** Roots have no back button; everything pushed from them does. */
 const isRoot = (p: string) => p === "/" || p === "/lists" || p === "/you";
 
-/** Focused flow screens (consent, photo, queue, result) run without the tab bar. */
+/** Focused flow screens (photo, queue, result) run without the tab bar. */
 function hasTabBar(p: string): boolean {
   if (p.startsWith("/try-on/")) return false;
-  return !/^\/item\/[^/]+\/(consent|photo|signup|limit)$/.test(p);
+  return !/^\/item\/[^/]+\/(photo|photos|signup|limit)$/.test(p);
 }
 
 function Wordmark({ className = "" }: { className?: string }) {

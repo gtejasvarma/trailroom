@@ -27,9 +27,11 @@ function files(dir: string): string[] {
 }
 
 describe("what apps/web may touch", () => {
-  // Server modules that legitimately need the user's photo bytes or paths. None do today (upload
-  // and delete go through putPhoto/savePhoto/deleteAllForUser); add a file only with a reason.
-  const ALLOWED: string[] = [];
+  // Server modules that legitimately need the user's photo bytes or paths. Upload and delete go
+  // through putPhoto/addPhoto/deleteAllForUser; the one reader is the owner-only thumbnail (the
+  // person's own photo shown back to them, scoped to their uid in the path). Add a file only with
+  // a reason.
+  const ALLOWED: string[] = ["server/photo-library.ts"];
   const FORBIDDEN = ["staging/", "getStaging", "getPhotoBytes", "photoPath"];
 
   const product = files(webSrc)

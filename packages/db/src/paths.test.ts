@@ -9,7 +9,7 @@ import {
 
 describe("path builders", () => {
   it("produce the documented paths", () => {
-    expect(photoPath("u1")).toBe("photos/u1/base.jpg");
+    expect(photoPath("u1", "abc123")).toBe("photos/u1/abc123.jpg");
     expect(stagingPath("j1", "front", 2)).toBe("staging/j1/front-2.png");
     expect(stagingPath("j1", "front", 1, "jpg")).toBe("staging/j1/front-1.jpg");
     expect(stagingPrefix("j1")).toBe("staging/j1/");
@@ -31,7 +31,7 @@ describe("path builders", () => {
     "a b",
     "a\0b",
   ])("rejects segment %j", (bad) => {
-    expect(() => photoPath(bad)).toThrow();
+    expect(() => photoPath(bad, "p1")).toThrow();
     expect(() => stagingPath(bad, "front", 1)).toThrow();
     expect(() => stagingPath("j", bad, 1)).toThrow();
     expect(() => renderPath("u", bad, "front")).toThrow();

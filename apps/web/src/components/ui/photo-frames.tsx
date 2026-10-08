@@ -51,7 +51,10 @@ export function PhotoFrames({
   };
 
   return (
-    <div className={`relative ${rounded} overflow-hidden`}>
+    <div
+      data-testid="frames-wrap"
+      className={`relative ${rounded} overflow-hidden`}
+    >
       <div
         ref={scroller}
         tabIndex={0}
@@ -97,7 +100,7 @@ export function PhotoFrames({
         ))}
       </div>
       <Chip upper className="absolute top-3 left-3" data-testid="state-chip">
-        {state === "onYou" ? copy.card.onYourPhoto : copy.card.modelShot}
+        {state === "onYou" ? copy.card.onYou : copy.card.modelShot}
       </Chip>
       <Chip className="absolute top-3 right-3" data-testid="count-chip">
         {state === "onYou" ? copy.card.poses(n) : copy.card.photos(n)}

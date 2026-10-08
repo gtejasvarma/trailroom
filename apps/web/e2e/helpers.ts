@@ -106,7 +106,7 @@ export { expect };
 export const card = (page: Page, name: string) =>
   page.locator("article[data-testid=item-card]").filter({ hasText: name });
 
-/** From the product page of `name`: Try it on, consent, upload. Ends on the try-on route. */
+/** From the product page of `name`: Try it on, upload. Ends on the try-on route. */
 export async function tryOnFromScratch(page: Page, name: string) {
   await card(page, name)
     .getByRole("link", { name: `View ${name}` })
@@ -116,20 +116,31 @@ export async function tryOnFromScratch(page: Page, name: string) {
   // click can land in that gap and do nothing, so click until the page actually moves on.
   await expect(async () => {
     await page.getByRole("button", { name: "Try it on" }).click();
-    await expect(page).toHaveURL(/\/consent$/, { timeout: 3_000 });
+    await expect(page).toHaveURL(/\/photo$/, { timeout: 3_000 });
   }).toPass({ timeout: 30_000 });
-  await acceptConsent(page);
   await page.locator("input[type=file]").setInputFiles(PHOTO);
   await page.getByRole("button", { name: "Use this photo" }).click();
   await expect(page).toHaveURL(/\/try-on\//);
 }
 
-export async function acceptConsent(page: Page) {
-  await expect(page).toHaveURL(/\/consent$/);
-  await page.getByLabel("I am 18 or older").check();
-  await page.getByLabel(/I agree to my photo/).check();
-  await page.getByRole("button", { name: "Agree and add my photo" }).click();
-  await expect(page).toHaveURL(/\/photo$/);
+/** Upload first: /upload, choose the photo, Use this photo. Ends on "Your photo is in". */
+export async function uploadFirst(page: Page) {
+  await page.goto("/upload");
+  await page.locator("input[type=file]").setInputFiles(PHOTO);
+  await page.getByRole("button", { name: "Use this photo" }).click();
+  await expect(page).toHaveURL(/\/upload\/done$/);
+  await expect(page.getByTestId("starter")).toHaveCount(4);
+}
+
+/** The "Which photo?" sheet that follows Try it on when photos exist: start with the default. */
+export async function confirmWhichPhoto(page: Page) {
+  const sheet = page.getByRole("dialog", { name: "Which photo?" });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByText("DEFAULT", { exact: true })).toBeVisible();
+  await expect(async () => {
+    await sheet.getByRole("button", { name: "Add to the queue" }).click();
+    await expect(page).not.toHaveURL(/\/item\//, { timeout: 3_000 });
+  }).toPass({ timeout: 20_000 });
 }
 
 export async function waitForResult(page: Page) {

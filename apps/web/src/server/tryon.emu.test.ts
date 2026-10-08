@@ -18,7 +18,6 @@ import { startRender, awaitInlineRuns } from "./orchestrator";
 import { startWorkflowExecution } from "./workflows";
 import {
   anonymousToken,
-  consent,
   emailToken,
   req,
   reset,
@@ -61,7 +60,6 @@ const render = (t: string, setId: string, pose: string) =>
 
 async function ready(kind: "guest" | "user" = "guest") {
   const t = kind === "guest" ? await anonymousToken() : await emailToken();
-  await consent(t);
   await uploadOk(t);
   return t;
 }
@@ -74,18 +72,12 @@ async function finish(t: string, itemId: string) {
 }
 
 describe("try-on refusals", () => {
-  it("no consent is 403, no photo is 409, unknown item is 404", async () => {
+  it("no photo is 403 (no consent on file yet), unknown item is 404", async () => {
     const t = await anonymousToken();
     let res = await tryOn(t, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       403,
       "consent_required",
-    ]);
-    await consent(t);
-    res = await tryOn(t, "blouse");
-    expect([res.status, (await res.json()).error]).toEqual([
-      409,
-      "photo_required",
     ]);
     await uploadOk(t);
     res = await tryOn(t, "nope");
@@ -229,18 +221,18 @@ describe("daily limits and the guest race", () => {
     expect((await getUsage(uidOf(u)))!.starts).toBe(SIGNED_IN_DAILY_STARTS);
   });
 
-  it("Delete my photo then re-consent and re-upload does not reset the count", async () => {
+  it("Delete everything then re-upload does not reset the count", async () => {
     const g = await ready("guest");
     setFakeScript([{ outcome: "error" }]);
     for (let i = 0; i < GUEST_DAILY_STARTS; i++) await finish(g, "blouse");
     await photoDELETE(req("DELETE", "/api/photo", { token: g }));
-    await consent(g);
     await uploadOk(g);
     const res = await tryOn(g, "blouse");
-    expect([res.status, (await res.json()).error]).toEqual([
-      429,
-      "daily_limit",
-    ]);
+    // The new photo is a new cache key, so the guest's one-live-set cap answers first; either
+    // way the count was not reset and nothing renders.
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("signup_required");
+    expect((await getUsage(uidOf(g)))!.starts).toBe(GUEST_DAILY_STARTS);
   });
 
   it("reusing a pose set and refusals do not consume a start", async () => {
@@ -456,5 +448,49 @@ describe("startRender", () => {
     vi.mocked(startWorkflowExecution).mockClear();
     await startRender("k");
     expect(startWorkflowExecution).toHaveBeenCalledWith("k");
+  });
+});
+
+describe("try-on and the photo it uses", () => {
+  const withPhoto = (t: string, itemId: string, photoId?: string) =>
+    tryOnPOST(
+      req("POST", "/api/try-on", { token: t, json: { itemId, photoId } }),
+    );
+
+  it("uses the default photo, or the one named; a different photo renders anew, the same one reuses", async () => {
+    const u = await emailToken();
+    const a = await uploadOk(u);
+    const b = await uploadOk(u, 900, 1200);
+    const first = await (await withPhoto(u, "blouse")).json();
+    expect(first.poseSetId).toBe(`${uidOf(u)}_${a}_blouse`);
+    expect((await getJob(first.jobId))!.photoId).toBe(a);
+    await waitForJob(first.jobId, getJob);
+
+    const same = await withPhoto(u, "blouse", a);
+    expect((await same.json()).reused).toBe(true);
+
+    const calls = getFakeCalls().length;
+    const other = await withPhoto(u, "blouse", b);
+    expect(other.status).toBe(202);
+    const body = await other.json();
+    expect(body.poseSetId).toBe(`${uidOf(u)}_${b}_blouse`);
+    expect(body.reused).toBe(false);
+    await waitForJob(body.jobId, getJob);
+    expect(getFakeCalls().length).toBeGreaterThan(calls);
+  });
+
+  it("someone else's photoId is 404 with no job, no calls and no spend", async () => {
+    const mine = await emailToken();
+    const theirs = await emailToken();
+    await uploadOk(mine);
+    const theirId = await uploadOk(theirs);
+    const res = await withPhoto(mine, "blouse", theirId);
+    expect([res.status, (await res.json()).error]).toEqual([404, "not_found"]);
+    const bad = await withPhoto(mine, "blouse", "../x");
+    expect(bad.status).toBe(404);
+    expect(getFakeCalls()).toHaveLength(0);
+    expect(await spendLines()).toBe(0);
+    expect(await jobCount(uidOf(mine))).toBe(0);
+    expect((await getUsage(uidOf(mine)))?.starts ?? 0).toBe(0);
   });
 });

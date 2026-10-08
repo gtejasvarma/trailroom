@@ -10,7 +10,7 @@ import {
 import { createJob, setAttemptRecord, updateJob } from "./jobs";
 import { getJobInternal } from "./jobInternals";
 import { claimPoseSet, poseSetId } from "./poseSets";
-import { savePhoto } from "./photos";
+import { addPhoto } from "./photos";
 import { putPhoto } from "./storage";
 import { deleteAllForUser } from "./users";
 import {
@@ -108,7 +108,7 @@ describe("consent helpers", () => {
     await mk("stale-no-photo", old);
     await mk("stale-with-photo", old);
     await mk("fresh", Timestamp.fromDate(now));
-    await savePhoto("stale-with-photo", {
+    await addPhoto("stale-with-photo", {
       width: 1,
       height: 1,
       isGuest: true,
@@ -121,7 +121,7 @@ describe("deleteAllForUser", () => {
   it("chunks past 400 docs, removes jobInternals and objects", async () => {
     const uid = "big";
     await recordConsent(uid, "v1");
-    await putPhoto(uid, Buffer.from("x"));
+    await putPhoto(uid, "p1", Buffer.from("x"));
     const ids: string[] = [];
     const db = firestore();
     for (let i = 0; i < 3; i++) {
@@ -136,8 +136,8 @@ describe("deleteAllForUser", () => {
     const { id } = await createJob({
       uid,
       itemId: "blouse",
-      identityVersion: 1,
-      poseSetId: poseSetId(uid, 1, "blouse"),
+      photoId: "p1",
+      poseSetId: poseSetId(uid, "p1", "blouse"),
       poseOrder: ["front"],
       poses: { front: { status: "pending", attempt: 0, reasons: [] } },
       qaSkipped: [],
@@ -148,7 +148,7 @@ describe("deleteAllForUser", () => {
     await claimPoseSet({
       uid,
       itemId: "blouse",
-      identityVersion: 1,
+      photoId: "p1",
       jobId: id,
       isGuest: false,
     });

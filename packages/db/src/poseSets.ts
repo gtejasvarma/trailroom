@@ -5,18 +5,15 @@ import { expiryFor, type PoseSetDoc } from "./types";
 
 const col = () => firestore().collection("poseSets");
 
-/** The cache key IS the doc id: {uid}_{identityVersion}_{itemId}. */
+/** The cache key IS the doc id: {uid}_{photoId}_{itemId}, so a different photo renders anew. */
 export function poseSetId(
   uid: string,
-  identityVersion: number,
+  photoId: string,
   itemId: string,
 ): string {
-  if (!Number.isInteger(identityVersion) || identityVersion < 0) {
-    throw new Error("invalid identityVersion");
-  }
   return assertSegment(
     "poseSetId",
-    `${assertSegment("uid", uid)}_${identityVersion}_${assertSegment("itemId", itemId)}`,
+    `${assertSegment("uid", uid)}_${assertSegment("photoId", photoId)}_${assertSegment("itemId", itemId)}`,
   );
 }
 
@@ -33,7 +30,7 @@ export class PoseSetExistsError extends Error {
 export interface ClaimPoseSetInput {
   uid: string;
   itemId: string;
-  identityVersion: number;
+  photoId: string;
   jobId: string;
   isGuest: boolean;
 }
@@ -43,11 +40,11 @@ export async function claimPoseSet(
   input: ClaimPoseSetInput,
   now: Date = new Date(),
 ): Promise<{ id: string; poseSet: PoseSetDoc }> {
-  const id = poseSetId(input.uid, input.identityVersion, input.itemId);
+  const id = poseSetId(input.uid, input.photoId, input.itemId);
   const poseSet: PoseSetDoc = {
     uid: input.uid,
     itemId: input.itemId,
-    identityVersion: input.identityVersion,
+    photoId: input.photoId,
     jobId: input.jobId,
     status: "rendering",
     poses: [],

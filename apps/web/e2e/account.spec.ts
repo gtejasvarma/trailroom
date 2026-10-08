@@ -1,5 +1,6 @@
 import {
   card,
+  confirmWhichPhoto,
   dismissSheet,
   expect,
   test,
@@ -90,6 +91,7 @@ test("a guest's second item goes to the sign-up screen", async ({ page }) => {
   await card(page, "Wool car coat")
     .getByRole("button", { name: "Try it on" })
     .click();
+  await confirmWhichPhoto(page);
   await expect(page).toHaveURL(/\/item\/coat\/signup$/);
   await expect(
     page.getByRole("heading", { name: "Guests get one try-on" }),
@@ -99,7 +101,7 @@ test("a guest's second item goes to the sign-up screen", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("You: delete my photo, visibly, then consent is asked again", async ({
+test("You: delete everything, visibly, then the next upload starts clean", async ({
   page,
 }) => {
   await tryOnFromScratch(page, "Knit button vest");
@@ -108,17 +110,15 @@ test("You: delete my photo, visibly, then consent is asked again", async ({
 
   await page.getByRole("link", { name: "Your try-ons" }).click();
   await expect(page).toHaveURL(/\/you$/);
-  await expect(page.getByTestId("photo-state")).toHaveText(
-    "A photo of you is stored.",
-  );
-  await page.getByRole("button", { name: "Delete my photo" }).click();
+  await expect(page.getByTestId("photo-count")).toHaveText("1 photo");
+  await page.getByRole("button", { name: "Delete everything" }).click();
   const deleted = page.getByTestId("deleted");
   await expect(deleted).toBeVisible();
   await expect(deleted).toContainText(
-    "Your photo and every render made from it are gone.",
+    "Your photos and every try-on made from them are gone.",
   );
   await expect(
-    page.getByRole("button", { name: "Delete my photo" }),
+    page.getByRole("button", { name: "Delete everything" }),
   ).toHaveCount(0);
   await expect(page).toHaveURL(/\/you$/); // same screen, no modal
 
@@ -126,5 +126,5 @@ test("You: delete my photo, visibly, then consent is asked again", async ({
   await card(page, "Knit button vest")
     .getByRole("button", { name: "Try it on" })
     .click();
-  await expect(page).toHaveURL(/\/consent$/);
+  await expect(page).toHaveURL(/\/photo$/);
 });

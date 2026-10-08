@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { copy } from "../lib/copy";
 import { messageOf, paths } from "../lib/flow";
 import { alertStyle, body, btnLink, btnSecondary, h1, page } from "../lib/ui";
+import { YouPhotos } from "./you-photos";
 import type { MeBody } from "../server/me";
 
 type View = "loading" | "ready" | "deleting" | "deleted";
@@ -36,8 +37,10 @@ export function YouScreen() {
     setError(null);
     setView("deleting");
     try {
-      await api.deletePhoto();
-      setMe((m) => (m ? { ...m, hasPhoto: false, consented: false } : m));
+      await api.deleteEverything();
+      setMe((m) =>
+        m ? { ...m, photoCount: 0, defaultPhotoId: null, consented: false } : m,
+      );
       setView("deleted");
     } catch (e) {
       setError(messageOf(e));
@@ -77,17 +80,17 @@ export function YouScreen() {
       ) : null}
       {me && view !== "deleted" ? (
         <>
-          <p className={`mt-4 ${body}`} data-testid="photo-state">
-            {me.hasPhoto ? copy.you.hasPhoto : copy.you.noPhoto}
-          </p>
-          {me.hasPhoto ? (
+          <YouPhotos
+            onChange={(n) => setMe((m) => (m ? { ...m, photoCount: n } : m))}
+          />
+          {me.photoCount > 0 ? (
             <button
               type="button"
               onClick={remove}
               disabled={view === "deleting"}
               className={`mt-6 ${btnSecondary}`}
             >
-              {view === "deleting" ? copy.you.deleting : copy.you.delete}
+              {view === "deleting" ? copy.you.deleting : copy.you.deleteAll}
             </button>
           ) : null}
         </>

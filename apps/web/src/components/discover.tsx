@@ -82,7 +82,7 @@ function StartRow() {
 }
 
 export function Discover() {
-  const { loaded, hasPhoto } = useMe();
+  const { loaded, photoCount } = useMe();
   const [filter, setFilter] = useState<Filter>("all");
   const shown =
     filter === "all"
@@ -91,19 +91,13 @@ export function Discover() {
 
   return (
     <div className="mx-auto w-full max-w-[1600px] pb-12 md:px-10">
-      {loaded && !hasPhoto ? (
-        <ProofSlider uploadHref={paths.photo("coat")} />
+      {loaded && photoCount === 0 ? (
+        <ProofSlider uploadHref={paths.upload} />
       ) : null}
 
       <div className="px-4 pt-3.5 md:flex md:items-end md:gap-5 md:border-b md:border-line-soft md:px-0 md:pt-7 md:pb-[18px]">
-        <div className="md:flex-1">
-          <h1 className="sr-only text-[32px] leading-[1.2] font-medium tracking-[-0.025em] text-ink md:not-sr-only md:mb-1">
-            {copy.discover.categories[filter]}
-          </h1>
-          <p className="hidden text-[15px] leading-[21px] text-ink-700 md:block">
-            {copy.discover.categoryIntro[filter]}
-          </p>
-        </div>
+        <h1 className="sr-only">{copy.discover.title}</h1>
+        <div aria-hidden="true" className="hidden md:block md:flex-1" />
         <div
           role="group"
           aria-label={copy.discover.categoriesLabel}

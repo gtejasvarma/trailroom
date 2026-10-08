@@ -31,7 +31,16 @@ export default defineConfig({
   },
   snapshotPathTemplate:
     "{testDir}/__screenshots__/{testFileName}/{arg}-{projectName}-{platform}{ext}",
-  use: { baseURL: `http://localhost:${E2E_PORT}` },
+  use: {
+    baseURL: `http://localhost:${E2E_PORT}`,
+    // A synthetic camera, granted without a prompt, so the in-page camera can be tested.
+    launchOptions: {
+      args: [
+        "--use-fake-device-for-media-stream",
+        "--use-fake-ui-for-media-stream",
+      ],
+    },
+  },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: `npx next dev --port ${E2E_PORT}`,
