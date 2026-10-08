@@ -48,23 +48,23 @@ env:
   # rollout (the five files in packages/catalog/assets); in production a missing garment image
   # fails the job (internal) with no fallback.
   - variable: STORAGE_BUCKET
-    value: REPLACE_WITH_DEFAULT_BUCKET
+    value: virtual-tryon-tejas.firebasestorage.app
     availability:
       - RUNTIME
   # The app's public base URL, no trailing slash. It is the OIDC audience that /api/internal/*
   # requires, so it must equal the Cloud Workflow's APP_URL environment variable exactly.
   - variable: INTERNAL_AUDIENCE
-    value: https://REPLACE_WITH_APP_URL
+    value: https://trailroom--virtual-tryon-tejas.us-central1.hosted.app
     availability:
       - RUNTIME
   # Email of the service account the workflow runs as; the only caller of the pipeline endpoints.
   - variable: WORKFLOWS_SA_EMAIL
-    value: render-pose-set@REPLACE_PROJECT.iam.gserviceaccount.com
+    value: render-pose-set@virtual-tryon-tejas.iam.gserviceaccount.com
     availability:
       - RUNTIME
   # Email of the service account Cloud Scheduler uses; the only caller of /api/internal/purge.
   - variable: SCHEDULER_SA_EMAIL
-    value: purge-guests@REPLACE_PROJECT.iam.gserviceaccount.com
+    value: purge-guests@virtual-tryon-tejas.iam.gserviceaccount.com
     availability:
       - RUNTIME
   # Where the deployed workflow lives (the app starts executions with these).
