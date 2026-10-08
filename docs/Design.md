@@ -4,6 +4,8 @@ Design system for **trailroom.ai**. Read this before writing any UI. Derive ever
 
 **North star:** the feeling of hanging out at a mall with friends, trying on outfits. Every tradeoff in this file is made in service of that.
 
+**Precedence, as of Oct 7 2026.** This file is the token, type and motion system. Layouts, flows and component shapes come from the two aligned prototypes, `mocks/Trailroom Prototype.dc.html` (mobile) and `mocks/Trailroom Desktop.dc.html` (desktop), with images in `mocks/assets/` and reference screenshots in `mocks/screens/`; their verbatim source is at `archive/prototypes-2026-10-07/` for provenance. Where this file and the prototypes disagree, the prototypes win, subject to `docs/PRD.md` §22.1. The passages below that used to disagree have been changed to match: sheets are allowed wherever the prototype uses them (Rule 2 and §10); an account is needed to open a guest's render (§2 step 5 and §10); Buy is the filled action on the result (§8); renders carry a caption beside them and nothing drawn on them (§2.1).
+
 ---
 
 ## 1. Three rules
@@ -26,14 +28,14 @@ A mall is continuous and peripheral. You never dismiss a friend to look at a jac
 | Pattern | Definition | Use it? |
 |---|---|---|
 | **Place** | Owns the screen, you routed to it, back works | ✅ Yes — capture, result, item detail |
-| **Layer** | Floats over content, blocks it, must be dismissed | ❌ No — replace with inline expansion or a push panel |
+| **Layer** | Floats over content, blocks it, must be dismissed | ❌ By default — replace with inline expansion or a push panel. The sheets listed under the table are the sanctioned exceptions |
 | **Interrupt** | Appears because the *system* decided, not because the user tapped | ❌ No — replace with the rack dock filling in place |
 
-Two exceptions, both deliberate: the **OS share sheet** (system-owned, already trusted) and the **OS photo picker** (same). Push notification is allowed only when the app is backgrounded — the user already left.
+Exceptions, all deliberate: the **OS share sheet** and the **OS photo picker** (system-owned, already trusted); the **Google sign-in popup** inside the account sheet (a redirect would lose the render the person is looking at); and **the sheets the prototypes use** — try-on confirm, list picker, account, buy, "did it arrive", privacy details and pair preview (PRD §22.1 row 14). Any new surface the prototype does not show defaults to a routed screen. Push notification is allowed only when the app is backgrounded — the user already left (and push is not built, PRD §5).
 
 ### Rule 3 — Low stakes
 
-At a mall you try the ridiculous thing because nothing is recorded. Rejecting is half the fun. So: discarding is a satisfying gesture, not a hidden state; generated try-ons are ephemeral by default; nothing the user tries is broadcast without an explicit act.
+At a mall you try the ridiculous thing because nothing is recorded. Rejecting is half the fun. So: discarding is a satisfying gesture, not a hidden state; nothing the user tries is broadcast without an explicit act. Try-ons are kept in an account until the person removes them, and a guest's are purged after about 48 hours (PRD §22.1 row 16), so removing one has to be easy and visible. *(Earlier versions said try-ons were ephemeral by default.)*
 
 ---
 
@@ -49,21 +51,25 @@ Single-player. Polls are the only social surface. Curation stands in for "a frie
                   upload from camera roll (default) or capture with camera
                   validate before generation, with a specific reason on reject
 
-3. GENERATE       full quality always — watermarked if signed out
+3. GENERATE       full quality always, with a caption beside it, never on it
                   never a degraded render (see §2.1)
 
-4. RESULT         Add another · Share / poll · Save · Buy
+4. RESULT         Buy (filled) · Add to a list · Build the outfit
+                  a guest sees tiles filling in; the full result needs an account
 
-5. SIGN UP        triggered by save, poll, buy, or try-on #2
+5. SIGN UP        triggered by opening the result, or by buy, list or ask;
+                  on the upload-first path, right after the photo is accepted
                   never by image quality
 
 6. RETURNING      additions queue asynchronously into the rack dock,
                   which fills in place — no popup, no interrupt
 ```
 
-### 2.1 Why we watermark instead of degrading
+### 2.1 Why we never degrade, and what labels a render
 
-A degraded render of someone's own body reads as *"I look bad"* or *"this product doesn't work"* — the user can't tell which, and either one loses them. It also destroys our only demo. Gate on **quantity** (one free try-on per device) and on **actions that obviously need an account**, never on quality.
+A degraded render of someone's own body reads as *"I look bad"* or *"this product doesn't work"* — the user can't tell which, and either one loses them. It also destroys our only demo. Gate on **quantity** (one free try-on per guest) and on **opening the result and the actions that obviously need an account**, never on quality. The render itself is always full quality.
+
+**The AI label is a caption beside the render, never drawn on it** (Tejas, 2026-10-07; ADR 0004). An in-pixel watermark makes the product's one output look worse. SynthID is present in the pixels but is not the visible label. *(Earlier versions watermarked signed-out renders.)*
 
 ### 2.2 Capture is item-aware, not one-time
 
@@ -271,7 +277,7 @@ Live capture rules, copied from Apple Camera / Warby Parker:
 
 Validation runs **before** generation, on both paths, and rejects with one specific fixable reason: `That photo is cropped below the knee — we need your full body.` Never `Invalid photo.`
 
-Privacy is stated on this screen, in mechanism terms, at the point of use: what we keep, for how long, who sees it.
+Privacy is stated on this screen, in mechanism terms, at the point of use: what we keep, for how long, who sees it. The same screen carries the consent statement and its one required tick (18 or over, and agree to the photo being used as described); the picker and camera controls do not exist until it is recorded (PRD §22.1 row 2). State only what the product does — no live-selfie match, no age estimation (row 3).
 
 ### Generating state
 
@@ -298,18 +304,19 @@ Grey, not colored. A colored shimmer next to a garment breaks Rule 1 and reads a
 
 ### Result screen (place)
 
-Full-bleed 3:4 on `--canvas`. Actions in a bottom bar, in this order:
+Full-bleed hero on `--canvas`, 4:5 (the one place 4:5 is allowed; grids stay 3:4), a swipe gallery of the four poses with labelled thumbnails, the AI caption beside it. Actions, in this order, as the prototype has them:
 
 | Action | Weight | Note |
 |---|---|---|
-| **Add another** | Primary pill, `--ink` | Keeps the armful going; feeds the poll loop |
-| **Ask friends** | Secondary outline | Opens OS share sheet — the one allowed system modal |
-| **Save** | Icon | Signup trigger |
-| **Buy** | Text link, `--accent` | Deliberately quietest. We are not a store first |
+| **Buy $328** | Filled pill, `--ink`, full width | The one filled button. Hands off to the label's site (PRD §22.1 row 13) |
+| **Add to a list** | Secondary outline, with a save icon beside it | Signup trigger for a guest |
+| **Build the outfit** | Row below, two pair thumbnails | Opens the pair preview sheet; "Have a look, then decide" |
 
-Expectation-setting sits directly under the image in Caption style: *a preview, not a fitting — it can't tell you size or fit.* Honest, defuses the worst reviews, costs nothing.
+There is no "Ask friends" on the result: asking starts from a list. Measure Buy's effect on session depth against list-adds (PRD §21.2).
 
-**Share is primary over download.** A download leaks the image into the camera roll with no attribution and no return path. Download exists post-signup as a convenience.
+Expectation-setting sits directly under the image in Caption style: *a preview, not a fitting.* Honest, defuses the worst reviews, costs nothing. It makes no claim about size or fit, and the result carries no fit sentence, height or measurement (PRD Principle 3).
+
+**The prototype's result has no download.** A download leaks the image into the camera roll with no attribution and no return path.
 
 ### Poll
 
@@ -361,7 +368,7 @@ Secondary: `--canvas` fill, `1px solid var(--line)`, `--ink` text. Tertiary: bar
 
 Sticky under the header, 40px, `--surface`, `--line-soft` bottom hairline. 16px icon + 13px `--ink-700` text, 20px gap, horizontally scrollable on mobile. Info icon opens a **push panel**, not a modal.
 
-Claims must be verifiable in the panel. State the mechanism, not the vibe: *your reference photo is kept until you delete it; generated try-ons expire in 24 hours.* Split retention this way — a blanket "deleted in 24h" would force users to re-upload constantly and kill the persistent-model benefit.
+Claims must be verifiable in the panel. State the mechanism, not the vibe: *your photos and try-ons are kept until you remove them; a guest's are deleted after about 48 hours.* Split retention this way — a blanket "deleted in 24h" would force users to re-upload constantly and kill the persistent-model benefit.
 
 ---
 
@@ -392,14 +399,15 @@ Claims must be verifiable in the panel. State the mechanism, not the vibe: *your
 | Any gradient, anywhere | Rule 1. A colored shimmer is the most common slop tell |
 | Purple / violet accent | Default AI palette; we use Teal 700 |
 | Colored or tinted background behind try-on media | Contaminates garment color |
-| Modal or dialog | Rule 2 — use a place, a push panel, or inline expansion |
-| Popup when generation completes | Interrupt. The rack dock fills in place |
-| Degraded render as a signup gate | Reads as "I look bad." Gate on count, not quality |
+| A modal or dialog the prototype does not have | Rule 2 — use a place, a push panel, or inline expansion. The seven prototype sheets are allowed |
+| A system popup that appears because we decided, with no tap | Interrupt. The walk-away chip and ready toast fill in place. (The account sheet appears when a guest taps to open a result or after an upload on the upload-first path; that is a tap or a sanctioned step, not an interrupt) |
+| Degraded render as a signup gate | Reads as "I look bad." Gate on opening and on actions, never on image quality |
+| A mark drawn on the render | The label is a caption beside it (§2.1) |
 | Generic spinner during generation | The wait is the product's most emotional moment |
 | Fake progress steps | Detectable; costs more trust than the wait |
 | Mixed aspect ratios in one scroll container | Advertises inconsistent renders |
 | Font-weight 700+ headings | Generic |
-| `Buy` as the card's primary action | Makes us a store with a filter attached |
+| `Buy` as a catalogue or feed card's primary action | Makes us a store with a filter attached. (On the result screen Buy is the filled action by decision, PRD §22.1 row 13) |
 | Download as the primary result action | Leaks the image with no return path |
 | Borders around try-on cards | Competes with the garment silhouette |
 | Tap targets under 44px | Phone-first product |
@@ -509,6 +517,6 @@ export default {
 Tracked here so they don't get silently resolved by whoever writes the code first.
 
 - **Capture mode for full body.** Deferred — v1 accepts camera-roll upload or a plain camera capture, and we revisit once we know how much occlusion and framing variance the model tolerates. That ML answer, not design, decides whether mirror mode is viable.
-- **Watermark design.** Needs to be legible in a screenshot without damaging the render. It is a virality asset, not just a gate.
+- ~~Watermark design.~~ Closed 2026-10-07: no mark is drawn on the render; the AI label is a caption beside it (§2.1, ADR 0004).
 - **What makes two people open Trailroom at once.** Unanswered. Until it is, polls are async-only and the social layer stays thin — which is the correct v1 scope, but it is a deferred question, not a solved one.
 - **Curation cold start.** Session one has no behavioral data, so "personalized for you" is a claim the user can falsify in three swipes. First session runs on stated onboarding preferences and what's moving, and the shelf labels should say so.

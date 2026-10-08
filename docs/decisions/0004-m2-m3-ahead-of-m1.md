@@ -2,6 +2,11 @@
 
 Status: accepted, 2026-10-06
 
+**Later changes.** `0005-realign-to-the-prototypes.md` (2026-10-07) changed what is built on top of
+this ADR, not its four calls. Where it changes something said below, a pointer says so: a guest
+no longer sees the result at full size (account to open), the screens and the catalogue are
+replaced, sheets are allowed where the prototype uses them, and no email is sent in V0.
+
 ## Decision
 
 Build and deploy the vertical slice (M2) and the render graph (M3) now, with M1 (the eval) at
@@ -47,15 +52,16 @@ the product shell first, to have a deployed system to show, and to finish M1 aft
 ## Amendment — 2026-10-07: no in-pixel AI label
 
 Tejas decided that renders carry no label drawn on the image: it makes the product's one output
-look worse. This overrides PRD §15 and §7 C1 ("in-pixel AI label baked into guest renders") and
-the matching hard rule in `CLAUDE.md`, which now reads: a visible AI label beside every render,
-never on it.
+look worse. This overrode what PRD v0.6 said in §15 and §7 C1 ("in-pixel AI label baked into guest
+renders"). PRD v0.7 (§15, §22.1 row 15) and the matching hard rule in `CLAUDE.md` now say the same
+thing: a visible AI label beside every render, never on it.
 
 What remains: a visible caption next to each render in the product, and the SynthID watermark
 that every Nano Banana output already carries.
 
-What this gives up, knowingly: PRD §7 C1 leaned on the in-pixel label to contain the "screenshot
-leak" — a guest screenshotting an ungated render. A screenshot or a saved image now carries no
+What this gives up, knowingly: the earlier PRD §7 C1 leaned on the in-pixel label to contain the
+"screenshot leak" — a guest screenshotting an ungated render. (ADR 0005 shrinks the leak: a guest
+now sees only tile-sized images and opens the full render with an account.) A screenshot or a saved image now carries no
 human-readable sign that it is AI-generated; only SynthID, which needs a detector. Whether a
 visible caption alone meets AI-disclosure rules where the product launches is a question for the
 same legal review as BIPA, below.
@@ -74,7 +80,8 @@ fixed in the same session; the spec and `docs/DEPLOY.md` carry the detail. Calls
 - **Google sign-in opens a popup.** Design rule 2 lists system popups as "Interrupt" and allows
   only the share sheet and the photo picker. The account sheet is sanctioned by PRD §21.1; the
   Google popup inside it is a third exception, accepted because a redirect flow loses the render
-  the person is looking at.
+  the person is looking at. (ADR 0005 / PRD §22.1 row 14 later sanctioned the prototype's sheets
+  generally; the Google popup stays a separate exception in `CLAUDE.md`.)
 
 Known and not fixed:
 
@@ -89,14 +96,15 @@ Known and not fixed:
 
 - [ ] App Check or a per-device guest limit; Cloud Armor in front of the gate
 - [ ] Upload safety filters (Design.md §12)
-
-- [ ] A legal view on AI-content disclosure without an in-pixel label
-
+- [ ] A legal view on AI-content disclosure with a caption beside the render and nothing drawn on it
 - [ ] M1's exit gate, and the real scorers in the gate's empty slots
-- [ ] The live-selfie face match (PRD §15)
+- [ ] The live-selfie face match (PRD §15; deferred, not dropped, PRD §22.1 row 3)
 - [ ] BIPA reviewed by someone qualified (BUILD_PLAN §7)
 - [ ] Vertex AI in place of the API key
 - [ ] The three follow-ups in ADR 0001 (billing, leftover data, sole IAM owner)
+
+The image-rights question that ADR 0005 first added here is answered (the owner cleared the
+catalogue images, 2026-10-07) and is not owed.
 
 ## Consequence
 

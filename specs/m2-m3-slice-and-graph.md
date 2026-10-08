@@ -1,10 +1,15 @@
 # Spec — M2 + M3: the vertical slice and the render graph
 
-Status: built 2026-10-07, not yet deployed. Owner: Tejas. Branch: `m2-m3-build`.
+Status: built 2026-10-07, not yet deployed. **Its screens and catalogue are superseded** by PRD v0.7 §22 and BUILD_PLAN §12 (ADR 0005); everything below the screens carries over. Owner: Tejas. Branch: `m2-m3-build`.
 Implements `docs/BUILD_PLAN.md` §8 (M2) and §9 (M3). PRD sections: §4, §6, §7 C1 Path B, §7 C6,
 §10.2–10.4, §15, §16, §21.1–21.2. Design: `docs/Design.md` §1, §2, §8, §9, §11.
 
 ## 1. What changes for a user
+
+> **Superseded by PRD v0.7 §22.** This describes the M2 build, which is deployed first. The consent
+> screen, the dismissible account prompt and the visible full-size guest result below are replaced:
+> consent is a tick on the upload screen, and a guest opens the result with an account (§22.1 rows
+> 2 and 4). Phase C of BUILD_PLAN §12 rewrites these screens.
 
 A person behind a shared password opens a product page, taps **Try it on**, accepts a consent and
 age gate, uploads one photo, and watches four pose tiles fill in. They land on a result screen with
@@ -17,7 +22,7 @@ PRD exists yet.
 | Decision | Choice | Why |
 |---|---|---|
 | Build order | M2 + M3 now, M1 finished later | Tejas's call. The four-pose bet is unmeasured, so pose list, model and pose strategy are config, never constants in app code. |
-| Prompt | `edit-v1` from `packages/render-eval/src/prompt.ts`, verbatim | Tejas's call. Poses are the prompt's four: `front`, `three-quarter`, `walking`, `seated`. (PRD says "Close detail" for the fourth; M1 decides.) |
+| Prompt | `edit-v1` from `packages/render-eval/src/prompt.ts`, verbatim | Tejas's call. Poses are the prompt's four: `front`, `three-quarter`, `walking`, `seated`. (PRD v0.7 now names the same four, §22.1 row 6; M1 still decides whether the set holds.) |
 | Model | Nano Banana 2.1 (`gemini-nano-banana-2.1`), 1K, 3:4 | Current workhorse model per Google's docs, half the per-image price of Nano Banana 2. Config: `RENDER_MODEL`. |
 | Daily cap | $5.00/day, hard stop | About 30 Pose Sets. Config: `DAILY_CAP_USD`. Refuses, never warns. |
 | Model access | Gemini API key in Secret Manager, through `packages/render` | Already proven by the eval runs. Vertex AI (BUILD_PLAN §8.1) is owed before anyone outside the password circle uploads a photo. |
@@ -34,6 +39,12 @@ PRD exists yet.
 password gate stays on until it is, and until BIPA has been looked at (BUILD_PLAN §7).
 
 ## 3. Out of scope
+
+> **Scope has changed.** This list is what M2 left out. PRD v0.7 §22.3 and BUILD_PLAN §12 are the
+> current scope: Discover, Lists, Asks, Compare and the rest of the prototype are now built in
+> Phases A to H (V0 for Friday 9 October 2026 is A to C); the live selfie, jewellery try-on, the
+> designer back office, a native app and sending email stay out or deferred. The camera is built in
+> Phase B.
 
 Discover feed, buffer, Lists, Asks, Compare, designer back office, email, camera capture and the
 camera-roll scan (upload only), search, Path A, Buy links, the live selfie, VLM capture-quality and
@@ -214,6 +225,11 @@ Tests (emulators, fake provider):
 
 ### Phase 4b — The screens
 
+> **Superseded by BUILD_PLAN §12 Phases A to C.** These are the M2 screens. The product list, the
+> consent and age gate screen, the account sheet that dismisses and the five-item demo catalogue are
+> replaced by the prototype's screens, a consent tick on the upload screen, account-to-open, and
+> the prototype's catalogue (PRD §22.1 rows 2, 4, 8). The tests below describe the M2 build only.
+
 Build: product list (plain entry point), product page, consent and age gate, upload, queue with
 filling tiles, result, honest failure with closest three, account sheet (anonymous account linked
 to Google), credits page. All copy in one module.
@@ -260,6 +276,6 @@ the price arithmetic against reported tokens, and that four images come back.
 
 ## 7. Open questions
 
-- Fourth pose: `seated` (prompt) or `Close detail` (PRD). M1's call.
+- Fourth pose: `seated` (prompt; PRD v0.7 now names it too). M1 decides whether the set holds.
 - Whether Nano Banana 2.1 holds identity as well as Nano Banana 2 did in `pilot-01`. Unmeasured.
 - Region for App Hosting and Workflows. The runbook assumes `us-central1`.

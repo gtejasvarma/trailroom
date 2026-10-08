@@ -2,7 +2,8 @@
 
 **How to get from PRD v0.6 to something in production, using coding agents, without shipping code you can't debug.**
 
-Status: draft 2, Aug 25 2026 — Firebase/GCP stack, Nano Banana render engine, M1 reframed as the eval milestone.
+Status: draft 3, Oct 7 2026 — the ladder from M4 onward is replaced by §12, the plan to build the two target prototypes in full. §1 to §11 are kept as written; §8 (M2) and §9 (M3) describe what was built on Oct 6–7.
+Draft 2, Aug 25 2026 — Firebase/GCP stack, Nano Banana render engine, M1 reframed as the eval milestone.
 Owner: Tejas. Companion docs: `docs/PRD.md` (what), `docs/Design.md` (how it looks), this file (how it gets built).
 
 ---
@@ -69,6 +70,8 @@ Each rung is independently shippable and independently abandonable. If M1 kills 
 | **M5** | The social edge | 1–2 weeks | Lists, Asks, the no-account vote page (C4) | Shipping a public surface with real privacy exposure |
 
 Beyond M5 — designer back office, Compare, the email program — plan when you get there.
+
+**Superseded on Oct 7 2026.** M0 is done. M2 and M3 are built (ADR 0004), ahead of M1, which is still open. M4 and M5 as described in this table are replaced by Phases A to H in §12, which build the whole of both prototypes rather than two more slices. M1 continues beside them as its own track.
 
 ---
 
@@ -316,7 +319,7 @@ capture
   └─ quality score ──fail──> guided recapture
        └─ face match vs live selfie ──fail──> reject
             └─ base look (normalise, cache by identity version)
-                 └─ FAN OUT ×4  [Front | Three-quarter | Walking | Close detail]
+                 └─ FAN OUT ×4  [Front | Three-quarter | Walking | Seated]
                       each pose:
                         ├─ identity cosine vs base selfie      (code)
                         ├─ garment fidelity vs product image   (VLM judge)
@@ -482,3 +485,151 @@ What you learn: graph engineering on a system where the graph is obviously the r
 - **Whether a self-hosted VTON stays on the table.** At $0.003–0.010 per image it's the only path to the $0.25 target. M1 tells you whether Gemini clears the quality gate; it doesn't tell you whether you'll ever need the cheaper one. Keep the provider interface behind one abstraction so the answer stays cheap to change.
 - **Base Look vs House Style** (§8 D5, flagged "resolve before build"). Doesn't bite until the designer back office, but it's a data-model decision — settle it before the schema hardens.
 - **Employer IP.** §17 lists it as a risk with no mitigation. Resolve it before the first commit.
+
+---
+
+## 12. Draft 3 — building the whole experience (Oct 7 2026)
+
+### 12.0 Why this section exists
+
+M2 + M3 produced a working pipeline behind a plain interface for one journey. Tejas ran it, said it was not the experience he wanted, and named two prototypes as the target (ADR 0005). Their aligned, runnable versions are `mocks/Trailroom Prototype.dc.html` and `mocks/Trailroom Desktop.dc.html`; the verbatim extracted source is at `archive/prototypes-2026-10-07/`. PRD v0.7 §22 says what the product is. This section says how it gets built.
+
+Nothing from M2 + M3 is thrown away below the screens. What carries over: the render chokepoint and `edit-v1` prompt, the daily spend cap and per-person limits, the pipeline and its QA gate, the Cloud Workflow, the password gate, the security-rules approach, the three test suites, and the deploy runbook. What is replaced: every screen, the catalogue, and the one-photo-per-person data model.
+
+### 12.0a V0 for Friday 9 October 2026
+
+V0 is a demonstration on Friday 9 October 2026. It is **Phases A, B and C**: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open, Google sign-in, the two post-signup steps (step 1's email preferences are stored, nothing is sent), the result, and honest failure. **Phase D without email** — lists, asks, the public vote page, the Asks inbox — is the stretch goal if A to C are done and seen. **Phases E to H follow after Friday**, and sending email (the first message of the old Phase D, now its own step below) is the first thing after V0. No email is sent in V0 (PRD §22.1 row 10): where the interface promises one, V0 shows the result in the app or does not show the promise.
+
+### 12.1 Three process rules, learned the expensive way
+
+1. **The prototype is the spec for anything you can see.** Every phase that touches the interface starts from the matching screens in the aligned prototypes, `mocks/Trailroom Prototype.dc.html` and `mocks/Trailroom Desktop.dc.html` (markup, inline styles and state logic are all in those files; reference screenshots are in `mocks/screens/`), and from PRD §22.1 for the rows that decide where the build differs. The verbatim extracted source at `archive/prototypes-2026-10-07/` is for provenance. Design.md supplies tokens and type; it does not supply layouts.
+2. **Tejas sees it before the next phase starts.** Each phase ends with paired screenshots, prototype beside build, at 390 px and 1440 px, for every screen the phase touched, plus the phase deployed at the password-gated URL. The next phase does not start until he has looked. The M2 build failed this test by never taking it.
+3. **A phase is done when its gate is green, not when its code exists.** The gate is `npm run verify`, `npm test`, `npm run test:emu`, `npm run build`, `npm run test:e2e`, run by Claude independently of whichever agent built the phase, plus the phase's own checks below. Screenshot baselines are part of the e2e suite from Phase A on, so a later phase cannot quietly bend an earlier screen.
+
+Agents build, as before: one Sonnet subagent per phase, sequentially, because the phases share files. Read-only review agents run in parallel at the end.
+
+### 12.2 Deploy first, then build in the open
+
+The deploy that was in progress when this plan was written should be finished with the current build before Phase A. Three things about App Hosting could not be checked locally (workspace packages resolving in the build, the browser's Firebase config, the Workflow's first execution). Finding them now, on a small app, is cheaper than finding them in Phase H. The site is behind the password, so nobody sees the plain interface. From then on every phase rolls out by a push to `main`, and rule 2 above has a URL to point at.
+
+### 12.3 The phases
+
+Sizes are relative. M2 + M3 together were about one long working session of agent time plus review; an L phase is about that, an M about half.
+
+#### Phase A — Catalogue, shell and Discover (L)
+
+The first screen a person sees has to look like the prototype, so this goes first.
+
+- **Catalogue.** The prototype's twelve pieces and five labels move into `packages/catalog`: name, label and its "Independent · city" line, price, description, category, stock line, shelf, pairings, the label's own photographs (one to four per piece), and whether it can be rendered (apparel yes; jewellery and accessories not yet; the leather jacket never, for the honest-failure journey). The images are committed in `packages/catalog/assets/prototype/` (the owner cleared them, ADR 0005) and copied to `gs://<bucket>/catalog/`. The five museum-photo items are retired.
+- **Design foundation.** Inter, self-hosted. Tokens checked against the prototype's values and corrected where they differ. A component kit taken from the prototype: card with swipeable frames and a count chip, category tile, button set, sheet, toast, tab bar, top nav.
+- **Shell.** Discover, Lists and You as a tab bar on a phone and a top nav on a wide screen.
+- **Discover.** The proof slider for anyone without a photo; category tiles; shelves ("New in", "From a label you follow"); cards in their label-photo state with follow, heart and Try it on; "Start with these".
+- **Product page and label page.** Gallery of the label's photos, description, stock line, follow, more from the label.
+- **Following.** Stored for guests on the device and moved to the account at sign-up.
+
+Tests: catalogue integrity (every image present in Storage, every pairing resolves, no fit language in any description, which means rewriting the three seeded descriptions that mention length on a model); navigation e2e on both layouts; screenshot baselines for every screen at 390 and 1440; axe on every screen; no horizontal scroll at 360 to 430; copy and design lints extended to the new strings.
+
+**Checkpoint:** Discover, a product page and a label page, side by side with the prototype.
+
+#### Phase B — Photos and capture (M)
+
+- **Data model.** Several full-body photos per person with one default, replacing one photo per person. A try-on is keyed by person, photo and piece. Existing test data is discarded, not migrated; nothing real exists yet.
+- **Upload screen.** The prototype's screen, with the consent statement and the one required tick (PRD §22.1 row 2). The picker and camera controls do not exist in the page until the tick is recorded. A check runs in the browser the moment a photo is chosen (size, shape, one clear reason on a miss) and the server repeats it.
+- **Camera.** "Or take one now" opens the browser camera with a framing guide and a shutter. The prototype's automatic cues ("Step back a little") are shown only for things the browser can measure; the rest are static guidance. No invented feedback.
+- **Details sheet.** Rewritten to state only what happens: private to you, kept until you remove it, sent to Google's model to make the images and not used for training, 18 and over.
+- **Both entry paths.** Upload first (proof slider → upload → account → the two steps → "Pick anything below" with four starters) and try-on first (product → upload → straight into the queue).
+- **Photo library.** "Which photo?" sheet with the default preselected, "Use a different photo", add a photo, make default.
+
+Tests: no file input or camera call before consent, checked with a mutation observer from page load (the existing test, extended to the camera); every rejection reason through the real server; default switching; a second person can never read the first's photos (rules and route tests); deletion removes every photo.
+
+**Checkpoint:** both paths up to the moment a render would start.
+
+#### Phase C — The queue, the account, the result (L)
+
+- **Queue.** The walk-away chip across every screen ("Putting the wool car coat on you · Pose 2 of 4" becomes a true count of poses ready), the queue screen with tiles filling, "Keep browsing while it renders", and the ready toast with "See it". One job at a time, as the prototype.
+- **Account to open (row 4).** Enforced by the server, not the page: a guest's request gets tile-sized images only; full-size renders need an account. The sheet's copy and the five reasons it can appear (open, buy, list, ask, after upload) follow the prototype, and after sign-in the person lands where they were going.
+- **Sign-in.** Google, by linking the guest session so the photo and the render carry over with no re-render.
+- **After sign-up.** Step 1 of 2, email preferences; step 2 of 2, pick three labels, when there is no render yet (row 5).
+- **Result.** The swipe gallery with pose thumbnails and labels, the AI caption beside it, Buy as the filled action, Add to a list, Build the outfit.
+- **Discover, on you.** A piece you have tried shows your render and "See your 4 poses".
+- **When we can't render it.** The honest-failure screen with the closest three (the "Email me if we get better photos" request is not shown in V0, because no email is sent; it returns with the email step); the "not yet" state for jewellery and accessories.
+- **Kept.** An account's try-ons no longer expire (row 16). Guests are still purged after about 48 hours.
+
+Tests: a guest cannot fetch a full-size render by any route (API tests, including after the job completes and with a forged pose-set id); each of the five gate reasons resumes correctly; a linked account keeps its render and is never purged; pipeline parity and replay tests still pass; the daily cap and per-person limits still refuse before spending; a failed set shows nothing.
+
+**Checkpoint:** the whole signed-out journey, end to end, with real renders on the deployed site. This is the point at which the demo is worth showing.
+
+#### Phase D — Lists, asks and the vote page (L)
+
+The social loop, and the first public surface. The stretch goal for V0; without email.
+
+- **Lists.** Create, add, remove, the list sheet, the list page, "New list", the heart on cards.
+- **Asks.** Ask friends from a list; the share screen with the link, copy, and the phone's own share menu for Messages and WhatsApp; the "Sent" screen with vote bars.
+- **The vote page.** `trailroom.ai/ask/<token>`, exempt from the password gate (row 17): no account, one tap, "Thanks", then "See it on me" or "Just browse first". An unguessable link, `noindex`, expires in 7 days, revocable from the list. The asker sees counts, never who.
+- **Asks inbox.** Asks you opened while signed in, with unread state and the ask detail screen.
+- **Votes show in the app, not by email.** The asker sees counts on the list and in the Asks inbox. The "a vote landed" email moves to the email step after V0 (below).
+
+This phase shows one person's renders to other people. So: only the renders in the ask are reachable from the page; they are served through the token, never by a storage URL; revoking or expiring the ask cuts them off at once; nothing on the page identifies the asker beyond a first name. It gets its own privacy review before the checkpoint.
+
+Tests: token entropy and expiry; revoke takes effect on the next request; a voter cannot reach any render outside the ask; one vote per browser; counts only; rules tests for every new collection; `noindex` present.
+
+**Checkpoint:** send yourself an ask from one browser, vote in another, see the count on the list.
+
+#### Email — first after V0 (M)
+
+Its own step, after Friday and before or alongside Phase E; the owner has a provider and DNS access. A provider and a verified `trailroom.ai` sending domain. The first real message is "a vote landed", one per list, not per vote. Every message has a one-tap unsubscribe and obeys the three toggles stored since Phase C. The "Email me if we get better photos" request returns to the honest-failure screen. PRD §12 is the program.
+
+Tests: email against the provider's sandbox, including unsubscribe and each toggle; one message per event.
+
+**Checkpoint:** vote in a second browser and get the email.
+
+#### Phase E — You, Studio, Compare, Buy (M)
+
+- **You** (phone) and **Studio** (wide): kept try-ons, photos and defaults, following, email preferences, the Details sheet, sign out, and "Delete everything", which is real and immediate.
+- **Compare** (wide screens): select up to four tried pieces into a tray, side by side at the same pose, the `C` key, "Add all to a list".
+- **Buy.** The buy sheet, a hand-off to a clearly marked demo page (the labels are invented), then "Did it arrive?" once, and "See what goes with it".
+
+Tests: delete removes photos, renders, lists, asks, votes cast by others on those asks, the consent record and the sign-in; a deleted ask's link is dead; Compare never mixes poses; the arrival question is asked once.
+
+**Checkpoint:** the signed-in product, both layouts.
+
+#### Phase F — Wear it with (M)
+
+- **Pair preview** sheet from the result, with the two prices summed.
+- **Outfit render.** A new prompt for one person and two garments, one image, through the same chokepoint, cap and gate. It needs its own live test runs before it ships, with a ceiling, and a version name of its own so results stay comparable.
+- **Outfit screen**, "Buy the outfit", "Add outfit to a list". Both pieces also stay as their own try-ons.
+
+Tests: prompt snapshot; two garments in a fixed order in the request; the outfit counts against the daily limits; live runs reviewed by eye by Tejas before the checkpoint.
+
+**Checkpoint:** three outfits rendered on a real photo.
+
+#### Phase G — The follow loop (M to L)
+
+What makes "the labels you follow, on you" true.
+
+- **Publishing without a back office.** A script that adds pieces to a label, standing in for the designer side until it is built.
+- **New-arrival email.** Fires when a followed label publishes, batched and capped (PRD §21.3). Needs the email step.
+- **Arrives on you.** The five-card buffer from PRD §10.2: Front pose only, refilled only after the previous five were seen, always under the daily cap. This is the first render the person did not ask for, so it gets a cost review of its own and a switch to turn it off.
+- **Price-change email** for pieces in your lists, and the **better-photos email** for the honest-failure waitlist. Both need the email step.
+
+Tests: the buffer never renders for someone who has not viewed the last five; never exceeds five; stops at the cap; emails fire once per event and respect the toggles.
+
+**Checkpoint:** publish a piece with the script, watch it arrive on you and in your inbox.
+
+#### Phase H — Hardening (M)
+
+Three read-only reviews (privacy, cost, conformance to the prototypes and §22), fixes, accessibility and performance passes on both layouts, a live run of every render path, the runbook brought up to date, and the list of what is owed before the password gate comes off restated in one place.
+
+### 12.4 Beside the phases: M1
+
+The eval is still owed and matters more now. Renders are kept indefinitely and shown to friends on a public page, and the gate that decides what is shown still cannot tell whether a render looks like the person or has changed their body. M1's scorers slot into the gate's empty checks without touching the phases above. It is Tejas's track (§2 explains why it cannot be delegated), and it gates the password coming off, not the build.
+
+### 12.5 Deferred, on purpose
+
+Sending email (first after V0, above). The designer back office. Jewellery and accessory try-on. The live selfie and face match. Sign in with Apple. A native app. Push. Fit in words (cut, not deferred). Each is listed in PRD §22.3 with its reason. Phases E to H are also after Friday (§12.0a).
+
+### 12.6 What Tejas needs to supply
+
+- **Before V0 (Friday 9 October):** nothing. The images are committed, and no email is sent.
+- **For the email step, after V0:** an account with an email provider, and access to `trailroom.ai`'s DNS to verify the sending domain. The owner has both.
+- **Before anyone outside the password:** everything on ADR 0004's list. The image-rights question is answered (ADR 0005).

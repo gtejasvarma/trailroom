@@ -1,59 +1,51 @@
 # Trailroom
 
 Try fashion products without leaving your couch. One photo of you, and every piece
-from the labels you follow comes back on your body — in four poses — before you buy.
+from the labels you follow comes back on your body — in four poses (Front, Three-quarter,
+Walking, Seated) — before you buy.
+
+**Where it stands.** The product is being built to match two prototypes, as a single responsive web
+app. V0 is a demonstration on Friday 9 October 2026 (the first three phases of the build plan:
+catalogue and Discover, photos and capture, and the queue, account and result). Email is designed
+but not sent in V0.
 
 ## What's here
 
 | Path | What it is |
 |---|---|
-| `docs/PRD.md` | **The PRD** (v0.6). §19 is the mock↔PRD discrepancy register, §20 records the imported design docs, §21 holds the v0.6 decisions and their reasoning. |
-| `docs/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Read before writing any UI; derive every value from §11 and do not invent tokens. |
-| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code: the milestone ladder, the eval-first argument, render-engine cost routing. |
-| `docs/decisions/` | ADRs — one file per irreversible call (infra, vendor, architecture). |
+| `docs/PRD.md` | **The PRD** (v0.7), one consistent document. §22 holds the decisions and their reasoning; §19 is the register of the original mock-vs-PRD audit. |
+| `docs/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Derive every value from §11 and do not invent tokens. |
+| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H, with V0 = A to C). |
+| `docs/DEPLOY.md` | The manual deploy runbook (Tejas runs it; agents do not deploy). |
+| `docs/decisions/` | ADRs — one file per irreversible call (infra, vendor, architecture, scope). |
 | `specs/` | Units of work — one spec file per increment being built. |
-| `mocks/` | Four interactive prototypes plus the runtime that makes them open in a browser. |
-| `packages/render-eval/` | The M1 eval harness (cross-pose consistency measurement). |
-| `apps/web/` | The M2 vertical slice. |
-| `archive/` | Superseded documents and the raw Claude Design export. Kept for provenance, not for reading. |
+| `mocks/` | The two aligned, runnable prototypes (the visual specification), their images and screenshots, and two reference files. |
+| `packages/`, `apps/web/`, `workflows/` | The render chokepoint, database layer, pipeline, catalogue, eval harness, and the Next.js app. |
+| `archive/` | Superseded documents and mocks, and the verbatim source of the two linked prototype artifacts. Provenance, not guidance. |
 
-## Running the mocks
+## Running the prototypes
 
-Open any `.dc.html` in `mocks/` directly in a browser. They need to be online —
-photography loads from pexels.com.
+Open `mocks/Trailroom Prototype.dc.html` (mobile) or `mocks/Trailroom Desktop.dc.html` (desktop)
+directly in a browser. Images are in `mocks/assets/`; reference screenshots are in `mocks/screens/`.
+They are the target prototypes with the PRD §22.1 decisions applied (no fit sentences, a consent tick
+on the upload screen, Google sign-in only, no promise of email).
 
-- `Trailroom Prototype.dc.html` — mobile, 11 journeys (C1–C10, D1)
-- `Trailroom Desktop.dc.html` — desktop shopper app, 9 journeys
-- `Trailroom Desktop Designer.dc.html` — designer back office
-- `Conversion Audit.dc.html` — a 44-item audit of the pre-v0.6 prototype
+- `mocks/Trailroom Desktop Designer.dc.html` — the designer back office, a reference for a deferred
+  milestone.
+- `mocks/Conversion Audit.dc.html` — a 44-item audit of an earlier prototype.
+- `mocks/support.js` is a standalone runtime written for this repo so `.dc.html` files run outside
+  the Claude Design canvas. `mocks/support.canvas.js` is the real canvas export, reference only.
 
-Add `?startSignedIn=1` to the mobile prototype to boot into a signed-in session.
-`window.__dc` is exposed for poking at state from the console — e.g.
-`__dc.state.screen`, `__dc.setState({signedIn:true})`.
-
-A few 404s for URLs like `{{ curOnYou }}` appear in the console on first paint.
-The parser tries to fetch the template's raw `src` before the runtime rewrites it.
-Harmless.
-
-### The two runtimes
-
-`.dc.html` files are Claude Design canvas documents. Inside the canvas, the editor
-supplies `support.js`; opened locally there is nothing to hoist the `<helmet>`
-styles or evaluate `{{ }}`, so the page renders as unstyled markup with no images.
-
-- **`mocks/support.js`** — a standalone runtime written for this repo. No
-  dependencies. This is what makes the files work when you double-click them.
-- **`mocks/support.canvas.js`** — the real generated `dc-runtime` exported from the
-  Claude Design project. Kept for reference. It requires `window.React`, which the
-  canvas provides and a local file does not, so it will not work standalone.
+The two linked prototype artifacts the product was aligned to, and their extracted source, are
+listed in `archive/prototypes-2026-10-07/README.md`.
 
 ## Where the decisions live
 
-Every non-obvious call is written down with its reasoning rather than just its
-outcome, so it can be re-litigated with the argument in view:
+Every non-obvious call is written down with its reasoning, so it can be re-litigated with the
+argument in view:
 
-- **§19** — 44 discrepancies between the mocks and the PRD, sorted by which side won
-- **§20** — what arrived from the Claude Design project, and where it conflicts
-- **§21** — the v0.6 decisions: the signup gate split by entry path, the result
-  screen's action hierarchy, and why notifications fire on availability rather
-  than on a calendar
+- **PRD §22** — the v0.7 realignment: the 18 decisions in §22.1, V0, and what is not being built
+- **PRD §19–21** — the original audit, the imported design documents, and the signup and result
+  decisions as they stand now
+- **`docs/decisions/`** — ADRs, including 0004 (build order, QA gate) and 0005 (realign to the
+  prototypes)

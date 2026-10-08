@@ -1,5 +1,11 @@
 # Deploy runbook — M2 + M3 on Firebase
 
+> **Which build this describes.** This runbook is for the M2 + M3 build that is deployed first
+> (BUILD_PLAN §12.2), so that App Hosting, the workflow and the IAM bindings are exercised on a small
+> app. The screens and catalogue it mentions are replaced from Phase A on (PRD v0.7 §22). The
+> infrastructure steps stay valid; the garment-image step and the smoke test are repeated or
+> rewritten as noted in them.
+
 Every command here is run by Tejas, by hand. Agents do not deploy (`CLAUDE.md` hard rule; the
 `PreToolUse` guard blocks it). Project: `virtual-tryon-tejas`. Region assumed: `us-central1`.
 
@@ -50,6 +56,10 @@ gcloud services enable \
       config into the build).
 
 ## 3. TODO — copy the garment images to Cloud Storage
+
+*This is the M2 catalogue of five garments. **The catalogue images change in Phase A** (the prototype's
+catalogue, BUILD_PLAN §12.3). The copy step is repeated then with
+`packages/catalog/assets/prototype/`, and the check below lists the new set instead of these five.*
 
 Garment images live in the bucket under `catalog/`. Both the render step and the product pages
 read them from there. In production a missing image fails the try-on with an `internal` error and
@@ -225,6 +235,10 @@ Firebase console → Authentication → Settings → Authorised domains: add the
 (and `trailroom.ai` when it points here). Google sign-in from the account sheet fails without it.
 
 ## 12. Smoke test, in this order
+
+*These steps describe the M2 build that is deployed first: its five garments, its consent screen and its
+account sheet. They will be rewritten when Phase C ships, against the prototype's screens (consent tick
+on the upload screen, account-to-open, no email sent).*
 
 1. Open `$APP_URL`. You should land on `/gate`. A wrong password is refused; the right one shows
    the catalogue with five garments **and their images** (images prove step 3 and the bucket

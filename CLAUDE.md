@@ -4,12 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is right now
 
-Trailroom (trailroom.ai) — virtual try-on: one photo, four poses, garments from labels the user follows.
-M0 (the workbench) is done. **M2 (the vertical slice) and M3 (the render graph) are built but not
-deployed**, ahead of M1, by Tejas's call (ADR 0004). **M1 (the eval) is unfinished** per
-`docs/BUILD_PLAN.md` §2: the QA gate in `packages/pipeline` is structural only, and its identity,
-proportion, garment and cross-pose checks are empty slots until M1 supplies them. Check §1 (the
-milestone ladder) before assuming what's being built.
+Trailroom (trailroom.ai) — virtual try-on: one photo, four poses (Front, Three-quarter, Walking,
+Seated), garments from labels the user follows.
+**The experience being built is the two aligned prototypes in `mocks/`** (`Trailroom Prototype.dc.html`,
+`Trailroom Desktop.dc.html`; ADR 0005). They win on flow, layout and copy, and the PRD (v0.7) agrees
+with them except where §22.1 says the build differs (no fit sentences, a consent tick, no live selfie
+claim, no email sent in V0). The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
+**V0 is a demonstration on Friday 9 October 2026: Phases A, B and C.** Phase D without email is the
+stretch goal; E to H and sending email come after Friday. **Phase A is in progress.**
+
+Where things stand: M0 is done. M2 + M3 (one plain journey, the pipeline, the Cloud Workflow) are
+built but not deployed; their screens and catalogue are being replaced, everything beneath them
+carries over. **M1 (the eval) is unfinished**: the QA gate in `packages/pipeline` is structural
+only, and its identity, proportion, garment and cross-pose checks are empty slots until M1 supplies
+them (ADR 0004).
 
 Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at this product — see
 `docs/decisions/0001-reuse-firebase-project.md`). This is production. See Hard rules below.
@@ -26,16 +34,17 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 
 | Path | What it is |
 |---|---|
-| `docs/PRD.md` | The PRD (v0.6) — current source of truth for product behavior. §6 data model, §13 unit economics, §16 architecture, §17 kill criteria, §19 mock↔PRD discrepancies, §21 v0.6 decisions. |
-| `docs/Design.md` | The design system of record. Read before writing any UI; derive every value from §11, do not invent tokens. |
-| `docs/BUILD_PLAN.md` | The milestone ladder (M0–M5) and the reasoning behind each. |
+| `docs/PRD.md` | The PRD (v0.7) — source of truth for product behavior, one consistent document. §22 holds the decisions and their reasoning (§22.1 is the record). §6 data model, §13 unit economics, §16 architecture, §17 kill criteria. |
+| `mocks/Trailroom Prototype.dc.html`, `mocks/Trailroom Desktop.dc.html` | **The visual specification.** The aligned, runnable prototypes (mobile, desktop): the target with the §22.1 decisions applied. Open directly in a browser; images in `mocks/assets/`, reference screenshots in `mocks/screens/`. Read the matching screens before writing any UI. |
+| `docs/Design.md` | Tokens, type and motion. Derive every value from §11, do not invent tokens. Layouts come from the prototypes, not from here. |
+| `docs/BUILD_PLAN.md` | §12 is the current plan (Phases A to H) and its three process rules. §1 to §11 are the earlier ladder and the reasoning behind M0 to M3. |
 | `docs/decisions/` | ADRs — one file per irreversible call. Write one when you make a call like this. |
 | `specs/` | One file per unit of work being built. |
-| `mocks/*.dc.html` + `mocks/support.js` | Four clickable prototypes and the runtime that makes them run outside the Claude Design canvas (open directly in a browser, needs network for pexels.com images). `support.canvas.js` is the real Claude Design export — reference only, requires `window.React`, won't run standalone. |
+| `mocks/support.js`, `mocks/Trailroom Desktop Designer.dc.html`, `mocks/Conversion Audit.dc.html` | The runtime that makes the `.dc.html` files run outside the Claude Design canvas. The Designer file is the reference for the deferred back office; the Audit is a 44-item conversion audit. `support.canvas.js` is the real Claude Design export — reference only, requires `window.React`, won't run standalone. |
 | `packages/render/` | The one chokepoint for image-model calls: model/price table, the prompt, the spend ledger interface, and a fake provider for tests (refused in production). |
 | `packages/db/` | The one place that talks to Firestore and Cloud Storage: typed repositories and the Firestore-backed daily spend ledger. |
 | `packages/pipeline/` | M3: the render graph's nodes, the QA gate, the routing policy, and the inline orchestrator used by local dev and tests. |
-| `packages/catalog/` | The demo catalogue (five items) and the copy rules. `assets/` holds the garment images that get copied to Cloud Storage. |
+| `packages/catalog/` | The demo catalogue and the copy rules. `assets/` holds the garment images that get copied to Cloud Storage; `assets/prototype/` holds the prototype's images (cleared by Tejas, ADR 0005) for the Phase A catalogue. |
 | `workflows/render-pose-set.yaml` | M3: the Cloud Workflow that drives the graph in production by calling `/api/internal/pipeline/*`. |
 | `firestore.rules`, `storage.rules` | Clients read their own job, pose set and consent; they write nothing; Storage is closed to clients. |
 | `docs/DEPLOY.md` | The manual deploy runbook. Read before changing anything deploy-related. |
@@ -43,7 +52,8 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 | `fixtures/` | Eval inputs: `manifest.json` (committed), `CONSENT.md`, images (git-ignored; repo is public). See ADR 0002. |
 | `apps/web/` | M2: the vertical slice. Next.js on Firebase App Hosting. `src/server/` holds the logic behind the route handlers; all UI strings live in `src/lib/copy.ts`. |
 | `tools/label.html` | Standalone contact-sheet labeler for eval error analysis (BUILD_PLAN §2.2c) — `j`/`k` to navigate, `1`/`0` to label, writes JSONL. Open directly in a browser. |
-| `archive/` | Superseded docs. Provenance only, not current guidance. |
+| `archive/prototypes-2026-10-07/` | The verbatim extracted source of the two linked prototype artifacts. Provenance only; the aligned versions in `mocks/` are the spec. |
+| `archive/` (rest), `archive/mocks-v0.6/` | Superseded docs and the earlier v0.6-edited mocks. Provenance only, not current guidance. |
 
 ## Hard rules — violating these is a bug, not a style preference
 
@@ -51,8 +61,11 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
   render how a piece looks; we make no claim about fit. (PRD Principle 3, and a legal posture — §15.)
 - **Never alter body proportion.** No slimming, lengthening, smoothing, or "enhancing" — not a feature,
   not a default, not a model parameter. The proportion guard in the QA gate is non-negotiable. (Principle 2.)
-- **Consent and age gate blocks capture.** No code path opens a camera or picker before consent is
-  accepted. Guests included. (Principle 8, §15.)
+- **Consent blocks capture.** No code path opens a camera or picker before the consent tick on the
+  upload screen is recorded. Guests included. (Principle 8, §15, §22.1 row 2.)
+- **Never claim a check the product doesn't perform.** No copy about a live-selfie match, age
+  estimation or any other safeguard unless the code does it; and in V0 no copy promises an email,
+  because none is sent. (§22.1 rows 3 and 10.)
 - **No render ships that failed QA.** No "show it anyway" flag, no debug bypass that can reach a user.
   (Principle 1, §10.3, C6.)
 - **Every rendered image is shown with a visible AI label beside it**, never drawn on the image
@@ -69,12 +82,16 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 1. **Colorless surround.** Try-on imagery sits only on `--canvas` (white) or `--ink` (near-black) —
    never a tint or gradient. Accent color (teal) is for state/identity only, never a fill next to a garment.
 2. **Place, layer, interrupt.** Prefer routed screens ("Place") over modals/sheets ("Layer") or
-   system-popups ("Interrupt"). Exceptions: OS share sheet, OS photo picker, backgrounded push notifications.
-3. **Low stakes.** Discarding a try-on is a satisfying, visible gesture. Generated try-ons are ephemeral
-   by default. Nothing is broadcast without an explicit user act.
+   system-popups ("Interrupt"). Exceptions: the sheets the prototypes use (§22.1 row 14), the OS share
+   sheet, the OS photo picker, and the Google sign-in popup.
+3. **Low stakes.** Discarding a try-on is a satisfying, visible gesture. Accounts keep try-ons until the
+   person removes them; guests who never sign up are purged (§22.1 row 16). Nothing is broadcast without
+   an explicit user act.
 
 ## Working conventions
 
+- **Show it before building on it.** A UI phase ends with screenshots beside the prototype at 390 and
+  1440 px, and the next phase waits until Tejas has seen them (BUILD_PLAN §12.1).
 - Non-obvious product or design calls get written down with reasoning, matching PRD §19–21's style — an
   ADR in `docs/decisions/` for irreversible calls, inline reasoning otherwise.
 - `archive/` is provenance, not reference — don't pull current guidance from it.
