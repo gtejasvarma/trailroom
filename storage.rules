@@ -1,0 +1,9 @@
+rules_version = '2';
+// Deny everything. Images reach browsers only through /api/renders/*.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

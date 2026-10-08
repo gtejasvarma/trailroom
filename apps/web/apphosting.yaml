@@ -1,0 +1,78 @@
+# Firebase App Hosting config. Schema per
+# https://firebase.google.com/docs/app-hosting/configure (fetched 2026-10-06).
+#
+# Monorepo: the docs say to set the backend's "root directory" to the app (apps/web) when
+# creating it (`firebase apphosting:backends:create`, or console "Deployment settings"), and
+# that apphosting.yaml lives in that root directory, which is where this file is. The docs
+# give no npm-workspaces or Turborepo-specific instructions beyond that, so it is unverified
+# that App Hosting installs from the repo root (needed to resolve @trailroom/* workspace
+# packages); confirm on the first real rollout.
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  memoryMiB: 1024
+  cpu: 1
+  # Render calls are long-lived I/O waits; 20 concurrent requests per 1 GiB instance leaves
+  # headroom for image buffers. The docs' default is 80.
+  concurrency: 20
+  # Request timeout: runConfig has no timeout field (docs list cpu, memoryMiB, maxInstances,
+  # minInstances, concurrency, cpuAlwaysAllocated only), so Cloud Run's default of 300 s applies
+  # to /api/internal/pipeline/render-pose. The route sets maxDuration = 300 to match. If renders
+  # ever need longer, raise the Cloud Run service timeout out of band (verify it survives rollouts).
+
+env:
+  # Secrets are Cloud Secret Manager names, never values.
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability:
+      - RUNTIME
+  - variable: GATE_PASSWORD
+    secret: GATE_PASSWORD
+    availability:
+      - RUNTIME
+  - variable: GATE_COOKIE_SECRET
+    secret: GATE_COOKIE_SECRET
+    availability:
+      - RUNTIME
+  - variable: RENDER_MODEL
+    value: nano-banana-2.1
+  - variable: DAILY_CAP_USD
+    value: "5"
+  - variable: ORCHESTRATOR
+    value: workflows
+
+  # ---- Phase 5: graph, purge, storage. All values below are PLACEHOLDERS the deployer sets. ----
+  # The app's default Cloud Storage bucket. Firebase projects created before late 2024 use
+  # <project>.appspot.com, newer ones <project>.firebasestorage.app: set it to the project's real
+  # default bucket. Garment images must be copied to gs://<bucket>/catalog/ BEFORE the first
+  # rollout (the five files in packages/catalog/assets); in production a missing garment image
+  # fails the job (internal) with no fallback.
+  - variable: STORAGE_BUCKET
+    value: REPLACE_WITH_DEFAULT_BUCKET
+    availability:
+      - RUNTIME
+  # The app's public base URL, no trailing slash. It is the OIDC audience that /api/internal/*
+  # requires, so it must equal the Cloud Workflow's APP_URL environment variable exactly.
+  - variable: INTERNAL_AUDIENCE
+    value: https://REPLACE_WITH_APP_URL
+    availability:
+      - RUNTIME
+  # Email of the service account the workflow runs as; the only caller of the pipeline endpoints.
+  - variable: WORKFLOWS_SA_EMAIL
+    value: render-pose-set@REPLACE_PROJECT.iam.gserviceaccount.com
+    availability:
+      - RUNTIME
+  # Email of the service account Cloud Scheduler uses; the only caller of /api/internal/purge.
+  - variable: SCHEDULER_SA_EMAIL
+    value: purge-guests@REPLACE_PROJECT.iam.gserviceaccount.com
+    availability:
+      - RUNTIME
+  # Where the deployed workflow lives (the app starts executions with these).
+  - variable: WORKFLOW_LOCATION
+    value: us-central1
+    availability:
+      - RUNTIME
+  - variable: WORKFLOW_NAME
+    value: render-pose-set
+    availability:
+      - RUNTIME

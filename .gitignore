@@ -8,3 +8,30 @@ node_modules/
 
 # sandbox could not delete these; remove the folder yourself
 _to_delete/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# eval fixtures and outputs: images never go in the repo (it's public; people photos are personal data)
+fixtures/people/*
+!fixtures/people/.gitkeep
+fixtures/garments/*
+!fixtures/garments/ATTRIBUTION.md
+runs/
+
+# build and test output
+.next/
+.turbo/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/
+.cache/
+
+# firebase emulators
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/

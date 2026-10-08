@@ -1,0 +1,24 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "GATE_PASSWORD",
+        "GATE_COOKIE_SECRET",
+        "RENDER_MODEL",
+        "DAILY_CAP_USD",
+        "ORCHESTRATOR",
+        "STORAGE_BUCKET",
+        "INTERNAL_AUDIENCE",
+        "WORKFLOWS_SA_EMAIL",
+        "SCHEDULER_SA_EMAIL",
+        "WORKFLOW_LOCATION",
+        "WORKFLOW_NAME"
+      ]
+    },
+    "test": { "dependsOn": ["^build"] },
+    "typecheck": { "dependsOn": ["^typecheck"] }
+  }
+}

@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/* Tokens verbatim from docs/Design.md §11. */
+:root {
+  /* neutrals, Material Grey */
+  --ink: #212121;
+  --ink-800: #424242;
+  --ink-700: #616161;
+  --ink-600: #757575;
+  --ink-500: #9e9e9e;
+  --ink-400: #bdbdbd;
+  --line: #e0e0e0;
+  --line-soft: #eeeeee;
+  --surface: #f5f5f5;
+  --surface-alt: #fafafa;
+  --canvas: #ffffff;
+
+  /* accent, Material Teal */
+  --accent: #00796b;
+  --accent-dark: #00695c;
+  --accent-tint: #e0f2f1;
+
+  /* semantic, Material */
+  --success: #2e7d32;
+  --success-bg: #e8f5e9;
+  --danger: #d32f2f;
+  --danger-bg: #ffebee;
+  --warning: #bf360c;
+  --warning-bg: #fff8e1;
+  --info: #1976d2;
+  --info-bg: #e3f2fd;
+
+  /* type */
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+    sans-serif;
+
+  /* space */
+  --gutter: 16px;
+  --container: 100%;
+  --section-y: 40px;
+  --dock-h: 72px;
+
+  /* radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* elevation */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --elev-2: 0 2px 4px rgba(0, 0, 0, 0.08), 0 3px 8px rgba(0, 0, 0, 0.06);
+  --elev-4: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.08);
+  --elev-8: 0 8px 16px rgba(0, 0, 0, 0.12), 0 16px 32px rgba(0, 0, 0, 0.1);
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 150ms;
+  --dur: 250ms;
+  --dur-slow: 400ms;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 32px;
+    --container: 1120px;
+    --section-y: 80px;
+    --dock-h: 80px;
+  }
+}
+
+/* The Tailwind theme (Design.md §11 "Tailwind") reads the variables above.
+   Tailwind v4 is configured in CSS; there is no tailwind.config.js. `initial`
+   resets drop the default palette so only design-system tokens exist. */
+@theme {
+  --color-*: initial;
+  --color-ink: var(--ink);
+  --color-ink-800: var(--ink-800);
+  --color-ink-700: var(--ink-700);
+  --color-ink-600: var(--ink-600);
+  --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-canvas: var(--canvas);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-tint: var(--accent-tint);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+
+  /* literals: same name as the :root variable would make a self-reference */
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --radius-*: initial;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --aspect-tryon: 3 / 4;
+  --container-container: 1120px;
+
+  --shadow-*: initial;
+  --shadow-1: var(--elev-1);
+  --shadow-2: var(--elev-2);
+  --shadow-4: var(--elev-4);
+  --shadow-8: var(--elev-8);
+
+  --ease-brand: var(--ease);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* Visible keyboard focus everywhere (Design.md §12): an accent halo, never bare outline:none. */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Generating state (Design.md §8): a neutral grey shimmer, never coloured, never a spinner.
+   This is the one documented gradient, and it is grey. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--ink-400) 0%,
+    #d5d5d5 40%,
+    var(--ink-400) 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Result reveal: a crossfade (Design.md §7). */
+.reveal {
+  animation: reveal var(--dur-slow) var(--ease) both;
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion drops transforms and the shimmer, and keeps opacity. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .reveal {
+    animation-name: reveal-fade;
+  }
+  @keyframes reveal-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  * {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The account sheet rises once from the bottom edge. */
+dialog.sheet {
+  animation: sheet-in var(--dur-slow) var(--ease) both;
+}
+dialog.sheet::backdrop {
+  background: transparent;
+}
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.sheet {
+    animation-name: reveal-fade;
+  }
+}

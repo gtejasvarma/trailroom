@@ -2,12 +2,37 @@
   "name": "trailroom",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "verify": "prettier --check \"packages/**/*.{ts,tsx,json}\" \"apps/**/*.{ts,tsx,json}\" && tsc --noEmit",
-    "format": "prettier --write \"packages/**/*.{ts,tsx,json}\" \"apps/**/*.{ts,tsx,json}\""
+    "verify": "prettier --check \"packages/**/*.{ts,tsx,json}\" \"apps/**/*.{ts,tsx,json}\" && tsc --noEmit -p tsconfig.json",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,json}\" \"apps/**/*.{ts,tsx,json}\"",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run",
+    "test:e2e": "npm run emulators:exec -- \"npm run test:e2e -w @trailroom/web\"",
+    "emulators:exec": "firebase emulators:exec --project demo-trailroom --only auth,firestore,storage",
+    "seed:catalog": "tsx scripts/seed-catalog.ts",
+    "eval:generate": "tsx packages/render-eval/src/generate.ts",
+    "test:emu": "npm run emulators:exec -- \"vitest run --config vitest.emu.config.ts\""
+  },
+  "dependencies": {
+    "@google/genai": "^2.24.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "prettier": "^3.3.3",
-    "typescript": "^5.5.4"
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.7",
+    "typescript": "^5.5.4",
+    "vitest": "^4.1.11",
+    "yaml": "^2.9.1"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "npm@11.6.0",
+  "engines": {
+    "node": ">=20"
   }
 }

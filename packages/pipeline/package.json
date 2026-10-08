@@ -1,0 +1,17 @@
+{
+  "name": "@trailroom/pipeline",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./policy": "./src/policy.ts"
+  },
+  "dependencies": {
+    "@trailroom/catalog": "*",
+    "@trailroom/db": "*",
+    "@trailroom/render": "*",
+    "sharp": "^0.35.5"
+  }
+}

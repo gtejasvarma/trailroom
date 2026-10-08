@@ -1,0 +1,383 @@
+# Cloud Workflow `render-pose-set` (spec §4.3, the graph). One execution renders one job.
+# Matches GRAPH in packages/pipeline/src/inline.ts; apps/web/src/server/workflow.contract.test.ts
+# checks the two agree and that every call targets a registered node route.
+#
+# Input argument: {"jobId": "<id>"} and nothing else.
+# render-pose timeout is 310 s: just above the endpoint's 300 s maxDuration (Cloud Run's request
+# limit), so the client gives up after the server has, not 4 minutes later.
+# Base URL: workflow environment variable APP_URL (read with sys.get_env), never the argument,
+# so a caller cannot point this workflow at another host. APP_URL must be exactly the app's
+# INTERNAL_AUDIENCE value (no trailing slash): every call is OIDC with audience = APP_URL.
+#
+# Every node is idempotent on (jobId, pose, attempt), so a retried call is safe and never spends
+# twice. Retries cover connection errors, timeouts, 429 and 5xx only; other 4xx are not retried.
+
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - jobId: ${args.jobId}
+          - baseUrl: ${sys.get_env("APP_URL")}
+          - capacityHit: false   # shared with the parallel branches below
+    # Parallel branches: with the default exception policy an unhandled error in one branch fails
+    # the parallel step and Workflows stops the sibling branches; a sibling's in-flight HTTP
+    # call may still finish on the server. Then the handler below runs fail-job, so the job
+    # ends failed(internal) with its first failure kept. Any model call that was mid-flight
+    # settles on its own, a sibling reservation left behind is settled by the purge reaper
+    # (15 minutes), and nodes refuse terminal jobs with 409 (a late publish deletes its own
+    # object), so no render stays readable for a failed set.
+    # Any error anywhere below ends the job as failed(internal), then re-raises so the execution
+    # itself shows as failed (§4.3 "workflow error handler -> fail-job").
+    - guarded:
+        try:
+          steps:
+            # §4.3 prepare
+            - prepare:
+                try:
+                  call: http.post
+                  args:
+                    url: ${baseUrl + "/api/internal/pipeline/prepare"}
+                    auth:
+                      type: OIDC
+                      audience: ${baseUrl}
+                    body:
+                      jobId: ${jobId}
+                  result: prepared
+                retry:
+                  predicate: ${transient_error}
+                  max_retries: 4
+                  backoff:
+                    initial_delay: 2
+                    max_delay: 30
+                    multiplier: 2
+            # §4.3 PARALLEL x poses: one branch per pose returned by prepare.
+            - poses_in_parallel:
+                parallel:
+                  shared: [capacityHit]
+                  for:
+                    value: pose
+                    in: ${prepared.body.poses}
+                    steps:
+                      - run_branch:
+                          call: pose_branch
+                          args:
+                            jobId: ${jobId}
+                            pose: ${pose}
+                          result: branchResult
+                      - note_capacity:
+                          switch:
+                            - condition: ${branchResult == "capacity"}
+                              steps:
+                                - set_capacity_flag:
+                                    assign:
+                                      - capacityHit: true
+            # After the join: a capacity outcome anywhere fails the job; otherwise finalize.
+            - after_join:
+                switch:
+                  - condition: ${capacityHit}
+                    next: fail_for_capacity
+            - finalize:
+                try:
+                  call: http.post
+                  args:
+                    url: ${baseUrl + "/api/internal/pipeline/finalize-set"}
+                    auth:
+                      type: OIDC
+                      audience: ${baseUrl}
+                    body:
+                      jobId: ${jobId}
+                  result: finalized
+                retry:
+                  predicate: ${transient_error}
+                  max_retries: 4
+                  backoff:
+                    initial_delay: 2
+                    max_delay: 30
+                    multiplier: 2
+            - return_finalized:
+                return: ${finalized.body.status}
+            - fail_for_capacity:
+                try:
+                  call: http.post
+                  args:
+                    url: ${baseUrl + "/api/internal/pipeline/fail-job"}
+                    auth:
+                      type: OIDC
+                      audience: ${baseUrl}
+                    body:
+                      jobId: ${jobId}
+                      code: "capacity"
+                  result: capacityFailed
+                retry:
+                  predicate: ${transient_error}
+                  max_retries: 4
+                  backoff:
+                    initial_delay: 2
+                    max_delay: 30
+                    multiplier: 2
+            - return_capacity_failed:
+                return: ${capacityFailed.body.status}
+        except:
+          as: e
+          steps:
+            # `e` is a map for runtime errors and for our own raises, but Workflows lets a workflow
+            # raise a bare string too; reading a key from a string would fail this handler and
+            # fail-job would never run. Check the type before reading `message`.
+            - default_message:
+                assign:
+                  - errMessage: "workflow error"
+            - pick_message:
+                switch:
+                  - condition: ${get_type(e) == "map"}
+                    assign:
+                      - errMessage: ${default(map.get(e, "message"), "workflow error")}
+            - fail_for_internal:
+                try:
+                  call: http.post
+                  args:
+                    url: ${baseUrl + "/api/internal/pipeline/fail-job"}
+                    auth:
+                      type: OIDC
+                      audience: ${baseUrl}
+                    body:
+                      jobId: ${jobId}
+                      code: "internal"
+                      detail: ${errMessage}
+                retry:
+                  predicate: ${transient_error}
+                  max_retries: 4
+                  backoff:
+                    initial_delay: 2
+                    max_delay: 30
+                    multiplier: 2
+            - reraise:
+                raise: ${e}
+
+# §4.3 branch for one pose: render(1) -> qa -> publish | render(2) -> qa -> publish | fail pose.
+# Returns "done", or "capacity" when the spend ceiling stopped the render (no QA, no retry).
+pose_branch:
+  params: [jobId, pose]
+  steps:
+    - init:
+        assign:
+          - baseUrl: ${sys.get_env("APP_URL")}
+    - render_1:
+        try:
+          call: http.post
+          args:
+            url: ${baseUrl + "/api/internal/pipeline/render-pose"}
+            auth:
+              type: OIDC
+              audience: ${baseUrl}
+            body:
+              jobId: ${jobId}
+              pose: ${pose}
+              attempt: 1
+            timeout: 310
+          result: r1
+        retry:
+          predicate: ${transient_error_not_timeout}
+          max_retries: 4
+          backoff:
+            initial_delay: 2
+            max_delay: 30
+            multiplier: 2
+    - capacity_after_render_1:
+        switch:
+          - condition: ${r1.body.outcome == "capacity"}
+            return: "capacity"
+    - qa_1:
+        try:
+          call: http.post
+          args:
+            url: ${baseUrl + "/api/internal/pipeline/qa-pose"}
+            auth:
+              type: OIDC
+              audience: ${baseUrl}
+            body:
+              jobId: ${jobId}
+              pose: ${pose}
+              attempt: 1
+          result: q1
+        retry:
+          predicate: ${transient_error}
+          max_retries: 4
+          backoff:
+            initial_delay: 2
+            max_delay: 30
+            multiplier: 2
+    - route_after_qa_1:
+        switch:
+          - condition: ${q1.body.next == "publish"}
+            next: publish_1
+          - condition: ${q1.body.next == "retry"}
+            next: render_2
+          - condition: ${q1.body.next == "fail_pose"}
+            next: fail_pose
+    - unexpected_route_1:
+        raise:
+          code: 500
+          message: "unexpected qa-pose next after attempt 1"
+    - publish_1:
+        try:
+          call: http.post
+          args:
+            url: ${baseUrl + "/api/internal/pipeline/publish-pose"}
+            auth:
+              type: OIDC
+              audience: ${baseUrl}
+            body:
+              jobId: ${jobId}
+              pose: ${pose}
+              attempt: 1
+        retry:
+          predicate: ${transient_error}
+          max_retries: 4
+          backoff:
+            initial_delay: 2
+            max_delay: 30
+            multiplier: 2
+    - done_after_publish_1:
+        return: "done"
+    - render_2:
+        try:
+          call: http.post
+          args:
+            url: ${baseUrl + "/api/internal/pipeline/render-pose"}
+            auth:
+              type: OIDC
+              audience: ${baseUrl}
+            body:
+              jobId: ${jobId}
+              pose: ${pose}
+              attempt: 2
+            timeout: 310
+          result: r2
+        retry:
+          predicate: ${transient_error_not_timeout}
+          max_retries: 4
+          backoff:
+            initial_delay: 2
+            max_delay: 30
+            multiplier: 2
+    - capacity_after_render_2:
+        switch:
+          - condition: ${r2.body.outcome == "capacity"}
+            return: "capacity"
+    - qa_2:
+        try:
+          call: http.post
+          args:
+            url: ${baseUrl + "/api/internal/pipeline/qa-pose"}
+            auth:
+              type: OIDC
+              audience: ${baseUrl}
+            body:
+              jobId: ${jobId}
+              pose: ${pose}
+              attempt: 2
+          result: q2
+        retry:
+          predicate: ${transient_error}
+          max_retries: 4
+          backoff:
+            initial_delay: 2
+            max_delay: 30
+            multiplier: 2
+    - route_after_qa_2:
+        switch:
+          - condition: ${q2.body.next == "publish"}
+            next: publish_2
+          - condition: ${q2.body.next == "fail_pose"}
+            next: fail_pose
+    - unexpected_route_2:
+        raise:
+          code: 500
+          message: "unexpected qa-pose next after attempt 2"
+    - publish_2:
+        try:
+          call: http.post
+          args:
+            url: ${baseUrl + "/api/internal/pipeline/publish-pose"}
+            auth:
+              type: OIDC
+              audience: ${baseUrl}
+            body:
+              jobId: ${jobId}
+              pose: ${pose}
+              attempt: 2
+        retry:
+          predicate: ${transient_error}
+          max_retries: 4
+          backoff:
+            initial_delay: 2
+            max_delay: 30
+            multiplier: 2
+    - done_after_publish_2:
+        return: "done"
+    - fail_pose:
+        try:
+          call: http.post
+          args:
+            url: ${baseUrl + "/api/internal/pipeline/fail-pose"}
+            auth:
+              type: OIDC
+              audience: ${baseUrl}
+            body:
+              jobId: ${jobId}
+              pose: ${pose}
+        retry:
+          predicate: ${transient_error}
+          max_retries: 4
+          backoff:
+            initial_delay: 2
+            max_delay: 30
+            multiplier: 2
+    - done_after_fail_pose:
+        return: "done"
+
+# Retry predicates. Default policies do not retry 500, and this app answers 500 for a node that
+# threw (safe to retry: idempotent). Retried: connection errors, timeouts, 429, any 5xx.
+# Not retried: other 4xx.
+transient_error:
+  params: [e]
+  steps:
+    - network_level:
+        switch:
+          - condition: ${"ConnectionError" in e.tags or "ConnectionFailedError" in e.tags or "TimeoutError" in e.tags}
+            return: true
+    - is_http_error:
+        switch:
+          - condition: ${"HttpError" in e.tags}
+            next: http_status
+    - not_http_error:
+        return: false
+    - http_status:
+        switch:
+          - condition: ${e.code == 429 or e.code >= 500}
+            return: true
+    - otherwise:
+        return: false
+
+# Same, minus timeouts: a render that timed out on the client may still be running on the
+# server, and a second concurrent call for the same attempt must not be started.
+transient_error_not_timeout:
+  params: [e]
+  steps:
+    - network_level:
+        switch:
+          - condition: ${"ConnectionError" in e.tags or "ConnectionFailedError" in e.tags}
+            return: true
+    - is_http_error:
+        switch:
+          - condition: ${"HttpError" in e.tags}
+            next: http_status
+    - not_http_error:
+        return: false
+    - http_status:
+        switch:
+          - condition: ${e.code == 429 or e.code >= 500}
+            return: true
+    - otherwise:
+        return: false
