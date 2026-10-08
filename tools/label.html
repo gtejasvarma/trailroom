@@ -166,6 +166,7 @@
       <ol>
         <li>Put your generated images in one folder, named <code>identity__item__pose.png</code> — e.g. <code>id07__coat-wool__walking.png</code>. Adjust the regex in the bar if you name them differently.</li>
         <li>Put the base photo for each identity in the same folder as <code>id07__base__base.jpg</code> — it pins to the left so you can compare identity without switching windows.</li>
+        <li>Put the product image for each item in the same folder as <code>product__coat-wool__product.jpg</code> — it pins under the base photo so you can judge garment fidelity against the source.</li>
         <li>Click <b>Open folder…</b> above. Nothing uploads; this page reads the files locally and never makes a network request.</li>
       </ol>
       <p><b>Pass 1 — open coding.</b> Move with <kbd>J</kbd>/<kbd>K</kbd>, mark <kbd>1</kbd> pass / <kbd>0</kbd> fail, and write what's wrong in prose in the notes box. Do not invent categories yet. Just describe.</p>
@@ -210,6 +211,8 @@
   var imgs = [];        // {id,file,url,identity,item,pose,verdict,note,tags[]}
   var sets = [];        // {key,identity,item,items[],base,verdict}
   var bases = {};       // identity -> url
+  var products = {};    // item -> url
+  var POSE_ORDER = ["front", "three-quarter", "walking", "seated"];
   var cur = 0;
   var mode = 1;
   var tags = [];
@@ -241,13 +244,14 @@
     try{ re = new RegExp($("#pattern").value, "i"); }
     catch(e){ alert("That regex doesn't parse: " + e.message); return; }
 
-    imgs = []; bases = {};
+    imgs = []; bases = {}; products = {};
     files.forEach(function(f){
       var m = re.exec(f.name);
       var identity = m ? m[1] : "unknown";
       var item     = m ? m[2] : "unknown";
       var pose     = m ? m[3] : f.name;
       var url = URL.createObjectURL(f);
+      if(/^product$/i.test(pose)){ products[item] = url; return; }
       if(/^base$/i.test(item) || /^base$/i.test(pose)){ bases[identity] = url; return; }
       var id = identity + "__" + item + "__" + pose;
       var s = store[id] || {};
@@ -258,7 +262,14 @@
       });
     });
 
-    imgs.sort(function(a,b){ return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; });
+    // Group by set, then the PRD's pose order (unknown poses sort last, alphabetically).
+    function poseRank(p){ var i = POSE_ORDER.indexOf(p.toLowerCase()); return i < 0 ? POSE_ORDER.length : i; }
+    imgs.sort(function(a,b){
+      var ka = a.identity + "__" + a.item, kb = b.identity + "__" + b.item;
+      if(ka !== kb){ return ka < kb ? -1 : 1; }
+      var d = poseRank(a.pose) - poseRank(b.pose);
+      return d || (a.pose < b.pose ? -1 : a.pose > b.pose ? 1 : 0);
+    });
 
     var byKey = {};
     sets = [];
@@ -295,6 +306,10 @@
              +  '<div class="cap">BASE · ' + esc(s.identity) + "</div>";
       } else {
         html += '<div class="cap">no base photo found for ' + esc(s.identity) + "</div>";
+      }
+      if(products[s.item]){
+        html += '<img src="' + products[s.item] + '" alt="product image" style="margin-top:12px">'
+             +  '<div class="cap">PRODUCT · ' + esc(s.item) + "</div>";
       }
       html += '</div><div class="poses">';
       s.items.forEach(function(im){

@@ -39,7 +39,7 @@ Your §14 targets are ≤ 40 images per WAU per month and ≤ $0.25 render cost 
 
 **Committing to Nano Banana for on-demand renders is committing to §13.3 option (c).** Your own PRD says of (c): *"Defensible only as an explicit, time-boxed acquisition bet with a hard monthly ceiling and a date by which (a) or (b) must be true. Not a default."* And two lines later: *"Never arrive at (c) by accident."*
 
-This is not an argument against the choice. It is an argument for making it on purpose, in writing, with the two things (c) requires attached to it: a hard monthly ceiling and a date. Both go in `docs/decisions/0002-render-routing.md` at the end of M1.
+This is not an argument against the choice. It is an argument for making it on purpose, in writing, with the two things (c) requires attached to it: a hard monthly ceiling and a date. Both go in `docs/decisions/0003-render-routing.md` at the end of M1.
 
 **Three things make (c) genuinely survivable**, and they're all cost-based routing, which is what §13.3 told you to do — it just routes among Gemini tiers now instead of between self-hosted and API:
 
@@ -125,7 +125,7 @@ But none of these datasets contains your question. They're single-pose, studio-l
 
 | Day | |
 |---|---|
-| 1 | Fixtures. 25 identities stratified by Monk tone × body size × lighting × capture source (live vs gallery). 20 catalogue items. `fixtures/CONSENT.md` — who, when, what they consented to, how to revoke. Yourself, consenting friends in writing, licensed stock whose release covers derivative AI generation. Don't scrape. |
+| 1 | Fixtures. 25 identities stratified by Monk tone × body size × lighting × capture source (live vs gallery). 20 catalogue items. `fixtures/CONSENT.md` — who, when, what they consented to, how to revoke. Yourself, consenting friends in writing, licensed stock whose release covers derivative AI generation. **Exception (ADR 0002):** early open-coding runs may use retailer product photos already on hand, internal only, deleted by the end of M1, and never the source of an exit-gate number. The stratified 25 must still be consented. |
 | 2 | Generate ~150 Pose Sets with one naive prompt on Nano Banana 2 at 1K. 600 images, ≈ **$40**. Deliberately naive — you're collecting failures, not optimising. |
 | 3 | Build the contact-sheet labeler. Then look at all 600 images and open-code them. Prose, not categories. |
 | 4 | Axial coding. Turn your notes into a failure taxonomy with counts. **This is the day you cannot delegate to an agent and cannot skip.** |
@@ -139,7 +139,7 @@ But none of these datasets contains your question. They're single-pose, studio-l
 | 7 | VLM judges for what's left — garment fidelity, artifact detection. One binary question per judge. Never a scale. Never "rate this 1–5." |
 | 8 | **Validate the judges.** Hold out 30% of your day-3 labels. Compute TPR/TNR per judge. Anything under ~90% TPR is a judge you can't gate renders with — fix the prompt or move that check to code. This day is the one that makes the rest real. |
 | 9 | Run the matrix (§2.5). Small first. |
-| 10 | Write `docs/decisions/0002-render-routing.md`: the numbers, the §13.3 choice, the monthly ceiling, and the date by which (a) or (b) must be true. |
+| 10 | Write `docs/decisions/0003-render-routing.md`: the numbers, the §13.3 choice, the monthly ceiling, and the date by which (a) or (b) must be true. |
 
 ### 2.5 The matrix — and why it's not "which vendor wins"
 
@@ -160,7 +160,7 @@ Small matrix first: 10 identities × 10 items × 4 poses × 6 configurations ≈
 - ≥ 70% auto-QA pass **per complete four-pose set**
 - ≥ 90% **cross-pose identity consistency**, evenly across strata
 - Every judge in the gate has a measured TPR/TNR against your human labels, written down
-- `docs/decisions/0002-render-routing.md` committed: the §13.3 choice, the monthly ceiling, the date
+- `docs/decisions/0003-render-routing.md` committed: the §13.3 choice, the monthly ceiling, the date
 
 Hold yourself to *evenly across strata*. A model that holds identity beautifully on one body type and drifts on another is a fairness failure, and §15 says a category doesn't launch until the spread closes. Break every number down by stratum by default, not behind a flag.
 

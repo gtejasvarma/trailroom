@@ -1,0 +1,413 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the try-on prompt > matches the snapshot for front / bottom 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current bottoms with the demo garment. This is an edit
+of Image 2, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for front / dress 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top and current bottoms with the demo garment. This is an edit
+of Image 2, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for front / outerwear 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, adding the demo garment as an outer layer over their current top. This is an edit
+of Image 2, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for front / top 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top with the demo garment. This is an edit
+of Image 2, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for seated / bottom 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current bottoms with the demo garment. Show the same person, in the same setting, in a new pose: full body, seated on a plain stool, facing the camera, both feet on the floor.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for seated / dress 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top and current bottoms with the demo garment. Show the same person, in the same setting, in a new pose: full body, seated on a plain stool, facing the camera, both feet on the floor.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for seated / outerwear 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, adding the demo garment as an outer layer over their current top. Show the same person, in the same setting, in a new pose: full body, seated on a plain stool, facing the camera, both feet on the floor.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for seated / top 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top with the demo garment. Show the same person, in the same setting, in a new pose: full body, seated on a plain stool, facing the camera, both feet on the floor.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for three-quarter / bottom 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current bottoms with the demo garment. Show the same person, in the same setting, in a new pose: full body, standing, body turned about 45 degrees so their left shoulder is closer to the camera, face turned towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for three-quarter / dress 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top and current bottoms with the demo garment. Show the same person, in the same setting, in a new pose: full body, standing, body turned about 45 degrees so their left shoulder is closer to the camera, face turned towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for three-quarter / outerwear 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, adding the demo garment as an outer layer over their current top. Show the same person, in the same setting, in a new pose: full body, standing, body turned about 45 degrees so their left shoulder is closer to the camera, face turned towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for three-quarter / top 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top with the demo garment. Show the same person, in the same setting, in a new pose: full body, standing, body turned about 45 degrees so their left shoulder is closer to the camera, face turned towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for walking / bottom 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current bottoms with the demo garment. Show the same person, in the same setting, in a new pose: full body, mid-stride, walking towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for walking / dress 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top and current bottoms with the demo garment. Show the same person, in the same setting, in a new pose: full body, mid-stride, walking towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for walking / outerwear 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, adding the demo garment as an outer layer over their current top. Show the same person, in the same setting, in a new pose: full body, mid-stride, walking towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
+
+exports[`the try-on prompt > matches the snapshot for walking / top 1`] = `
+"Image 1 is a product photo of a garment. Image 2 is a photo of a person.
+
+Edit Image 2 so the person is wearing the garment from Image 1, replacing their current top with the demo garment. Show the same person, in the same setting, in a new pose: full body, mid-stride, walking towards the camera.
+
+Garment fidelity: reproduce the garment from Image 1 exactly — same color,
+fabric texture, pattern scale and alignment, print and logo placement and
+text, neckline, sleeve length, hem length, buttons, zippers, pockets, and
+stitching. If the garment in Image 1 is worn by a model, take only the
+garment and ignore that model's face, body, skin tone, hair, and pose.
+
+Fit: drape the garment naturally over the person's existing body shape and the new pose, with realistic folds where the body bends. Keep correct layering:
+hair, arms, and hands that are in front of the clothing stay in front. The
+hem should fall at the same point on the body as in Image 1.
+
+Preserve from Image 2 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, all
+clothing and accessories not being replaced, and the background.
+
+Lighting: match the garment to Image 2's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio as Image 2."
+`;
