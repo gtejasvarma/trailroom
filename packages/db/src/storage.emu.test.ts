@@ -47,10 +47,10 @@ describe("storage helpers", () => {
       await recordConsent(uid, "v");
       await savePhoto(uid, { width: 1, height: 1, isGuest: false });
       await putPhoto(uid, buf("p"), "image/jpeg");
-      const id = `${uid}_1_g-parka`;
+      const id = `${uid}_1_blouse`;
       await claimPoseSet({
         uid,
-        itemId: "g-parka",
+        itemId: "blouse",
         identityVersion: 1,
         jobId: "x",
         isGuest: false,
@@ -58,7 +58,7 @@ describe("storage helpers", () => {
       await publishRender(uid, id, "front", buf("r"));
       const { id: jobId } = await createJob({
         uid,
-        itemId: "g-parka",
+        itemId: "blouse",
         identityVersion: 1,
         poseSetId: id,
         poseOrder: [],
@@ -75,7 +75,7 @@ describe("storage helpers", () => {
     expect(await getConsent("u1")).toBeNull();
     expect(await getPhoto("u1")).toBeNull();
     expect(await getPhotoBytes("u1")).toBeNull();
-    expect(await getRender("u1", "u1_1_g-parka", "front")).toBeNull();
+    expect(await getRender("u1", "u1_1_blouse", "front")).toBeNull();
     const [staging] = await bucket().getFiles({ prefix: "staging/" });
     expect(staging).toHaveLength(1);
     const db = (await import("./app")).firestore();
@@ -89,7 +89,7 @@ describe("storage helpers", () => {
     expect(await getConsent("u2")).not.toBeNull();
     expect(await getPhoto("u2")).not.toBeNull();
     expect(await getPhotoBytes("u2")).not.toBeNull();
-    expect(await getRender("u2", "u2_1_g-parka", "front")).not.toBeNull();
+    expect(await getRender("u2", "u2_1_blouse", "front")).not.toBeNull();
     expect(
       (await db.collection("jobs").where("uid", "==", "u2").get()).size,
     ).toBe(1);

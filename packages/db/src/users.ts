@@ -42,6 +42,7 @@ export async function deleteAllForUser(uid: string): Promise<void> {
     ...sets.docs.map((d) => d.ref),
     db.collection("consents").doc(uid),
     db.collection("photos").doc(uid),
+    db.collection("follows").doc(uid),
   ]);
   await deleteObjects();
   await db.collection("photos").doc(uid).delete();

@@ -35,7 +35,7 @@ export async function personPhoto(): Promise<Buffer> {
 
 export async function makeJob(
   uid: string,
-  itemId = "g-parka",
+  itemId = "blouse",
   poses: string[] = POSE_LIST,
 ): Promise<{ jobId: string; poseSetId: string; uid: string }> {
   await recordConsent(uid, "v1");

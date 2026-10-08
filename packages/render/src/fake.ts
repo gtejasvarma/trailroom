@@ -41,12 +41,18 @@ let override: FakeRule[] | null | undefined;
 let used: number[] = [];
 let usedFor: string | undefined;
 
-const calls: { pose: string | undefined; outcome: FakeOutcome }[] = [];
+const calls: {
+  pose: string | undefined;
+  outcome: FakeOutcome;
+  /** The mime type of each input image the provider was handed, in order. */
+  inputMimeTypes: string[];
+}[] = [];
 
 /** Every provider call since the last setFakeScript()/resetFakeCalls(), for tests. */
 export function getFakeCalls(): readonly {
   pose: string | undefined;
   outcome: FakeOutcome;
+  inputMimeTypes: string[];
 }[] {
   return calls;
 }
@@ -144,7 +150,11 @@ export const fakeProvider: Provider = async (
   const rule = nextRule(call.meta.pose);
   const outcome = rule.outcome;
   if (rule.delayMs) await new Promise((r) => setTimeout(r, rule.delayMs));
-  calls.push({ pose: call.meta.pose, outcome });
+  calls.push({
+    pose: call.meta.pose,
+    outcome,
+    inputMimeTypes: call.images.map((i) => i.mimeType),
+  });
   const img = (data: Buffer) => ({ mimeType: "image/png", data });
 
   switch (outcome) {

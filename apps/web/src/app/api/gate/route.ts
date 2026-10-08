@@ -12,12 +12,14 @@ import { copy } from "@/lib/copy";
 // Per instance only (see gate-limit.ts): Cloud Armor is the real rate limit.
 const limiter = createAttemptLimiter();
 
-function back(request: NextRequest, path: string, search = "") {
-  const url = request.nextUrl.clone();
-  url.pathname = path;
-  url.search = search;
-  // 303 so the browser turns the POST into a GET.
-  return NextResponse.redirect(url, 303);
+// A relative Location, resolved by the browser against the page it posted from. Behind App
+// Hosting's proxy a route handler's own URL is the container's (https://0.0.0.0:8080), so an
+// absolute redirect built from it sends the browser nowhere. 303 turns the POST into a GET.
+function back(path: string, search = "") {
+  return new NextResponse(null, {
+    status: 303,
+    headers: { Location: path + search },
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -41,11 +43,11 @@ export async function POST(request: NextRequest) {
     !(await constantTimeEqual(attempt, config.password))
   ) {
     limiter.recordFailure(key);
-    return back(request, "/gate", "?error=1");
+    return back("/gate", "?error=1");
   }
 
   // Always lands on "/" so there is no redirect target for an attacker to control.
-  const res = back(request, "/");
+  const res = back("/");
   res.cookies.set(
     GATE_COOKIE,
     await signGateCookie(config.secret, config.password),

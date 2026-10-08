@@ -1,4 +1,9 @@
-import { isConsentCurrent, getPhoto, listPoseSetsForUser } from "@trailroom/db";
+import {
+  getFollows,
+  getPhoto,
+  isConsentCurrent,
+  listPoseSetsForUser,
+} from "@trailroom/db";
 import { CONSENT_VERSION } from "../lib/consent";
 import { ok, type Result } from "./http";
 import type { User } from "./auth";
@@ -10,6 +15,8 @@ export interface MeBody {
   hasPhoto: boolean;
   /** 0 when there is no photo. */
   identityVersion: number;
+  /** Slugs of the labels this session follows. */
+  follows: string[];
   /** Pose sets for the current photo that are not failed. */
   activePoseSets: {
     poseSetId: string;
@@ -20,10 +27,11 @@ export interface MeBody {
 }
 
 export async function getMe(user: User): Promise<Result<MeBody>> {
-  const [consent, photo, sets] = await Promise.all([
+  const [consent, photo, sets, follows] = await Promise.all([
     isConsentCurrent(user.uid, CONSENT_VERSION),
     getPhoto(user.uid),
     listPoseSetsForUser(user.uid),
+    getFollows(user.uid),
   ]);
   const iv = photo?.identityVersion ?? 0;
   return ok({
@@ -32,6 +40,7 @@ export async function getMe(user: User): Promise<Result<MeBody>> {
     consented: consent,
     hasPhoto: photo !== null,
     identityVersion: iv,
+    follows,
     activePoseSets: sets
       .filter(
         (s) =>

@@ -44,6 +44,10 @@ export const ERRORS = {
     message:
       "That photo is too wide or too tall to use, so choose a full-length or chest-up portrait.",
   },
+  unknown_label: {
+    status: 404,
+    message: "We do not carry that label, so check the name and retry.",
+  },
   photo_required: {
     status: 409,
     message: "Add your photo first, then try the piece on.",

@@ -23,7 +23,14 @@ export default defineConfig({
   reporter: "list",
   outputDir: "./test-results",
   timeout: 60_000,
-  expect: { timeout: 15_000 },
+  expect: {
+    timeout: 15_000,
+    // Baselines for the first screens (Phase A on): animations off, a small pixel tolerance for
+    // anti-aliasing. Baselines are per platform, so regenerate them with --update-snapshots.
+    toHaveScreenshot: { animations: "disabled", maxDiffPixelRatio: 0.01 },
+  },
+  snapshotPathTemplate:
+    "{testDir}/__screenshots__/{testFileName}/{arg}-{projectName}-{platform}{ext}",
   use: { baseURL: `http://localhost:${E2E_PORT}` },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

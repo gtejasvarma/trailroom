@@ -1,9 +1,16 @@
-import { card, expect, test, tryOnFromScratch, waitForResult } from "./helpers";
+import {
+  card,
+  dismissSheet,
+  expect,
+  test,
+  tryOnFromScratch,
+  waitForResult,
+} from "./helpers";
 
 test("account sheet: dismissible, renders stay full size, actions locked", async ({
   page,
 }) => {
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
 
   const dialog = page.getByRole("dialog", { name: "Four poses are ready" });
@@ -61,7 +68,7 @@ test("account sheet: dismissible, renders stay full size, actions locked", async
 });
 
 test("the sheet traps keyboard focus", async ({ page }) => {
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
@@ -75,15 +82,15 @@ test("the sheet traps keyboard focus", async ({ page }) => {
 });
 
 test("a guest's second item goes to the sign-up screen", async ({ page }) => {
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
-  await page.keyboard.press("Escape");
+  await dismissSheet(page);
 
   await page.goto("/");
-  await card(page, "Cropped denim jacket")
+  await card(page, "Wool car coat")
     .getByRole("button", { name: "Try it on" })
     .click();
-  await expect(page).toHaveURL(/\/item\/g-denim-jacket\/signup$/);
+  await expect(page).toHaveURL(/\/item\/coat\/signup$/);
   await expect(
     page.getByRole("heading", { name: "Guests get one try-on" }),
   ).toBeVisible();
@@ -95,11 +102,11 @@ test("a guest's second item goes to the sign-up screen", async ({ page }) => {
 test("You: delete my photo, visibly, then consent is asked again", async ({
   page,
 }) => {
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
-  await page.keyboard.press("Escape");
+  await dismissSheet(page);
 
-  await page.getByRole("link", { name: "You" }).click();
+  await page.getByRole("link", { name: "Your try-ons" }).click();
   await expect(page).toHaveURL(/\/you$/);
   await expect(page.getByTestId("photo-state")).toHaveText(
     "A photo of you is stored.",
@@ -116,7 +123,7 @@ test("You: delete my photo, visibly, then consent is asked again", async ({
   await expect(page).toHaveURL(/\/you$/); // same screen, no modal
 
   await page.goto("/");
-  await card(page, "Hooded shell jacket")
+  await card(page, "Knit button vest")
     .getByRole("button", { name: "Try it on" })
     .click();
   await expect(page).toHaveURL(/\/consent$/);

@@ -22,6 +22,12 @@ export interface ConsentDoc {
   ageAttested18: true;
 }
 
+/** follows/{uid}: the label slugs this user follows. Written only by the server. */
+export interface FollowsDoc {
+  labels: string[];
+  updatedAt: Timestamp;
+}
+
 export interface PhotoDoc {
   storagePath: string;
   width: number;

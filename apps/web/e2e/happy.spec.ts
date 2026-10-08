@@ -13,12 +13,12 @@ test("happy path: catalogue to four tiles to result", async ({ page }) => {
   setScript([{ outcome: "ok", delayMs: 2500 }]);
 
   await page.goto("/");
-  await expect(page.locator("article[data-testid=item-card]")).toHaveCount(5);
-  await card(page, "Hooded shell jacket")
-    .getByRole("link", { name: "View Hooded shell jacket" })
+  await expect(page.locator("article[data-testid=item-card]")).toHaveCount(12);
+  await card(page, "Knit button vest")
+    .getByRole("link", { name: "View Knit button vest" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Hooded shell jacket" }),
+    page.getByRole("heading", { name: "Knit button vest" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Try it on" }).click();
 
@@ -75,7 +75,7 @@ test("happy path: catalogue to four tiles to result", async ({ page }) => {
 test("consent is accepted once, then the photo screen is next", async ({
   page,
 }) => {
-  await page.goto("/item/g-shell-jacket/consent");
+  await page.goto("/item/vest/consent");
   await acceptConsent(page);
   await expect(page.locator("input[type=file]")).toBeAttached();
 });

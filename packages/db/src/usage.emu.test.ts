@@ -135,9 +135,9 @@ describe("deleteAllForUser", () => {
     }
     const { id } = await createJob({
       uid,
-      itemId: "g-parka",
+      itemId: "blouse",
       identityVersion: 1,
-      poseSetId: poseSetId(uid, 1, "g-parka"),
+      poseSetId: poseSetId(uid, 1, "blouse"),
       poseOrder: ["front"],
       poses: { front: { status: "pending", attempt: 0, reasons: [] } },
       qaSkipped: [],
@@ -147,7 +147,7 @@ describe("deleteAllForUser", () => {
     });
     await claimPoseSet({
       uid,
-      itemId: "g-parka",
+      itemId: "blouse",
       identityVersion: 1,
       jobId: id,
       isGuest: false,

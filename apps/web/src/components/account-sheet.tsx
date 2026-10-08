@@ -1,31 +1,9 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useState } from "react";
 import { continueWithGoogle } from "../lib/account";
 import { copy } from "../lib/copy";
-import { alertStyle, body, btnPrimary, btnSecondary, h2 } from "../lib/ui";
-
-/**
- * The one "Layer" in this build: a dismissible sheet over the finished render, gating actions
- * only. A native modal <dialog> gives the focus trap, Escape, and an inert page behind it.
- * Dismissing (close button, Escape, backdrop) leaves the renders where they were.
- */
-const FOCUSABLE = "button:not([disabled]), a[href], input:not([disabled])";
-
-/** Keeps Tab inside the sheet: from the last control it wraps to the first, and back. */
-function trapTab(e: React.KeyboardEvent<HTMLDialogElement>) {
-  if (e.key !== "Tab") return;
-  const items = [...e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE)];
-  if (items.length === 0) return;
-  const first = items[0]!;
-  const last = items[items.length - 1]!;
-  if (e.shiftKey && document.activeElement === first) {
-    e.preventDefault();
-    last.focus();
-  } else if (!e.shiftKey && document.activeElement === last) {
-    e.preventDefault();
-    first.focus();
-  }
-}
+import { alertStyle, body, btnPrimary, btnSecondary } from "../lib/ui";
+import { Sheet } from "./ui/sheet";
 
 export function AccountSheet({
   open,
@@ -39,17 +17,8 @@ export function AccountSheet({
   onClose: () => void;
   onLinked: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
-  }, [open]);
 
   async function link() {
     setBusy(true);
@@ -65,20 +34,7 @@ export function AccountSheet({
   }
 
   return (
-    <dialog
-      ref={ref}
-      aria-labelledby={titleId}
-      onClose={onClose}
-      onKeyDown={trapTab}
-      onClick={(e) => {
-        // A click on the dialog element itself (not its content) is a click on the backdrop.
-        if (e.target === ref.current) onClose();
-      }}
-      className="sheet m-0 mx-auto mt-auto w-full max-w-[480px] rounded-t-lg border-0 bg-canvas p-6 text-ink shadow-8"
-    >
-      <h2 id={titleId} className={h2}>
-        {copy.account.title(poseCount)}
-      </h2>
+    <Sheet open={open} title={copy.account.title(poseCount)} onClose={onClose}>
       <p className={`mt-2 ${body}`}>{copy.account.body}</p>
       {error ? (
         <p role="alert" className={`mt-4 ${alertStyle}`}>
@@ -103,6 +59,6 @@ export function AccountSheet({
           {copy.account.close}
         </button>
       </div>
-    </dialog>
+    </Sheet>
   );
 }

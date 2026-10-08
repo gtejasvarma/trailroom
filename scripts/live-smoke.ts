@@ -44,7 +44,7 @@ process.env.GEMINI_API_KEY = key;
 process.env.DAILY_CAP_USD = CEILING_USD;
 process.env.ORCHESTRATOR = "inline";
 
-const itemId = process.argv[2] ?? "g-denim-jacket";
+const itemId = process.argv[2] ?? "coat";
 // s01 is an AI-generated, fictional person (fixtures/manifest.json), so no real person's photo
 // is sent anywhere by this check.
 const photoPath = process.argv[3] ?? join(ROOT, "fixtures/people/s01.jpg");

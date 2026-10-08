@@ -7,7 +7,7 @@ function job(status: JobStatus, poses: Record<string, string>): JobView {
   return {
     jobId: "j",
     poseSetId: "p",
-    itemId: "g-shell-jacket",
+    itemId: "vest",
     status,
     failure: null,
     poseOrder: POSES,

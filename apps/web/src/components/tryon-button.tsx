@@ -3,16 +3,19 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { copy } from "../lib/copy";
 import { routeForTryOn } from "../lib/flow";
-import { alertStyle, btnPrimary } from "../lib/ui";
+import { alertStyle } from "../lib/ui";
+import { Button, type ButtonSize } from "./ui/button";
 
 /** The primary action on a card or product page. Routes by state; shows errors inline. */
 export function TryOnButton({
   itemId,
   name,
+  size = "lg",
   className = "",
 }: {
   itemId: string;
   name: string;
+  size?: ButtonSize;
   className?: string;
 }) {
   const router = useRouter();
@@ -32,15 +35,15 @@ export function TryOnButton({
 
   return (
     <>
-      <button
-        type="button"
+      <Button
         onClick={go}
         disabled={busy}
-        className={`${btnPrimary} w-full ${className}`}
+        size={size}
+        className={`w-full ${className}`}
       >
         {copy.item.tryItOn}
         <span className="sr-only"> {name}</span>
-      </button>
+      </Button>
       {error ? (
         <p role="alert" className={`mt-2 ${alertStyle}`}>
           {error}

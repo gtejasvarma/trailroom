@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import {
+  dismissSheet,
   expect,
   setScript,
   test,
@@ -75,7 +76,7 @@ test("AI caption sits beside every render, never over it (queue and result)", as
     { pose: "front", outcome: "ok" },
     { outcome: "ok", delayMs: 6000 },
   ]);
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
 
   const front = page.locator("[data-testid=pose-tile][data-pose=front]");
   await expect(front).toHaveAttribute("data-state", "passed");
@@ -88,7 +89,7 @@ test("AI caption sits beside every render, never over it (queue and result)", as
   await waitForResult(page);
   await expect(page.locator("img[data-render]")).toHaveCount(5);
   await expect(page.locator("img[data-hero]")).toBeVisible();
-  await page.keyboard.press("Escape"); // dismiss the account sheet
+  await dismissSheet(page); // the account sheet
   await assertCaptions(page);
 
   // Directly under the hero: the AI caption, then the expectation line.

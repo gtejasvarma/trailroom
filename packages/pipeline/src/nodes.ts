@@ -177,6 +177,7 @@ export async function renderPose(
     if (!item) throw new Error(`unknown catalogue item ${job.itemId}`);
     const person = await getPhotoBytes(job.uid);
     if (!person) throw new Error(`no photo stored for ${job.uid}`);
+    if (!item.category) throw new Error(`${item.id} has no prompt category`);
     const garment = await loadItemImage(item.id);
 
     await setPoseState(jobId, pose, { status: "rendering", attempt });
@@ -185,7 +186,7 @@ export async function renderPose(
       pose: pose as Pose,
       category: item.category,
       wearing: GENERIC_WEARING,
-      target: item.description,
+      target: item.promptDescription,
     });
 
     let res;

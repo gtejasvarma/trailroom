@@ -5,7 +5,7 @@ import { expect, test, tryOnFromScratch, waitForResult } from "./helpers";
 test("Continue with Google links the guest and unlocks actions in place", async ({
   page,
 }) => {
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();

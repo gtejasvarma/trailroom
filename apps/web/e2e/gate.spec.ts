@@ -22,10 +22,7 @@ test("right password lands on /", async ({ page, context }) => {
   await page.getByLabel("Password").fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Open Trailroom" }).click();
   await expect(page).toHaveURL(/\/$/);
-  // The catalogue replaced the Phase 0 placeholder heading.
-  await expect(
-    page.getByRole("heading", { name: "Try something on" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Everything" })).toBeVisible();
   const cookie = (await context.cookies()).find(
     (c) => c.name === "trailroom_gate",
   );
@@ -58,4 +55,19 @@ test("a forged cookie does not pass", async ({ page, context }) => {
   ]);
   await page.goto("/");
   await expect(page).toHaveURL(/\/gate$/);
+});
+
+// Behind a proxy the handler's own URL is the container's, so the redirect must be relative:
+// an absolute Location built from it sent browsers to https://0.0.0.0:8080 on the first deploy.
+test("the gate redirects with a relative Location, right or wrong", async ({
+  request,
+}) => {
+  const post = (password: string) =>
+    request.post("/api/gate", { form: { password }, maxRedirects: 0 });
+  const wrong = await post("nope");
+  expect(wrong.status()).toBe(303);
+  expect(wrong.headers()["location"]).toBe("/gate?error=1");
+  const right = await post(E2E_PASSWORD);
+  expect(right.status()).toBe(303);
+  expect(right.headers()["location"]).toBe("/");
 });

@@ -19,7 +19,7 @@ test("partial set: three images, the three-of-four line, no broken tile", async 
   page,
 }) => {
   setScript([twice("walking")]);
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
 
   await expect(page.getByTestId("partial-line")).toHaveText(
@@ -42,7 +42,7 @@ test("failed set: honest failure with retry, a different photo, and three altern
   page,
 }) => {
   setScript([twice("walking"), twice("seated")]);
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   const failedUrl = page.url();
 
   const screen = page.getByTestId("honest-failure");
@@ -75,7 +75,7 @@ test("failed set: honest failure with retry, a different photo, and three altern
 
 test("try again re-posts and lands on a fresh job", async ({ page }) => {
   setScript([twice("walking"), twice("seated")]);
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   const screen = page.getByTestId("honest-failure");
   await expect(screen).toHaveAttribute("data-kind", "render_failed", {
     timeout: 30_000,
@@ -97,15 +97,15 @@ test("unready item: honest failure without any upload asked for", async ({
   });
 
   await page.goto("/");
-  await card(page, "Black leather coat")
+  await card(page, "Cropped leather jacket")
     .getByRole("button", { name: "Try it on" })
     .click();
 
-  await expect(page).toHaveURL(/\/item\/g-leather-coat\/unavailable$/);
+  await expect(page).toHaveURL(/\/item\/jacket\/unavailable$/);
   const screen = page.getByTestId("honest-failure");
   await expect(screen).toHaveAttribute("data-kind", "not_ready");
   await expect(screen).toContainText("We can't render this one honestly");
-  await expect(screen).toContainText("sheen and fine detail are lost");
+  await expect(screen).toContainText("folded over an arm");
   await expect(screen).toContainText(
     "We'd rather say so than show you a guess",
   );
@@ -121,7 +121,7 @@ test("unready item: honest failure without any upload asked for", async ({
 test("unready item for a user who already has consent and a photo", async ({
   page,
 }) => {
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
 
   const tryOnCalls: string[] = [];
@@ -131,7 +131,7 @@ test("unready item for a user who already has consent and a photo", async ({
   });
   const spendBefore = (await listDocs("spendLog")).length;
   await page.goto("/");
-  await card(page, "Black leather coat")
+  await card(page, "Cropped leather jacket")
     .getByRole("button", { name: "Try it on" })
     .click();
   await expect(page.getByTestId("honest-failure")).toHaveAttribute(
@@ -146,7 +146,7 @@ test("capacity: the budget message and exactly one action, no retry", async ({
   page,
 }) => {
   await exhaustBudget();
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
 
   const screen = page.getByTestId("honest-failure");
   await expect(screen).toHaveAttribute("data-kind", "capacity", {
@@ -173,7 +173,7 @@ test("daily limit: a guest's third start shows its own message, one way back, no
 }) => {
   const always = (pose: string) => ({ pose, outcome: "blocked" as const });
   setScript(["front", "three-quarter", "walking", "seated"].map(always));
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   const screen = page.getByTestId("honest-failure");
   await expect(screen).toHaveAttribute("data-kind", "render_failed", {
     timeout: 30_000,

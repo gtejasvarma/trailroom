@@ -24,6 +24,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Labels the caller follows. Read your own; every write goes through /api/follows.
+    match /follows/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

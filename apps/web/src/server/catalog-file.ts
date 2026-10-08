@@ -1,7 +1,7 @@
 // Serves garment images from Cloud Storage `catalog/<file>`. Only file names that belong to a
 // catalogue item are served; everything else (traversal, other prefixes, unknown names) is a 404.
 import { logError } from "@trailroom/render";
-import { isCatalogFile } from "@trailroom/catalog/server";
+import { catalogContentType, isCatalogFile } from "@trailroom/catalog/server";
 import { CatalogImageMissingError, loadCatalogFile } from "@trailroom/pipeline";
 
 const notFound = () => new Response("Not found", { status: 404 });
@@ -20,7 +20,7 @@ export async function serveCatalogFile(rawName: string): Promise<Response> {
     return new Response(new Uint8Array(obj.data), {
       status: 200,
       headers: {
-        "Content-Type": "image/jpeg",
+        "Content-Type": catalogContentType(file),
         "Cache-Control": "public, max-age=3600",
       },
     });

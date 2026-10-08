@@ -1,3 +1,5 @@
+import sharp from "sharp";
+import { getItem } from "@trailroom/catalog";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { catalogFiles, readCatalogAsset } from "@trailroom/catalog/server";
 import { bucket, getJob, getJobInternal, firestore } from "@trailroom/db";
@@ -27,33 +29,64 @@ afterEach(() => {
 });
 
 describe("catalogue images in Storage", () => {
-  it("seedCatalogImages uploads all five; loadItemImage returns the stored bytes", async () => {
+  it("seedCatalogImages uploads every file; loadItemImage returns a JPEG for a .webp", async () => {
     const paths = await seedCatalogImages();
-    expect(paths).toHaveLength(5);
+    expect(paths).toHaveLength(catalogFiles().length);
     expect(await listObjects("catalog/")).toEqual(
       catalogFiles()
         .map((f) => `catalog/${f}`)
         .sort(),
     );
-    const img = await loadItemImage("g-parka");
+    const img = await loadItemImage("blouse");
     expect(img.mimeType).toBe("image/jpeg");
-    expect(img.data.equals(readCatalogAsset("commons-parka.jpg"))).toBe(true);
+    // The stored object is the webp; the model gets a transcoded JPEG, not the webp bytes.
+    expect(img.data.subarray(0, 3).toString("hex")).toBe("ffd8ff");
+    expect(img.data.equals(readCatalogAsset("wrap-top-front.webp"))).toBe(
+      false,
+    );
+    expect((await sharp(img.data).metadata()).format).toBe("jpeg");
+  });
+
+  it("a .jpg render image is passed through untouched", async () => {
+    const img = await loadItemImage("coat");
+    expect(img.mimeType).toBe("image/jpeg");
+    expect(img.data.equals(readCatalogAsset("p19299199.jpg"))).toBe(true);
+  });
+
+  it("stores each file with its own content type", async () => {
+    await seedCatalogImages();
+    const [webp] = await bucket()
+      .file("catalog/wrap-top-front.webp")
+      .getMetadata();
+    const [jpg] = await bucket().file("catalog/p19299199.jpg").getMetadata();
+    expect(webp.contentType).toBe("image/webp");
+    expect(jpg.contentType).toBe("image/jpeg");
+  });
+
+  it("the provider is handed a JPEG or PNG for a .webp render image", async () => {
+    const j = await makeJob("u-webp", "blouse", ["front"]);
+    expect(getItem("blouse")!.renderImage.endsWith(".webp")).toBe(true);
+    await renderPose({ jobId: j.jobId, pose: "front", attempt: 1 });
+    const [call] = getFakeCalls();
+    expect(call!.inputMimeTypes).toHaveLength(2);
+    for (const m of call!.inputMimeTypes)
+      expect(["image/jpeg", "image/png"]).toContain(m);
   });
 
   it("outside production a missing object is seeded on demand (that one only)", async () => {
-    const img = await loadItemImage("g-parka");
-    expect(img.data.equals(readCatalogAsset("commons-parka.jpg"))).toBe(true);
+    const img = await loadItemImage("blouse");
+    expect(img.mimeType).toBe("image/jpeg");
     expect(await listObjects("catalog/")).toEqual([
-      "catalog/commons-parka.jpg",
+      "catalog/wrap-top-front.webp",
     ]);
   });
 
   it("in production a missing object throws naming the path, with no fallback", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    const e = await loadItemImage("g-parka").catch((x) => x);
+    const e = await loadItemImage("blouse").catch((x) => x);
     expect(e).toBeInstanceOf(CatalogImageMissingError);
-    expect(e.message).toContain("catalog/commons-parka.jpg");
-    expect(e.path).toBe("catalog/commons-parka.jpg");
+    expect(e.message).toContain("catalog/wrap-top-front.webp");
+    expect(e.path).toBe("catalog/wrap-top-front.webp");
     expect(await listObjects("catalog/")).toEqual([]);
   });
 
@@ -84,7 +117,7 @@ describe("catalogue images in Storage", () => {
     expect(job.failure?.code).toBe("internal");
     expect(job.failure).toEqual({ code: "internal" });
     expect((await getJobInternal(j.jobId))?.failureDetail).toContain(
-      "catalog/commons-parka.jpg",
+      "catalog/wrap-top-front.webp",
     );
     expect(getFakeCalls()).toHaveLength(0);
     expect((await firestore().collection("spendLog").get()).size).toBe(0);

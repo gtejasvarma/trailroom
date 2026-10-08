@@ -65,7 +65,7 @@ describe("auth", () => {
         tryOnPOST(
           req("POST", "/api/try-on", {
             headers: h,
-            json: { itemId: "g-parka" },
+            json: { itemId: "blouse" },
           }),
         ),
     ],
@@ -365,7 +365,7 @@ describe("photo hardening", () => {
     await uploadOk(t);
     await fsdb()
       .collection("poseSets")
-      .doc(`${uidOf(t)}_1_g-parka`)
+      .doc(`${uidOf(t)}_1_blouse`)
       .set({ uid: uidOf(t), status: "rendering" });
     const res = await photoPOST(
       req("POST", "/api/photo", {

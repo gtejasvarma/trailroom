@@ -1,17 +1,13 @@
-import { Header } from "../../components/header";
-import { copy } from "../../lib/copy";
+import { MeProvider } from "../../components/me-provider";
+import { Shell } from "../../components/shell";
+import { ToastProvider } from "../../components/ui/toast";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-10 focus:rounded-md focus:bg-canvas focus:px-4 focus:py-3"
-      >
-        {copy.nav.skip}
-      </a>
-      <Header />
-      <main id="main">{children}</main>
-    </>
+    <ToastProvider>
+      <MeProvider>
+        <Shell>{children}</Shell>
+      </MeProvider>
+    </ToastProvider>
   );
 }

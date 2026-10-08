@@ -10,3 +10,4 @@ export * from "./storage";
 export * from "./users";
 export * from "./jobInternals";
 export * from "./usage";
+export * from "./follows";

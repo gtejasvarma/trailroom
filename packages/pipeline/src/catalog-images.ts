@@ -3,7 +3,9 @@
 //
 // Lives in @trailroom/pipeline (which already depends on both @trailroom/catalog and
 // @trailroom/db) so the catalogue package stays Firebase-free and the imports stay acyclic.
+import sharp from "sharp";
 import {
+  catalogContentType,
   catalogFileFor,
   catalogFiles,
   isCatalogFile,
@@ -32,7 +34,13 @@ export class CatalogImageMissingError extends Error {
 export async function seedCatalogImages(): Promise<string[]> {
   const out: string[] = [];
   for (const file of catalogFiles()) {
-    out.push(await putCatalogImage(file, readCatalogAsset(file)));
+    out.push(
+      await putCatalogImage(
+        file,
+        readCatalogAsset(file),
+        catalogContentType(file),
+      ),
+    );
   }
   return out;
 }
@@ -52,8 +60,9 @@ export async function loadCatalogFile(
     throw new CatalogImageMissingError(catalogPath(file));
   }
   const data = readCatalogAsset(file);
-  await putCatalogImage(file, data);
-  return { data, contentType: "image/jpeg" };
+  const contentType = catalogContentType(file);
+  await putCatalogImage(file, data, contentType);
+  return { data, contentType };
 }
 
 export async function loadItemImage(
@@ -63,5 +72,12 @@ export async function loadItemImage(
   if (!file) throw new Error(`unknown catalogue item ${id}`);
   const obj = await loadCatalogFile(file);
   if (!obj) throw new Error(`unknown catalogue item ${id}`);
-  return { mimeType: obj.contentType, data: obj.data };
+  // The model takes JPEG or PNG only: a .webp label photograph is transcoded here.
+  if (file.endsWith(".webp")) {
+    return {
+      mimeType: "image/jpeg",
+      data: await sharp(obj.data).jpeg({ quality: 92 }).toBuffer(),
+    };
+  }
+  return { mimeType: catalogContentType(file), data: obj.data };
 }

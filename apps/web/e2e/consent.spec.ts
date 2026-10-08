@@ -25,13 +25,13 @@ test("no file input exists before consent, on any screen", async ({ page }) => {
   await page.addInitScript(WATCH);
 
   await page.goto("/");
-  await expect(page.getByTestId("item-card")).toHaveCount(5);
+  await expect(page.getByTestId("item-card")).toHaveCount(12);
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 
-  await card(page, "Cropped denim jacket")
-    .getByRole("link", { name: "View Cropped denim jacket" })
+  await card(page, "Wool car coat")
+    .getByRole("link", { name: "View Wool car coat" })
     .click();
-  await expect(page).toHaveURL(/\/item\/g-denim-jacket$/);
+  await expect(page).toHaveURL(/\/item\/coat$/);
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Try it on" }).click();
@@ -39,20 +39,20 @@ test("no file input exists before consent, on any screen", async ({ page }) => {
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 
   // Straight to the photo route: it must send us to consent without ever rendering the input.
-  await page.goto("/item/g-denim-jacket/photo");
-  await expect(page).toHaveURL(/\/item\/g-denim-jacket\/consent$/);
+  await page.goto("/item/coat/photo");
+  await expect(page).toHaveURL(/\/item\/coat\/consent$/);
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 
   // Declining returns to the product page, still with no file input.
   await page.getByRole("button", { name: "Not now" }).click();
-  await expect(page).toHaveURL(/\/item\/g-denim-jacket$/);
+  await expect(page).toHaveURL(/\/item\/coat$/);
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 
   expect(await seen(page)).toBe(false);
 });
 
 test("the input appears only after consent is recorded", async ({ page }) => {
-  await page.goto("/item/g-denim-jacket/consent");
+  await page.goto("/item/coat/consent");
   await expect(page.locator("input[type=file]")).toHaveCount(0);
   await acceptConsent(page);
   await expect(page.locator("input[type=file]")).toHaveCount(1);
@@ -61,7 +61,7 @@ test("the input appears only after consent is recorded", async ({ page }) => {
 });
 
 test("consent states the mechanism in plain sentences", async ({ page }) => {
-  await page.goto("/item/g-denim-jacket/consent");
+  await page.goto("/item/coat/consent");
   const main = page.getByRole("main");
   await expect(main).toContainText("We store one photo of you");
   await expect(main).toContainText("deleted after about 48 hours");

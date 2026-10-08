@@ -50,10 +50,16 @@ export function FailureScreen({
   }
 
   const text = {
-    not_ready: [
-      copy.failure.notReadyTitle,
-      copy.failure.notReadyBody((item?.readinessReasons ?? []).join(" ")),
-    ],
+    not_ready:
+      item?.tryOn === "not_yet"
+        ? [
+            copy.failure.notYetTitle,
+            copy.failure.notYetBody((item.readinessReasons ?? []).join(" ")),
+          ]
+        : [
+            copy.failure.notReadyTitle,
+            copy.failure.notReadyBody((item?.readinessReasons ?? []).join(" ")),
+          ],
     render_failed: [
       copy.failure.renderFailedTitle,
       copy.failure.renderFailedBody,
@@ -80,6 +86,7 @@ export function FailureScreen({
       className={`${page} max-w-[900px]`}
       data-testid="honest-failure"
       data-kind={kind}
+      data-try-on={item?.tryOn}
     >
       <h1 className={h1}>{text[0]}</h1>
       <p className={`mt-3 max-w-[60ch] ${body}`}>{text[1]}</p>

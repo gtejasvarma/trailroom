@@ -32,6 +32,7 @@ const COLLECTIONS = [
   "spendLog",
   "usage",
   "jobInternals",
+  "follows",
 ];
 
 beforeAll(async () => {
@@ -57,7 +58,7 @@ beforeAll(async () => {
     await setDoc(doc(db, "consents/alice"), { version: "v1" });
     await setDoc(doc(db, "photos/alice"), { storagePath: "x" });
     await setDoc(doc(db, "jobs/j1"), { uid: "alice" });
-    await setDoc(doc(db, "poseSets/alice_1_g-parka"), { uid: "alice" });
+    await setDoc(doc(db, "poseSets/alice_1_blouse"), { uid: "alice" });
     await setDoc(doc(db, "spend/2026-01-01"), { committedMicros: 0 });
     await setDoc(doc(db, "spendLog/l1"), { day: "2026-01-01" });
     await setDoc(doc(db, "usage/alice_2026-01-01"), {
@@ -65,6 +66,7 @@ beforeAll(async () => {
       starts: 1,
     });
     await setDoc(doc(db, "jobInternals/j1"), { failureDetail: "secret" });
+    await setDoc(doc(db, "follows/alice"), { labels: ["marchand"] });
     await setDoc(doc(db, "jobs/j2"), { uid: "bob" });
     // A real object, so a denied read is a permission error and not a not-found.
     await uploadBytes(
@@ -85,15 +87,17 @@ const actors = () => ({
 });
 
 describe("firestore rules: reads", () => {
-  it.each([["consents/alice"], ["jobs/j1"], ["poseSets/alice_1_g-parka"]])(
-    "owner reads %s; stranger and anon cannot",
-    async (path) => {
-      const a = actors();
-      await assertSucceeds(getDoc(doc(a.owner, path)));
-      await assertFails(getDoc(doc(a.stranger, path)));
-      await assertFails(getDoc(doc(a.anon, path)));
-    },
-  );
+  it.each([
+    ["consents/alice"],
+    ["jobs/j1"],
+    ["poseSets/alice_1_blouse"],
+    ["follows/alice"],
+  ])("owner reads %s; stranger and anon cannot", async (path) => {
+    const a = actors();
+    await assertSucceeds(getDoc(doc(a.owner, path)));
+    await assertFails(getDoc(doc(a.stranger, path)));
+    await assertFails(getDoc(doc(a.anon, path)));
+  });
 
   it.each([
     ["photos/alice"],
@@ -134,11 +138,12 @@ describe("firestore rules: no client writes", () => {
     consents: "consents/alice",
     photos: "photos/alice",
     jobs: "jobs/j1",
-    poseSets: "poseSets/alice_1_g-parka",
+    poseSets: "poseSets/alice_1_blouse",
     spend: "spend/2026-01-01",
     spendLog: "spendLog/l1",
     usage: "usage/alice_2026-01-01",
     jobInternals: "jobInternals/j1",
+    follows: "follows/alice",
   };
   it.each(COLLECTIONS)("%s: create, update, delete all denied", async (c) => {
     const a = actors();

@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import {
+  dismissSheet,
   acceptConsent,
   expect,
   setScript,
@@ -17,17 +18,34 @@ export interface Screen {
 
 export const SCREENS: Screen[] = [
   {
-    name: "catalogue",
+    name: "discover",
     go: async (page) => {
       await page.goto("/");
-      await expect(page.getByTestId("item-card")).toHaveCount(5);
+      await expect(page.getByTestId("item-card")).toHaveCount(12);
+      await expect(page.getByTestId("proof")).toBeVisible();
     },
-    primary: "article[data-item=g-shell-jacket] button",
+    primary: "article[data-item=jump] button",
   },
   {
     name: "product",
     go: async (page) => {
-      await page.goto("/item/g-shell-jacket");
+      await page.goto("/item/jump");
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    },
+    primary: 'main button:has-text("Try it on")',
+  },
+  {
+    name: "label",
+    go: async (page) => {
+      await page.goto("/label/marchand");
+      await expect(page.getByTestId("label-grid")).toBeVisible();
+    },
+    primary: "main button",
+  },
+  {
+    name: "lists",
+    go: async (page) => {
+      await page.goto("/lists");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     },
     primary: "main button",
@@ -35,7 +53,7 @@ export const SCREENS: Screen[] = [
   {
     name: "consent",
     go: async (page) => {
-      await page.goto("/item/g-shell-jacket/consent");
+      await page.goto("/item/vest/consent");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     },
     primary: "input[type=checkbox]",
@@ -43,7 +61,7 @@ export const SCREENS: Screen[] = [
   {
     name: "photo",
     go: async (page) => {
-      await page.goto("/item/g-shell-jacket/consent");
+      await page.goto("/item/vest/consent");
       await acceptConsent(page);
       await expect(page.locator("input[type=file]")).toBeAttached();
     },
@@ -55,25 +73,24 @@ export const SCREENS: Screen[] = [
       // Long enough that the queue is still the queue while a slow run tabs through it: at 8 s
       // the job could finish mid-test and swap the screen for the result.
       setScript([{ outcome: "ok", delayMs: 30000 }]);
-      await tryOnFromScratch(page, "Hooded shell jacket");
+      await tryOnFromScratch(page, "Knit button vest");
       await expect(page.getByTestId("status-line")).toBeVisible();
     },
-    primary: "a[href='/']:not(nav a)",
+    primary: "main a[href='/']",
   },
   {
     name: "result",
     go: async (page) => {
-      await tryOnFromScratch(page, "Hooded shell jacket");
+      await tryOnFromScratch(page, "Knit button vest");
       await waitForResult(page);
-      await page.keyboard.press("Escape"); // the account sheet
-      await expect(page.getByRole("dialog")).toBeHidden();
+      await dismissSheet(page); // the account sheet
     },
     primary: "div.sticky a",
   },
   {
     name: "honest failure",
     go: async (page) => {
-      await page.goto("/item/g-leather-coat/unavailable");
+      await page.goto("/item/jacket/unavailable");
       await expect(page.getByTestId("honest-failure")).toBeVisible();
     },
     primary: "[data-testid=honest-failure] article button",
@@ -92,17 +109,17 @@ export const SCREENS: Screen[] = [
       await page.goto("/credits");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     },
-    primary: "main a[target=_blank]",
+    primary: "main a",
   },
   {
     name: "sign-up",
     go: async (page) => {
-      await tryOnFromScratch(page, "Hooded shell jacket");
+      await tryOnFromScratch(page, "Knit button vest");
       await waitForResult(page);
       await page.goto("/");
       await page
-        .locator("article[data-item=g-denim-jacket]")
-        .getByRole("button")
+        .locator("article[data-item=coat]")
+        .getByRole("button", { name: "Try it on" })
         .click();
       await expect(page).toHaveURL(/\/signup$/);
     },

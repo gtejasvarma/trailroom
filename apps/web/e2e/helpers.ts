@@ -112,7 +112,12 @@ export async function tryOnFromScratch(page: Page, name: string) {
     .getByRole("link", { name: `View ${name}` })
     .click();
   await expect(page).toHaveURL(/\/item\/[^/]+$/);
-  await page.getByRole("button", { name: "Try it on" }).click();
+  // The button is server-rendered before its click handler is attached. On a slow dev server a
+  // click can land in that gap and do nothing, so click until the page actually moves on.
+  await expect(async () => {
+    await page.getByRole("button", { name: "Try it on" }).click();
+    await expect(page).toHaveURL(/\/consent$/, { timeout: 3_000 });
+  }).toPass({ timeout: 30_000 });
   await acceptConsent(page);
   await page.locator("input[type=file]").setInputFiles(PHOTO);
   await page.getByRole("button", { name: "Use this photo" }).click();
@@ -129,4 +134,11 @@ export async function acceptConsent(page: Page) {
 
 export async function waitForResult(page: Page) {
   await expect(page.getByTestId("hero")).toBeVisible({ timeout: 30_000 });
+}
+
+/** The guest's account sheet opens a beat after the result: wait for it, then dismiss it. */
+export async function dismissSheet(page: Page) {
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
 }

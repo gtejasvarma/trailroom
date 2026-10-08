@@ -13,8 +13,8 @@ describe("path builders", () => {
     expect(stagingPath("j1", "front", 2)).toBe("staging/j1/front-2.png");
     expect(stagingPath("j1", "front", 1, "jpg")).toBe("staging/j1/front-1.jpg");
     expect(stagingPrefix("j1")).toBe("staging/j1/");
-    expect(renderPath("u1", "u1_1_g-parka", "front")).toBe(
-      "renders/u1/u1_1_g-parka/front.jpg",
+    expect(renderPath("u1", "u1_1_blouse", "front")).toBe(
+      "renders/u1/u1_1_blouse/front.jpg",
     );
     expect(renderPrefix("u1")).toBe("renders/u1/");
   });

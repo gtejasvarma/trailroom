@@ -263,7 +263,7 @@ describe("idempotency", () => {
   });
 
   it("every node called twice leaves the job document as calling it once", async () => {
-    const j = await makeJob("u-idem-nodes", "g-parka", [
+    const j = await makeJob("u-idem-nodes", "blouse", [
       "front",
       "walking",
       "seated",
@@ -564,16 +564,16 @@ describe("invariant", () => {
     // What the fake produces for each pose, so published pixels can be compared with the raw.
     process.env.RENDER_PROVIDER = "fake";
     setFakeScript([]);
-    const item = getItem("g-parka")!;
+    const item = getItem("blouse")!;
     raw = {};
     for (const pose of POSE_LIST) {
       const res = await fakeProvider({
         model: "nano-banana-2.1",
         prompt: buildPrompt({
           pose: pose as Pose,
-          category: item.category,
+          category: item.category!,
           wearing: GENERIC_WEARING,
-          target: item.description,
+          target: item.promptDescription,
         }),
         images: [await loadItemImage(item.id), await loadItemImage(item.id)],
         aspectRatio: "3:4",

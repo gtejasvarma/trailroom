@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import type { CatalogItem } from "@trailroom/catalog";
+import { catalogUrl, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
 import { statusLine, type JobView } from "../lib/job";
 import { useRenderImage } from "../lib/use-render-image";
@@ -45,7 +45,7 @@ function Tile({
           <div className="skeleton flex size-full items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={item.image}
+              src={catalogUrl(item.renderImage)}
               alt={copy.queue.garmentAlt(item.name)}
               className="aspect-tryon w-1/2 rounded-md object-cover"
             />

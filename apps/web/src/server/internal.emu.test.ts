@@ -156,7 +156,7 @@ describe("validation", () => {
   });
 
   it("a pose that is not in the job is 400", async () => {
-    const j = await makeJob("u-val", "g-parka", ["front", "walking"]);
+    const j = await makeJob("u-val", "blouse", ["front", "walking"]);
     for (const segment of ["render-pose", "qa-pose", "publish-pose"]) {
       const res = await call(segment, {
         jobId: j.jobId,
@@ -262,7 +262,7 @@ describe("validation", () => {
     expect(render.json).toEqual({ error: "internal" });
     expect(JSON.stringify(render.json)).not.toContain("catalog/");
     expect(spy.mock.calls.flat().join(" ")).toContain(
-      "catalog/commons-parka.jpg",
+      "catalog/wrap-top-front.webp",
     );
     spy.mockRestore();
     vi.unstubAllEnvs();
@@ -291,11 +291,11 @@ describe("purge", () => {
       opts.at,
     );
     if (opts.withJob) {
-      const psId = poseSetId(uid, photo.identityVersion, "g-parka");
+      const psId = poseSetId(uid, photo.identityVersion, "blouse");
       const { id } = await createJob(
         {
           uid,
-          itemId: "g-parka",
+          itemId: "blouse",
           identityVersion: photo.identityVersion,
           poseSetId: psId,
           poseOrder: POSE_LIST,
@@ -316,7 +316,7 @@ describe("purge", () => {
       await claimPoseSet(
         {
           uid,
-          itemId: "g-parka",
+          itemId: "blouse",
           identityVersion: photo.identityVersion,
           jobId: id,
           isGuest: opts.guest,

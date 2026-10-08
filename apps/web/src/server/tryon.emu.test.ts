@@ -76,13 +76,13 @@ async function finish(t: string, itemId: string) {
 describe("try-on refusals", () => {
   it("no consent is 403, no photo is 409, unknown item is 404", async () => {
     const t = await anonymousToken();
-    let res = await tryOn(t, "g-parka");
+    let res = await tryOn(t, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       403,
       "consent_required",
     ]);
     await consent(t);
-    res = await tryOn(t, "g-parka");
+    res = await tryOn(t, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       409,
       "photo_required",
@@ -101,12 +101,12 @@ describe("try-on refusals", () => {
 
   it("an unready item is 409 not_ready with three closest, no job, no calls, no spend", async () => {
     const t = await ready();
-    const res = await tryOn(t, "g-leather-coat");
+    const res = await tryOn(t, "jacket");
     const body = await res.json();
     expect(res.status).toBe(409);
     expect(body.error).toBe("not_ready");
     expect(body.closest).toHaveLength(3);
-    expect(body.closest).not.toContain("g-leather-coat");
+    expect(body.closest).not.toContain("jacket");
     expect(body.reasons.length).toBeGreaterThan(0);
     expect(getFakeCalls()).toHaveLength(0);
     expect(await spendLines()).toBe(0);
@@ -117,7 +117,7 @@ describe("try-on refusals", () => {
 describe("try-on happy path, reuse and caps", () => {
   it("renders four poses; the same item again is reused with no extra calls or spend", async () => {
     const t = await ready();
-    const first = await finish(t, "g-parka");
+    const first = await finish(t, "blouse");
     const job = (await getJob(first.jobId))!;
     expect(job.status).toBe("complete");
     const objs = await listObjects(`renders/${uidOf(t)}/${first.poseSetId}/`);
@@ -126,7 +126,7 @@ describe("try-on happy path, reuse and caps", () => {
     const spend = await spendLines();
     expect(calls).toBeGreaterThanOrEqual(4);
 
-    const res = await tryOn(t, "g-parka");
+    const res = await tryOn(t, "blouse");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ...first, reused: true });
     expect(getFakeCalls()).toHaveLength(calls);
@@ -136,10 +136,10 @@ describe("try-on happy path, reuse and caps", () => {
 
   it("a guest's second item is signup_required with no spend; a signed-in user can start another", async () => {
     const g = await ready("guest");
-    await finish(g, "g-parka");
+    await finish(g, "blouse");
     const spend = await spendLines();
     const calls = getFakeCalls().length;
-    const res = await tryOn(g, "g-shell-jacket");
+    const res = await tryOn(g, "vest");
     expect([res.status, (await res.json()).error]).toEqual([
       403,
       "signup_required",
@@ -148,20 +148,20 @@ describe("try-on happy path, reuse and caps", () => {
     expect(getFakeCalls()).toHaveLength(calls);
 
     const u = await ready("user");
-    await finish(u, "g-parka");
-    const second = await tryOn(u, "g-shell-jacket");
+    await finish(u, "blouse");
+    const second = await tryOn(u, "vest");
     expect(second.status).toBe(202);
   });
 
   it("a failed set is cleared and the same item can be started again", async () => {
     const t = await ready();
     setFakeScript([{ outcome: "error" }]);
-    const first = await finish(t, "g-parka");
+    const first = await finish(t, "blouse");
     expect((await getJob(first.jobId))!.status).toBe("failed");
     expect((await getPoseSet(first.poseSetId))!.status).toBe("failed");
 
     setFakeScript(null);
-    const res = await tryOn(t, "g-parka");
+    const res = await tryOn(t, "blouse");
     const second = await res.json();
     expect([res.status, second.reused]).toEqual([202, false]);
     expect(second.jobId).not.toBe(first.jobId);
@@ -172,10 +172,7 @@ describe("try-on happy path, reuse and caps", () => {
 
   it("two concurrent requests for the same key create one job", async () => {
     const t = await ready("user");
-    const [a, b] = await Promise.all([
-      tryOn(t, "g-parka"),
-      tryOn(t, "g-parka"),
-    ]);
+    const [a, b] = await Promise.all([tryOn(t, "blouse"), tryOn(t, "blouse")]);
     const [ja, jb] = [await a.json(), await b.json()];
     expect(ja.jobId).toBe(jb.jobId);
     expect([a.status, b.status].sort()).toEqual([200, 202]);
@@ -190,7 +187,7 @@ describe("try-on happy path, reuse and caps", () => {
     vi.mocked(startWorkflowExecution).mockRejectedValueOnce(
       new Error("GOOGLE_CLOUD_PROJECT is not set; cannot start a workflow"),
     );
-    const res = await tryOn(t, "g-parka");
+    const res = await tryOn(t, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       503,
       "start_failed",
@@ -207,11 +204,11 @@ describe("daily limits and the guest race", () => {
     const g = await ready("guest");
     setFakeScript([{ outcome: "error" }]);
     for (let i = 0; i < GUEST_DAILY_STARTS; i++) {
-      await finish(g, "g-parka"); // failed sets count
+      await finish(g, "blouse"); // failed sets count
     }
     const spend = await spendLines();
     const calls = getFakeCalls().length;
-    const res = await tryOn(g, "g-parka");
+    const res = await tryOn(g, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       429,
       "daily_limit",
@@ -223,8 +220,8 @@ describe("daily limits and the guest race", () => {
   it("a signed-in user's sixth start is 429", async () => {
     const u = await ready("user");
     setFakeScript([{ outcome: "error" }]);
-    for (let i = 0; i < SIGNED_IN_DAILY_STARTS; i++) await finish(u, "g-parka");
-    const res = await tryOn(u, "g-parka");
+    for (let i = 0; i < SIGNED_IN_DAILY_STARTS; i++) await finish(u, "blouse");
+    const res = await tryOn(u, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       429,
       "daily_limit",
@@ -235,11 +232,11 @@ describe("daily limits and the guest race", () => {
   it("Delete my photo then re-consent and re-upload does not reset the count", async () => {
     const g = await ready("guest");
     setFakeScript([{ outcome: "error" }]);
-    for (let i = 0; i < GUEST_DAILY_STARTS; i++) await finish(g, "g-parka");
+    for (let i = 0; i < GUEST_DAILY_STARTS; i++) await finish(g, "blouse");
     await photoDELETE(req("DELETE", "/api/photo", { token: g }));
     await consent(g);
     await uploadOk(g);
-    const res = await tryOn(g, "g-parka");
+    const res = await tryOn(g, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       429,
       "daily_limit",
@@ -248,10 +245,10 @@ describe("daily limits and the guest race", () => {
 
   it("reusing a pose set and refusals do not consume a start", async () => {
     const u = await ready("user");
-    await finish(u, "g-parka");
+    await finish(u, "blouse");
     for (let i = 0; i < 4; i++)
-      expect((await tryOn(u, "g-parka")).status).toBe(200);
-    await tryOn(u, "g-leather-coat"); // not ready
+      expect((await tryOn(u, "blouse")).status).toBe(200);
+    await tryOn(u, "jacket"); // not ready
     await tryOn(u, "nope");
     expect((await getUsage(uidOf(u)))!.starts).toBe(1);
   });
@@ -262,16 +259,16 @@ describe("daily limits and the guest race", () => {
     setFakeScript([{ outcome: "error" }]);
     const day1 = new Date("2030-03-01T23:30:00Z");
     for (let i = 0; i < GUEST_DAILY_STARTS; i++) {
-      const r = await startTryOn(user, { itemId: "g-parka" }, day1);
+      const r = await startTryOn(user, { itemId: "blouse" }, day1);
       expect(r.status).toBe(202);
       await waitForJob((r.body as { jobId: string }).jobId, getJob);
     }
-    expect((await startTryOn(user, { itemId: "g-parka" }, day1)).status).toBe(
+    expect((await startTryOn(user, { itemId: "blouse" }, day1)).status).toBe(
       429,
     );
     const next = await startTryOn(
       user,
-      { itemId: "g-parka" },
+      { itemId: "blouse" },
       new Date("2030-03-02T00:05:00Z"),
     );
     expect(next.status).toBe(202);
@@ -279,10 +276,7 @@ describe("daily limits and the guest race", () => {
 
   it("two concurrent guest starts for different items: one job, the other signup_required", async () => {
     const g = await ready("guest");
-    const [a, b] = await Promise.all([
-      tryOn(g, "g-parka"),
-      tryOn(g, "g-shell-jacket"),
-    ]);
+    const [a, b] = await Promise.all([tryOn(g, "blouse"), tryOn(g, "vest")]);
     const bodies = [await a.json(), await b.json()];
     expect([a.status, b.status].sort()).toEqual([202, 403]);
     expect(bodies.map((x) => x.error).filter(Boolean)).toEqual([
@@ -297,7 +291,7 @@ describe("daily limits and the guest race", () => {
 describe("hung jobs", () => {
   async function hungJob(t: string, ageMs: number) {
     vi.stubEnv("ORCHESTRATOR", "workflows");
-    const res = await tryOn(t, "g-parka");
+    const res = await tryOn(t, "blouse");
     const { jobId } = await res.json();
     vi.stubEnv("ORCHESTRATOR", "inline");
     await firestore()
@@ -313,7 +307,7 @@ describe("hung jobs", () => {
   it("a rendering set whose job stopped moving is failed and restarted, not reused", async () => {
     const u = await ready("user");
     const old = await hungJob(u, STALE_JOB_MS + 60_000);
-    const res = await tryOn(u, "g-parka");
+    const res = await tryOn(u, "blouse");
     const body = await res.json();
     expect([res.status, body.reused]).toEqual([202, false]);
     expect(body.jobId).not.toBe(old);
@@ -324,7 +318,7 @@ describe("hung jobs", () => {
   it("a recently active rendering set is still reused", async () => {
     const u = await ready("user");
     const live = await hungJob(u, 60_000);
-    const res = await tryOn(u, "g-parka");
+    const res = await tryOn(u, "blouse");
     expect([res.status, (await res.json()).jobId]).toEqual([200, live]);
   });
 });
@@ -333,7 +327,7 @@ describe("jobs and renders", () => {
   it("owner gets JSON with ISO timestamps; another user gets 404", async () => {
     const a = await ready();
     const b = await ready();
-    const { jobId, poseSetId } = await finish(a, "g-parka");
+    const { jobId, poseSetId } = await finish(a, "blouse");
     const res = await jobFor(a, jobId);
     const body = await res.json();
     expect(res.status).toBe(200);
@@ -361,7 +355,7 @@ describe("jobs and renders", () => {
   it("a failed job lists the closest three", async () => {
     const t = await ready();
     setFakeScript([{ outcome: "error" }]);
-    const { jobId } = await finish(t, "g-parka");
+    const { jobId } = await finish(t, "blouse");
     const body = await (await jobFor(t, jobId)).json();
     expect(body.status).toBe("failed");
     expect(body.failure.code).toBeDefined();
@@ -371,7 +365,7 @@ describe("jobs and renders", () => {
   it("owner gets private no-store JPEG bytes; others and odd params get 404", async () => {
     const a = await ready();
     const b = await ready();
-    const { poseSetId, jobId } = await finish(a, "g-parka");
+    const { poseSetId, jobId } = await finish(a, "blouse");
     const pose = (await getPoseSet(poseSetId))!.poses[0]!;
 
     const res = await render(a, poseSetId, pose);
@@ -407,7 +401,7 @@ describe("jobs and renders", () => {
   it("a failed pose inside a partial set is 404 while its siblings are served", async () => {
     const t = await ready();
     setFakeScript([{ pose: "seated", outcome: "error" }]);
-    const { jobId, poseSetId } = await finish(t, "g-parka");
+    const { jobId, poseSetId } = await finish(t, "blouse");
     expect((await getJob(jobId))!.status).toBe("complete_partial");
     expect((await render(t, poseSetId, "seated")).status).toBe(404);
     expect((await render(t, poseSetId, "front")).status).toBe(200);
@@ -416,7 +410,7 @@ describe("jobs and renders", () => {
   it("DELETE /api/photo with a completed job removes renders, staging, job, pose set, consent and photo", async () => {
     const t = await ready();
     const uid = uidOf(t);
-    const { jobId, poseSetId } = await finish(t, "g-parka");
+    const { jobId, poseSetId } = await finish(t, "blouse");
     expect(await listObjects(`renders/${uid}/`)).not.toEqual([]);
     const del = await photoDELETE(req("DELETE", "/api/photo", { token: t }));
     expect(del.status).toBe(200);
@@ -438,7 +432,7 @@ describe("jobs and renders", () => {
   it("a failed set serves nothing", async () => {
     const t = await ready();
     setFakeScript([{ outcome: "error" }]);
-    const { poseSetId } = await finish(t, "g-parka");
+    const { poseSetId } = await finish(t, "blouse");
     expect((await render(t, poseSetId, "walking")).status).toBe(404);
   });
 });

@@ -58,7 +58,7 @@ for (const screen of SCREENS) {
 }
 
 test("axe: the account sheet over the result", async ({ page }) => {
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
   await expect(page.getByRole("dialog")).toBeVisible();
   // Axe reads colours mid-animation otherwise: let the sheet finish rising.
@@ -74,7 +74,7 @@ const blocked = (pose: string) => ({
 
 test("axe: honest failure, render failed", async ({ page }) => {
   setScript([blocked("front"), blocked("three-quarter"), blocked("walking")]);
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await expect(page.getByTestId("honest-failure")).toHaveAttribute(
     "data-kind",
     "render_failed",
@@ -85,7 +85,7 @@ test("axe: honest failure, render failed", async ({ page }) => {
 
 test("axe: honest failure, capacity", async ({ page }) => {
   await exhaustBudget();
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await expect(page.getByTestId("honest-failure")).toHaveAttribute(
     "data-kind",
     "capacity",
@@ -98,7 +98,7 @@ test("axe: the partial result, and its account sheet names three poses", async (
   page,
 }) => {
   setScript([blocked("walking")]);
-  await tryOnFromScratch(page, "Hooded shell jacket");
+  await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
   await expect(page.getByTestId("partial-line")).toBeVisible();
   await expect(
@@ -120,7 +120,7 @@ test("axe: /gate", async ({ browser }) => {
 test("axe: photo screen with a chosen photo, and with a rejection", async ({
   page,
 }) => {
-  await page.goto("/item/g-shell-jacket/consent");
+  await page.goto("/item/vest/consent");
   await acceptConsent(page);
   await page.locator("input[type=file]").setInputFiles(PHOTO);
   await expect(
@@ -131,7 +131,7 @@ test("axe: photo screen with a chosen photo, and with a rejection", async ({
 
 test("Enter activates the primary action", async ({ page }) => {
   setScript([]);
-  await page.goto("/item/g-shell-jacket");
+  await page.goto("/item/vest");
   const button = page.getByRole("button", { name: "Try it on" });
   await button.focus();
   await page.keyboard.press("Enter");

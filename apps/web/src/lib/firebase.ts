@@ -86,3 +86,10 @@ export function ensureUser(): Promise<User> {
   }
   return pending;
 }
+
+/** The signed-in user if there is one. Never creates a Guest Session. */
+export async function peekUser(): Promise<User | null> {
+  const auth = getFirebaseAuth();
+  await auth.authStateReady();
+  return auth.currentUser;
+}
