@@ -62,6 +62,15 @@ export const ERRORS = {
     message:
       "Guests get one set of previews, so create an account to try on more.",
   },
+  account_required: {
+    status: 403,
+    message: "Create an account to open your poses.",
+  },
+  job_in_progress: {
+    status: 409,
+    message:
+      "Another try-on is still rendering, so wait for it to finish before starting this one.",
+  },
   daily_limit: {
     status: 429,
     message: "Today's try-ons are used up, so come back tomorrow.",

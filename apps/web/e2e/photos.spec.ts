@@ -8,8 +8,10 @@ import type { Page } from "@playwright/test";
 import {
   card,
   confirmWhichPhoto,
+  continueWithGoogle,
   expect,
   PHOTO,
+  pickThreeLabels,
   test,
   uploadFirst,
   waitForResult,
@@ -150,7 +152,10 @@ for (const size of SIZES) {
         page.getByRole("button", { name: "Choose another" }),
       ).toBeVisible();
       await page.getByRole("button", { name: "Use this photo" }).click();
-      await expect(page).toHaveURL(/\/upload\/done$/);
+      // A guest is asked for an account first, then picks three labels, then the starters.
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await continueWithGoogle(page);
+      await pickThreeLabels(page);
       await expect(
         page.getByRole("heading", { name: "Your photo is in" }),
       ).toBeVisible();
@@ -379,7 +384,10 @@ test.describe("camera", () => {
     expect(await liveTracks(page)).toBe(0);
     if (await page.getByTestId("photo-preview").isVisible()) {
       await page.getByRole("button", { name: "Use this photo" }).click();
-      await expect(page).toHaveURL(/\/upload\/done$/);
+      // A guest is asked for an account before the starters.
+      await expect(
+        page.getByRole("dialog", { name: /create an account/ }),
+      ).toBeVisible();
     } else {
       await expect(page.getByTestId("photo-error")).toContainText(
         /768 pixels|too wide or too tall/,

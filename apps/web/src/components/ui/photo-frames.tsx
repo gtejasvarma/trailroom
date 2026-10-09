@@ -74,20 +74,24 @@ export function PhotoFrames({
       >
         {frames.map((f, i) => (
           <div
-            key={f.src}
+            key={i}
             role="group"
             aria-roledescription={copy.card.slide}
             aria-label={copy.card.frameLabel(name, i + 1, n)}
             className={`relative block w-full flex-none snap-start ${aspect} overflow-hidden bg-canvas`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={f.src}
-              alt={f.alt}
-              loading={i === 0 ? "eager" : "lazy"}
-              className="size-full object-cover"
-              style={{ objectPosition: f.focus }}
-            />
+            {f.src ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={f.src}
+                alt={f.alt}
+                loading={i === 0 ? "eager" : "lazy"}
+                className="size-full object-cover"
+                style={{ objectPosition: f.focus }}
+              />
+            ) : (
+              <span aria-hidden="true" className="skeleton block size-full" />
+            )}
             {href ? (
               <Link
                 href={href}
@@ -110,7 +114,7 @@ export function PhotoFrames({
           <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
             {frames.map((f, i) => (
               <span
-                key={f.src}
+                key={i}
                 data-testid="dot"
                 data-active={i === index}
                 className={`size-1.5 rounded-full ${

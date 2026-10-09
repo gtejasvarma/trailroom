@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { statusLine, toJobView, type JobStatus, type JobView } from "./job";
+import {
+  chipLines,
+  queueLines,
+  statusLine,
+  toJobView,
+  type JobStatus,
+  type JobView,
+} from "./job";
 
 const POSES = ["front", "three-quarter", "walking", "seated"];
 
@@ -134,5 +141,75 @@ describe("toJobView", () => {
     });
     expect(v?.poses.front?.status).toBe("passed");
     expect(toJobView("j", {})).toBeNull();
+  });
+});
+
+describe("chipLines: a true count, never a sequence", () => {
+  it("counts the poses that are ready", () => {
+    expect(chipLines(job("rendering", {}), "Wool car coat")).toEqual({
+      title: "Putting the wool car coat on you",
+      sub: "0 of 4 poses ready · you can keep browsing",
+    });
+    const two = job("rendering", {
+      front: "passed",
+      walking: "passed",
+      seated: "rendering",
+    });
+    expect(chipLines(two, "Wool car coat").sub).toBe(
+      "2 of 4 poses ready · you can keep browsing",
+    );
+    expect(chipLines(two, "Wool car coat").sub).not.toMatch(/pose \d of/i);
+  });
+  it("does not hard-code four", () => {
+    const six = ["a", "b", "c", "d", "e", "f"];
+    const j: JobView = {
+      ...job("rendering", {}),
+      poseOrder: six,
+      poses: Object.fromEntries(
+        six.map((p, i) => [p, { status: i < 3 ? "passed" : "pending" }]),
+      ),
+    };
+    expect(chipLines(j, "x").sub).toBe(
+      "3 of 6 poses ready · you can keep browsing",
+    );
+  });
+  it("a failed pose is not ready", () => {
+    expect(
+      chipLines(job("rendering", { front: "passed", seated: "failed" }), "x")
+        .sub,
+    ).toBe("1 of 4 poses ready · you can keep browsing");
+  });
+});
+
+describe("queueLines", () => {
+  const all = {
+    front: "passed",
+    "three-quarter": "passed",
+    walking: "passed",
+    seated: "passed",
+  };
+  it("running", () => {
+    expect(queueLines(job("rendering", {}), "Wool car coat", false)).toEqual({
+      title: "4 poses, coming up",
+      line: "Your photo, the wool car coat, 4 poses. 0 of 4 ready, and you can leave this screen while it renders.",
+    });
+  });
+  it("done for a guest: ready, and an account opens them", () => {
+    expect(queueLines(job("complete", all), "Wool car coat", false)).toEqual({
+      title: "4 poses, ready",
+      line: "The wool car coat on your photo, 4 poses. Create an account to open them.",
+    });
+  });
+  it("done signed in: on you", () => {
+    expect(queueLines(job("complete", all), "Wool car coat", true)).toEqual({
+      title: "4 poses, on you",
+      line: "The wool car coat on your photo, 4 poses.",
+    });
+  });
+  it("a partial set states the real count", () => {
+    const three = { ...all, seated: "failed" };
+    expect(queueLines(job("complete_partial", three), "x", true).title).toBe(
+      "3 poses, on you",
+    );
   });
 });

@@ -1,6 +1,5 @@
 import {
   card,
-  confirmWhichPhoto,
   exhaustBudget,
   expect,
   listDocs,
@@ -27,7 +26,7 @@ test("partial set: three images, the three-of-four line, no broken tile", async 
     "Three of four poses are shown. One could not be rendered well enough to show.",
   );
   await expect(page.getByTestId("pose-thumb")).toHaveCount(3);
-  await expect(page.locator("img[data-render]")).toHaveCount(4); // hero + three
+  await expect(page.locator("img[data-render]")).toHaveCount(3); // one slide per pose
   for (const img of await page.locator("img[data-render]").all()) {
     await expect(img).toBeVisible();
     expect(
@@ -60,17 +59,17 @@ test("failed set: honest failure with retry, a different photo, and three altern
   await expect(
     screen.getByRole("heading", { name: "Closest three we can put on you" }),
   ).toBeVisible();
-  await expect(screen.getByTestId("item-card")).toHaveCount(3);
+  await expect(screen.getByTestId("closest").getByRole("button")).toHaveCount(
+    3,
+  );
+  // Exactly the actions listed: try again, a different photo, the three alternatives.
+  await expect(screen.getByRole("button")).toHaveCount(4);
+  await expect(screen.getByRole("link")).toHaveCount(1);
   // No image from the failed set is shown.
   await expect(page.locator("img[data-render]")).toHaveCount(0);
 
   // One tap into an alternative starts that item's flow (a photo is on file).
-  await screen
-    .getByTestId("item-card")
-    .first()
-    .getByRole("button", { name: "Try it on" })
-    .click();
-  await confirmWhichPhoto(page);
+  await screen.getByTestId("closest").getByRole("button").first().click();
   await expect(page).not.toHaveURL(failedUrl);
   await expect(page).toHaveURL(/\/try-on\//);
 });
@@ -106,12 +105,19 @@ test("unready item: honest failure without any upload asked for", async ({
   await expect(page).toHaveURL(/\/item\/jacket\/unavailable$/);
   const screen = page.getByTestId("honest-failure");
   await expect(screen).toHaveAttribute("data-kind", "not_ready");
-  await expect(screen).toContainText("We can't render this one honestly");
+  await expect(screen).toContainText("We couldn't render this one honestly");
   await expect(screen).toContainText("folded over an arm");
   await expect(screen).toContainText(
     "We'd rather say so than show you a guess",
   );
-  await expect(screen.getByTestId("item-card")).toHaveCount(3);
+  await expect(screen.getByTestId("closest").getByRole("button")).toHaveCount(
+    3,
+  );
+  await expect(screen.getByRole("heading", { level: 2 })).toHaveText(
+    "Closest three we can put on you",
+  );
+  // No email promise: none is sent in V0.
+  await expect(screen).not.toContainText(/e-?mail/i);
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 
   expect(
@@ -156,7 +162,7 @@ test("capacity: the budget message and exactly one action, no retry", async ({
   await expect(screen).toContainText("Come back tomorrow");
   await expect(screen.getByRole("link")).toHaveCount(1);
   await expect(
-    screen.getByRole("link", { name: "Back to the pieces" }),
+    screen.getByRole("link", { name: "Back to Discover" }),
   ).toBeVisible();
   await expect(screen.getByRole("button")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /try again/i })).toHaveCount(0);

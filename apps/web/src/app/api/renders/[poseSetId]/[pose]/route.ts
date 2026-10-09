@@ -1,6 +1,6 @@
 import { requireUser } from "../../../../../server/auth";
-import { NO_STORE, respond } from "../../../../../server/http";
-import { getRenderForUser } from "../../../../../server/renders";
+import { errorResponse, NO_STORE, respond } from "../../../../../server/http";
+import { getRenderForUser, parseSize } from "../../../../../server/renders";
 
 export async function GET(
   request: Request,
@@ -9,7 +9,9 @@ export async function GET(
   const user = await requireUser(request);
   if (user instanceof Response) return user;
   const { poseSetId, pose } = await params;
-  const result = await getRenderForUser(user, poseSetId, pose);
+  const size = parseSize(new URL(request.url).searchParams.get("size"));
+  if (!size) return errorResponse("invalid_request");
+  const result = await getRenderForUser(user, poseSetId, pose, size);
   if (!result.ok) return respond(result);
   return new Response(new Uint8Array(result.body.bytes), {
     status: 200,

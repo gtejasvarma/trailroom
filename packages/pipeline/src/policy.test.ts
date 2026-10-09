@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MAX_ATTEMPTS, nextStepForPose, routeSet } from "./policy";
+import {
+  failureCodeForFailedSet,
+  MAX_ATTEMPTS,
+  nextStepForPose,
+  routeSet,
+} from "./policy";
 
 const P = ["front", "three-quarter", "walking", "seated"] as const;
 const mk = (bits: string) =>
@@ -79,5 +84,66 @@ describe("nextStepForPose", () => {
     [2, "fail", "fail_pose"],
   ] as const)("attempt %i %s -> %s", (attempt, verdict, next) => {
     expect(nextStepForPose({ attempt, verdict })).toBe(next);
+  });
+});
+
+describe("failureCodeForFailedSet", () => {
+  const E = "model_error";
+  const table: [string, (string | undefined)[][], string][] = [
+    [
+      "every attempt of every pose errored",
+      [
+        [E, E],
+        [E, E],
+        [E, E],
+        [E, E],
+      ],
+      "internal",
+    ],
+    ["errors with a single attempt each", [[E], [E], [E], [E]], "internal"],
+    [
+      "errors mixed with a blank image",
+      [
+        [E, E],
+        [E, "rendered"],
+        [E, E],
+        [E, E],
+      ],
+      "render_failed",
+    ],
+    [
+      "the model answered and the checks rejected it",
+      [
+        ["rendered", "rendered"],
+        ["rendered", "rendered"],
+        ["blocked", "no_image"],
+        ["rendered", "rendered"],
+      ],
+      "render_failed",
+    ],
+    [
+      "one pose passed, the rest errored",
+      [["rendered"], [E, E], [E, E], [E, E]],
+      "render_failed",
+    ],
+    [
+      "a pose with no recorded attempt",
+      [[E, E], [], [E, E], [E, E]],
+      "render_failed",
+    ],
+    ["no poses at all", [], "render_failed"],
+    [
+      "blocked is a model answer, not a provider failure",
+      [
+        ["blocked", "blocked"],
+        [E, E],
+        [E, E],
+        [E, E],
+      ],
+      "render_failed",
+    ],
+  ];
+  it.each(table)("%s -> %s", (_n, input, want) => {
+    expect(failureCodeForFailedSet(input)).toBe(want);
   });
 });

@@ -127,6 +127,45 @@ describe("renderImage against the Gemini request shape", () => {
     expect(meter.pendingMicros).toBe(0);
   });
 
+  describe("HTTP status on a thrown provider error", () => {
+    const status = (n: number) =>
+      Object.assign(new Error(`${n} API error occurred`), { status: n });
+    it.each([402, 429])("settles at zero for a %i", async (n) => {
+      const meter = new SpendMeter(1);
+      const { client } = clientReturning(status(n));
+      const res = await renderImage(request({ client, meter }));
+      expect(res).toMatchObject({ ok: false, reason: "error", costUsd: 0 });
+      if (!res.ok) expect(res.detail).toContain(`status=${n}`);
+      expect(meter.spentMicros).toBe(0);
+      expect(meter.pendingMicros).toBe(0);
+    });
+    it("reads the status from the message when no field carries it", async () => {
+      const meter = new SpendMeter(1);
+      const { client } = clientReturning(new Error("402 API error occurred"));
+      await renderImage(request({ client, meter }));
+      expect(meter.spentMicros).toBe(0);
+    });
+    it("settles at the estimate for a 500", async () => {
+      const meter = new SpendMeter(1);
+      const { client } = clientReturning(status(500));
+      await renderImage(request({ client, meter }));
+      expect(meter.spentMicros).toBe(estimateCostMicros("nano-banana-2.1", 2));
+    });
+    it("logs one error line per failed call: model, pose, attempt, status", async () => {
+      const err = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { client } = clientReturning(status(402));
+      await renderImage(request({ client }));
+      expect(err).toHaveBeenCalledTimes(1);
+      const line = String(err.mock.calls[0]![0]);
+      expect(line).toContain("model=nano-banana-2.1");
+      expect(line).toContain("pose=walking");
+      expect(line).toContain("attempt=1");
+      expect(line).toContain("status=402");
+      expect(line).not.toContain("person-bytes");
+      err.mockRestore();
+    });
+  });
+
   it("settles at the estimate when a response reports no usage", async () => {
     const meter = new SpendMeter(1);
     const { client } = clientReturning({

@@ -6,6 +6,7 @@ import {
   PHOTO,
   expect,
   setScript,
+  settle,
   test,
   tryOnFromScratch,
   waitForResult,
@@ -56,15 +57,6 @@ for (const screen of SCREENS) {
   });
 }
 
-test("axe: the account sheet over the result", async ({ page }) => {
-  await tryOnFromScratch(page, "Knit button vest");
-  await waitForResult(page);
-  await expect(page.getByRole("dialog")).toBeVisible();
-  // Axe reads colours mid-animation otherwise: let the sheet finish rising.
-  await page.waitForTimeout(700);
-  expect(await serious(page)).toEqual([]);
-});
-
 const blocked = (pose: string) => ({
   pose,
   outcome: "blocked" as const,
@@ -82,6 +74,19 @@ test("axe: honest failure, render failed", async ({ page }) => {
   expect(await serious(page)).toEqual([]);
 });
 
+test("axe: honest failure, provider error on every call (internal)", async ({
+  page,
+}) => {
+  setScript([{ outcome: "error" }]);
+  await tryOnFromScratch(page, "Knit button vest");
+  await expect(page.getByTestId("honest-failure")).toHaveAttribute(
+    "data-kind",
+    "internal",
+    { timeout: 30_000 },
+  );
+  expect(await serious(page)).toEqual([]);
+});
+
 test("axe: honest failure, capacity", async ({ page }) => {
   await exhaustBudget();
   await tryOnFromScratch(page, "Knit button vest");
@@ -93,17 +98,24 @@ test("axe: honest failure, capacity", async ({ page }) => {
   expect(await serious(page)).toEqual([]);
 });
 
-test("axe: the partial result, and its account sheet names three poses", async ({
+test("axe: honest failure, jewellery not yet", async ({ page }) => {
+  await page.goto("/item/hoops/unavailable");
+  await expect(page.getByTestId("honest-failure")).toHaveAttribute(
+    "data-try-on",
+    "not_yet",
+  );
+  expect(await serious(page)).toEqual([]);
+});
+
+test("axe: the partial result, signed in, names three poses", async ({
   page,
 }) => {
   setScript([blocked("walking")]);
   await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
   await expect(page.getByTestId("partial-line")).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Three poses are ready" }),
-  ).toBeVisible();
-  await page.waitForTimeout(700);
+  await expect(page.getByTestId("queue-title")).toHaveCount(0);
+  await settle(page);
   expect(await serious(page)).toEqual([]);
 });
 

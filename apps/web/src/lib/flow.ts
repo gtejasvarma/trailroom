@@ -11,6 +11,9 @@ export const paths = {
   upload: "/upload",
   /** "Your photo is in": the starters screen after an upload-first upload. */
   starters: "/upload/done",
+  /** "Pick three labels": once, right after a new account is made with no render yet. */
+  welcome: "/upload/labels",
+  tryOns: "/you/try-ons",
   item: (id: string) => `/item/${id}`,
   /** Upload for one piece; on success it goes straight into the try-on. */
   photo: (id: string) => `/item/${id}/photo`,
@@ -35,6 +38,7 @@ export async function startTryOnPath(
       if (e.code === "not_ready") return paths.unavailable(itemId);
       if (e.code === "signup_required") return paths.signup(itemId);
       if (e.code === "daily_limit") return paths.limit(itemId);
+      if (e.code === "job_in_progress") throw new Error(e.message);
       if (e.code === "consent_required" || e.code === "photo_required")
         return paths.photo(itemId);
     }

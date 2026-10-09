@@ -123,12 +123,39 @@ export async function tryOnFromScratch(page: Page, name: string) {
   await expect(page).toHaveURL(/\/try-on\//);
 }
 
-/** Upload first: /upload, choose the photo, Use this photo. Ends on "Your photo is in". */
-export async function uploadFirst(page: Page) {
+/** Upload first as a guest: /upload, choose the photo, Use this photo. Ends on the account sheet. */
+export async function uploadFirstAsGuest(page: Page) {
   await page.goto("/upload");
   await page.locator("input[type=file]").setInputFiles(PHOTO);
   await page.getByRole("button", { name: "Use this photo" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Your photo is in — create an account" }),
+  ).toBeVisible();
+}
+
+/** Picks three labels on "Pick three labels" and taps Done. Ends on "Your photo is in". */
+export async function pickThreeLabels(page: Page) {
+  await expect(page).toHaveURL(/\/upload\/labels$/);
+  const done = page.getByTestId("labels-done");
+  await expect(done).toBeDisabled();
+  const rows = page.getByTestId("label-picks").getByRole("button");
+  await rows.nth(0).click();
+  await expect(done).toHaveText("Pick 2 more");
+  await rows.nth(1).click();
+  await expect(done).toHaveText("Pick 1 more");
+  await expect(done).toBeDisabled();
+  await rows.nth(2).click();
+  await expect(done).toHaveText("Done");
+  await expect(done).toBeEnabled();
+  await done.click();
   await expect(page).toHaveURL(/\/upload\/done$/);
+}
+
+/** Upload first, creating an account on the way. Ends on "Your photo is in", signed in. */
+export async function uploadFirst(page: Page) {
+  await uploadFirstAsGuest(page);
+  await continueWithGoogle(page);
+  await pickThreeLabels(page);
   await expect(page.getByTestId("starter")).toHaveCount(4);
 }
 
@@ -143,13 +170,77 @@ export async function confirmWhichPhoto(page: Page) {
   }).toPass({ timeout: 20_000 });
 }
 
-export async function waitForResult(page: Page) {
-  await expect(page.getByTestId("hero")).toBeVisible({ timeout: 30_000 });
+let accountCounter = 0;
+/** A fresh Google account address for the Auth emulator's fake popup. */
+export const newEmail = () =>
+  `e2e-${Date.now()}-${accountCounter++}@example.com`;
+
+/** A guest's finished try-on: tiles and "N poses, ready"; the full result is not reachable. */
+export async function waitForGuestReady(page: Page) {
+  await expect(page.getByTestId("queue-title")).toHaveText(/poses?, ready$/, {
+    timeout: 30_000,
+  });
 }
 
-/** The guest's account sheet opens a beat after the result: wait for it, then dismiss it. */
+/**
+ * Clicks Continue with Google in the open account sheet and completes the Auth emulator's fake
+ * popup. `email` names a new account; with `existing` it picks that already-known account.
+ */
+export async function continueWithGoogle(
+  page: Page,
+  opts: { email?: string; existing?: boolean } = {},
+) {
+  const dialog = page.getByRole("dialog");
+  const email = opts.email ?? newEmail();
+  const popupPromise = page.waitForEvent("popup");
+  await dialog.getByRole("button", { name: "Continue with Google" }).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState("load");
+  if (opts.existing) {
+    await popup.getByText(email).click();
+  } else {
+    await popup.getByText("Add new account").click();
+    await expect(popup.locator("#email-input")).toBeVisible();
+    await popup.locator("#email-input").fill(email);
+    await popup.locator("#sign-in").click();
+  }
+  return email;
+}
+
+/**
+ * Reaches the signed-in result for the try-on that is running or finished on this page: waits for
+ * the guest-ready state, signs in with Google from the account sheet, and waits for the gallery.
+ * Already signed in: just waits for the gallery.
+ */
+export async function waitForResult(page: Page) {
+  const hero = page.getByTestId("pose-gallery");
+  const guestReady = page.getByTestId("queue-title");
+  await expect(hero.or(guestReady.filter({ hasText: /ready$/ }))).toBeVisible({
+    timeout: 30_000,
+  });
+  if (!(await hero.isVisible())) {
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await continueWithGoogle(page);
+  }
+  await expect(hero).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("img[data-hero]").first()).toBeVisible();
+}
+
+/** The guest's account sheet opens a beat after the finish: wait for it, then dismiss it. */
 export async function dismissSheet(page: Page) {
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toBeHidden();
+}
+
+/** Waits for animations (the sheet's rise) to finish before axe or a screenshot reads colours. */
+export async function settle(page: Page) {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => {})),
+    ),
+  );
 }

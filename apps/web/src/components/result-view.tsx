@@ -1,22 +1,50 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import type { CatalogItem } from "@trailroom/catalog";
-import { isGuestNow } from "../lib/account";
+// The result, as the prototypes: a full-bleed swipe gallery of the poses (counter, dots, ON YOU
+// chip), the AI caption directly under it, pose thumbnails that jump the gallery, then the piece
+// and its actions. From 768px the thumbnails sit in a column beside a large pose and the details
+// sit to the right (the desktop product view in its on-you state).
+// Buy, Add to a list and Build the outfit arrive in later phases: each says so in a toast.
+import { useRef, useState } from "react";
+import { catalogUrl, getItem, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
 import { passedPoses, type JobView } from "../lib/job";
 import { useRenderImage } from "../lib/use-render-image";
-import {
-  body,
-  btnIcon,
-  btnPrimary,
-  btnSecondary,
-  caption,
-  h1,
-  labelStyle,
-  page,
-} from "../lib/ui";
-import { AccountSheet } from "./account-sheet";
+import { Button } from "./ui/button";
+import { Chip } from "./ui/chip";
+import { useToast } from "./ui/toast";
+
+function Slide({
+  job,
+  item,
+  pose,
+}: {
+  job: JobView;
+  item: CatalogItem;
+  pose: string;
+}) {
+  const { url } = useRenderImage(job.poseSetId, pose);
+  const poseName = copy.poses[pose] ?? pose;
+  return (
+    <div
+      data-testid="pose-slide"
+      data-pose={pose}
+      className={`relative block aspect-[3/4] w-full flex-none snap-start overflow-hidden bg-canvas ${
+        url ? "" : "skeleton"
+      }`}
+    >
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url}
+          alt={copy.result.heroAlt(item.name, item.label, poseName)}
+          data-render
+          data-hero
+          className="reveal block size-full bg-canvas object-cover"
+        />
+      ) : null}
+    </div>
+  );
+}
 
 function Thumb({
   job,
@@ -31,217 +59,273 @@ function Thumb({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const { url } = useRenderImage(job.poseSetId, pose);
+  const { url } = useRenderImage(job.poseSetId, pose, true, "tile");
   const poseName = copy.poses[pose] ?? pose;
   return (
-    <figure className="m-0" data-testid="pose-thumb" data-pose={pose}>
-      <button
-        type="button"
-        onClick={onSelect}
-        aria-pressed={selected}
-        aria-label={poseName}
-        className={`block w-full overflow-hidden rounded-md bg-canvas p-0 ${
-          selected ? "outline-2 outline-offset-2 outline-accent" : ""
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      aria-label={poseName}
+      data-testid="pose-thumb"
+      data-pose={pose}
+      className="block w-16 flex-none p-0 text-center md:w-[76px]"
+    >
+      <span
+        className={`relative block aspect-[4/5] w-full overflow-hidden rounded-[7px] bg-surface transition-opacity duration-150 ${
+          selected
+            ? "opacity-100 outline-2 -outline-offset-2 outline-ink"
+            : "opacity-55"
         }`}
       >
-        <div className={`aspect-tryon w-full ${url ? "" : "skeleton"}`}>
-          {url ? (
-            // eslint-disable-next-line @next/next/no-img-element
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt=""
+            className="size-full object-cover"
+            style={{ objectPosition: "50% 30%" }}
+          />
+        ) : null}
+      </span>
+      <span
+        className={`mt-1 block truncate text-[10px] leading-[13px] md:text-[11px] ${
+          selected ? "text-ink" : "text-ink-600"
+        }`}
+      >
+        {poseName}
+      </span>
+    </button>
+  );
+}
+
+function OutfitRow({
+  item,
+  onClick,
+}: {
+  item: CatalogItem;
+  onClick: () => void;
+}) {
+  const pairs = item.pairsWith
+    .map((id) => getItem(id))
+    .filter((p): p is CatalogItem => Boolean(p))
+    .slice(0, 2);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-4 flex w-full items-center gap-2.5 border-t border-line-soft pt-3.5 text-left"
+    >
+      <span className="block flex-1">
+        <span className="block text-[14px] leading-[19px] font-semibold text-ink">
+          {copy.result.outfit}
+        </span>
+        <span className="block text-[12px] leading-4 text-ink-600">
+          {copy.result.outfitSub}
+        </span>
+      </span>
+      <span aria-hidden="true" className="flex flex-none gap-2">
+        {pairs.map((p) => (
+          <span
+            key={p.id}
+            className="block size-[52px] overflow-hidden rounded-full border border-line"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={url}
-              alt={copy.result.thumbAlt(item.name, poseName)}
-              data-render
-              className="aspect-tryon w-full bg-canvas object-cover"
+              src={catalogUrl(p.photos[0]!.file)}
+              alt=""
+              className="size-full object-cover"
+              style={{ objectPosition: p.photos[0]!.focus }}
             />
+          </span>
+        ))}
+      </span>
+    </button>
+  );
+}
+
+/** The signed-in person's result. Guests never get here: the server serves them tiles only. */
+export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
+  const say = useToast();
+  const poses = passedPoses(job);
+  const n = poses.length;
+  const scroller = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+  const target = useRef(0);
+  const animating = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const price = copy.item.price(item.priceUsd);
+  const current = poses[Math.min(index, n - 1)] ?? poses[0]!;
+  const poseName = copy.poses[current] ?? current;
+
+  const jump = (i: number) => {
+    const el = scroller.current;
+    if (!el) return;
+    const to = Math.max(0, Math.min(n - 1, i));
+    target.current = to;
+    clearTimeout(animating.current);
+    animating.current = setTimeout(() => {
+      animating.current = undefined;
+      // Scroll events during the glide were ignored: catch up with where it ended.
+      const i = Math.round(el.scrollLeft / (el.clientWidth || 1));
+      target.current = i;
+      setIndex(i);
+    }, 700);
+    el.scrollTo({ left: to * el.clientWidth, behavior: "smooth" });
+    setIndex(to);
+  };
+
+  return (
+    <div className="rise mx-auto w-full max-w-[1600px] pb-8 md:px-10 md:pt-6">
+      <div className="md:grid md:grid-cols-[76px_minmax(0,520px)_minmax(300px,1fr)] md:items-start md:gap-x-6">
+        <div className="relative md:col-start-2 md:row-start-1 md:overflow-hidden md:rounded-md">
+          <div
+            ref={scroller}
+            data-testid="pose-gallery"
+            role="group"
+            aria-roledescription={copy.card.carousel}
+            aria-label={copy.result.galleryLabel}
+            tabIndex={0}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const i = Math.round(el.scrollLeft / (el.clientWidth || 1));
+              if (animating.current === undefined) {
+                target.current = i;
+                setIndex(i);
+              }
+            }}
+            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
+          >
+            {poses.map((p) => (
+              <Slide key={p} job={job} item={item} pose={p} />
+            ))}
+          </div>
+          <Chip
+            upper
+            className="absolute top-3 left-3"
+            data-testid="state-chip"
+          >
+            <span className="md:hidden">{copy.result.onYou}</span>
+            <span className="hidden md:inline">
+              {copy.result.onYouPose(poseName)}
+            </span>
+          </Chip>
+          <Chip
+            className="absolute top-3 right-3 tabular-nums"
+            data-testid="counter"
+          >
+            {copy.result.counter(poseName, index + 1, n)}
+          </Chip>
+          {n > 1 ? (
+            <>
+              <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-[5px]">
+                {poses.map((p, i) => (
+                  <span
+                    key={p}
+                    data-testid="dot"
+                    data-active={i === index}
+                    className={`size-1.5 rounded-full shadow-1 ${
+                      i === index ? "bg-canvas" : "bg-canvas/50"
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => jump(index - 1)}
+                disabled={index === 0}
+                aria-label={copy.card.prev}
+                className="absolute top-1/2 left-3 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-canvas/90 text-ink shadow-2 disabled:opacity-0 md:flex"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => jump(index + 1)}
+                disabled={index === n - 1}
+                aria-label={copy.card.next}
+                className="absolute top-1/2 right-3 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-canvas/90 text-ink shadow-2 disabled:opacity-0 md:flex"
+              >
+                →
+              </button>
+            </>
           ) : null}
         </div>
-      </button>
-      <figcaption className={`mt-1 break-words ${caption}`}>
-        <span className="block font-medium text-ink-700">{poseName}</span>
-        <span className="block">{copy.result.aiCaption}</span>
-      </figcaption>
-    </figure>
-  );
-}
 
-function SaveIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 3v12" />
-      <path d="m7 10 5 5 5-5" />
-      <path d="M5 21h14" />
-    </svg>
-  );
-}
-
-function sheetKey(jobId: string) {
-  return `trailroom.account-sheet.${jobId}`;
-}
-
-/** The result: one hero, pose thumbnails, the AI caption and expectation line directly under it. */
-export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
-  const poses = passedPoses(job);
-  const [selected, setSelected] = useState<string | null>(null);
-  const pose = selected && poses.includes(selected) ? selected : poses[0]!;
-  const poseName = copy.poses[pose] ?? pose;
-  const { url: heroUrl } = useRenderImage(job.poseSetId, pose);
-
-  const [guest, setGuest] = useState<boolean | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-
-  // The sheet rises once when the result first shows for a guest.
-  useEffect(() => {
-    let cancelled = false;
-    isGuestNow()
-      .then((g) => {
-        if (cancelled) return;
-        setGuest(g);
-        if (!g) return;
-        let seen = false;
-        try {
-          seen = sessionStorage.getItem(sheetKey(job.jobId)) === "1";
-          sessionStorage.setItem(sheetKey(job.jobId), "1");
-        } catch {
-          // storage unavailable: the sheet simply rises again on reload
-        }
-        if (!seen) setSheetOpen(true);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [job.jobId]);
-
-  function locked(action: () => void) {
-    if (guest) setSheetOpen(true);
-    else action();
-  }
-
-  function save() {
-    if (!heroUrl) return setNote(copy.result.saveFailed);
-    const a = document.createElement("a");
-    a.href = heroUrl;
-    a.download = `trailroom-${item.id}-${pose}.jpg`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setNote(copy.result.saved);
-  }
-
-  const skipped = job.qaSkipped.join(", ");
-
-  return (
-    <div className={`${page} flex flex-col items-center pb-0`}>
-      <div className="w-full max-w-[560px]">
-        <p className={labelStyle}>{item.label}</p>
-        <h1 className={`mt-1 ${h1}`}>{copy.result.title(item.name)}</h1>
-
-        <figure className="m-0 mt-4" data-testid="hero">
-          <div
-            className={`w-full overflow-hidden rounded-xl bg-canvas ${heroUrl ? "" : "skeleton"}`}
-            style={{ aspectRatio: "4 / 5" }}
+        <div className="px-4 pt-2 md:col-start-2 md:row-start-2 md:px-0">
+          <p
+            data-testid="ai-caption"
+            className="text-[12px] leading-4 font-medium text-ink-600"
           >
-            {heroUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={pose}
-                src={heroUrl}
-                alt={copy.result.heroAlt(item.name, item.label, poseName)}
-                data-render
-                data-hero
-                className="reveal block size-full bg-canvas object-contain"
-              />
-            ) : null}
-          </div>
-          <figcaption className={`mt-2 ${caption}`}>
-            <span className="block font-medium text-ink-700">
-              {copy.result.aiCaption}
-            </span>
-            <span className="block">{copy.result.expectation}</span>
-          </figcaption>
-        </figure>
-
-        {job.status === "complete_partial" ? (
-          <p className={`mt-4 ${body}`} data-testid="partial-line">
-            {copy.result.partial}
+            {copy.result.aiCaption}
           </p>
-        ) : null}
+          <p className="text-[12px] leading-4 text-ink-600">
+            {copy.result.expectation}
+          </p>
+          {job.status === "complete_partial" ? (
+            <p
+              className="mt-3 text-[14px] leading-5 text-ink-700"
+              data-testid="partial-line"
+            >
+              {copy.result.partial}
+            </p>
+          ) : null}
+        </div>
 
-        <ul
+        <div
+          role="group"
           aria-label={copy.result.thumbsLabel}
-          className="mt-6 grid list-none grid-cols-4 gap-2 p-0"
+          className="flex gap-1.5 px-4 pt-2 md:col-start-1 md:row-span-3 md:row-start-1 md:flex-col md:gap-2 md:px-0 md:pt-0"
         >
-          {poses.map((p) => (
-            <li key={p}>
-              <Thumb
-                job={job}
-                item={item}
-                pose={p}
-                selected={p === pose}
-                onSelect={() => setSelected(p)}
-              />
-            </li>
+          {poses.map((p, i) => (
+            <Thumb
+              key={p}
+              job={job}
+              item={item}
+              pose={p}
+              selected={i === index}
+              onSelect={() => jump(i)}
+            />
           ))}
-        </ul>
+        </div>
 
-        {note ? (
-          <p role="status" className={`mt-4 ${body}`}>
-            {note}
+        <div className="px-4 pt-3 md:col-start-3 md:row-span-3 md:row-start-1 md:px-0 md:pt-0">
+          <p className="mb-0.5 text-[11px] leading-[15px] font-semibold tracking-[0.08em] text-ink-600 uppercase">
+            {item.label}
           </p>
-        ) : null}
-
-        <p className={`mt-6 ${caption}`} data-testid="internal-note">
-          {skipped
-            ? copy.result.internalNote(skipped)
-            : copy.result.internalNoteNone}
-        </p>
-      </div>
-
-      <div className="sticky bottom-0 z-[1] mt-6 w-full border-t border-line-soft bg-canvas py-3">
-        <div className="mx-auto flex w-full max-w-[560px] items-center gap-3">
-          <Link href="/" className={`${btnPrimary} flex-1`}>
-            {copy.result.addAnother}
-          </Link>
-          <button
-            type="button"
-            className={`${btnSecondary} flex-1`}
-            aria-haspopup={guest ? "dialog" : undefined}
-            onClick={() => locked(() => setNote(copy.result.listsLater))}
+          <div className="flex items-baseline gap-2.5 md:block">
+            <h1 className="flex-1 text-[22px] leading-7 font-medium tracking-[-0.02em] text-ink md:text-[30px] md:leading-9">
+              {item.name}
+            </h1>
+            <p className="flex-none text-[18px] leading-7 font-medium text-ink tabular-nums md:mt-1 md:text-[21px]">
+              {price}
+            </p>
+          </div>
+          <p
+            className={`mt-0.5 text-[13px] leading-[18px] ${item.stock.low ? "text-danger" : "text-ink-600"}`}
+          >
+            {item.stock.line}
+          </p>
+          <p className="mt-3 text-[15px] leading-[23px] text-ink-700">
+            {item.description}
+          </p>
+          <Button
+            size="lg"
+            onClick={() => say(copy.toasts.buySoon)}
+            className="mt-3 w-full"
+          >
+            {copy.result.buy(price, item.label.toUpperCase())}
+          </Button>
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => say(copy.toasts.listsSoon)}
+            className="mt-2.5 w-full min-h-12"
           >
             {copy.result.addToList}
-          </button>
-          <button
-            type="button"
-            className={btnIcon}
-            aria-label={copy.result.saveLabel}
-            aria-haspopup={guest ? "dialog" : undefined}
-            onClick={() => locked(save)}
-          >
-            <SaveIcon />
-          </button>
+          </Button>
+          <OutfitRow item={item} onClick={() => say(copy.toasts.outfitSoon)} />
         </div>
       </div>
-
-      <AccountSheet
-        open={sheetOpen}
-        poseCount={passedPoses(job).length}
-        onClose={() => setSheetOpen(false)}
-        onLinked={() => {
-          setGuest(false);
-          setSheetOpen(false);
-        }}
-      />
     </div>
   );
 }

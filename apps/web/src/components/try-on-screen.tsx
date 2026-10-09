@@ -6,12 +6,18 @@ import { isFinished } from "../lib/job";
 import { useJob } from "../lib/use-job";
 import { body, btnLink, page } from "../lib/ui";
 import { FailureScreen, failureKindOf } from "./failure-screen";
+import { useMe } from "./me-provider";
 import { QueueView } from "./queue-view";
 import { ResultView } from "./result-view";
 
-/** One route for a job's whole life: queue while it renders, then result or honest failure. */
+/**
+ * One route for a job's whole life: the queue while it renders, then (for an account) the result
+ * or the honest failure. A guest whose set is ready stays on the queue screen at tile size, with
+ * the account sheet: the full images are not served to a guest.
+ */
 export function TryOnScreen({ jobId }: { jobId: string }) {
   const { job, missing } = useJob(jobId);
+  const { isGuest, loaded } = useMe();
   if (missing && !job) {
     return (
       <div className={page}>
@@ -22,7 +28,7 @@ export function TryOnScreen({ jobId }: { jobId: string }) {
       </div>
     );
   }
-  if (!job) {
+  if (!job || !loaded) {
     return (
       <div className={page}>
         <p role="status" className={body}>
@@ -41,6 +47,8 @@ export function TryOnScreen({ jobId }: { jobId: string }) {
       />
     );
   }
-  if (isFinished(job.status)) return <ResultView job={job} item={item} />;
-  return <QueueView job={job} item={item} />;
+  if (isFinished(job.status) && !isGuest) {
+    return <ResultView job={job} item={item} />;
+  }
+  return <QueueView job={job} item={item} signedIn={!isGuest} />;
 }

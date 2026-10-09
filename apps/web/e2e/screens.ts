@@ -1,11 +1,15 @@
 import type { Page } from "@playwright/test";
 import {
   confirmWhichPhoto,
+  continueWithGoogle,
   dismissSheet,
   expect,
   setScript,
+  settle,
   uploadFirst,
+  uploadFirstAsGuest,
   tryOnFromScratch,
+  waitForGuestReady,
   waitForResult,
 } from "./helpers";
 
@@ -137,13 +141,52 @@ export const SCREENS: Screen[] = [
     primary: "main a[href='/']",
   },
   {
+    name: "guest ready",
+    go: async (page) => {
+      await tryOnFromScratch(page, "Knit button vest");
+      await waitForGuestReady(page);
+      await dismissSheet(page);
+    },
+    primary: "[data-testid=see-poses]",
+  },
+  {
+    name: "account sheet",
+    go: async (page) => {
+      await tryOnFromScratch(page, "Knit button vest");
+      await waitForGuestReady(page);
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await settle(page);
+    },
+    primary: "dialog button",
+  },
+  {
+    name: "pick three labels",
+    go: async (page) => {
+      await uploadFirstAsGuest(page);
+      await continueWithGoogle(page);
+      await expect(page).toHaveURL(/\/upload\/labels$/);
+      await expect(page.getByTestId("label-picks")).toBeVisible();
+    },
+    primary: "[data-testid=label-picks] button",
+  },
+  {
     name: "result",
     go: async (page) => {
       await tryOnFromScratch(page, "Knit button vest");
       await waitForResult(page);
-      await dismissSheet(page); // the account sheet
     },
-    primary: "div.sticky a",
+    primary: 'main button:has-text("Buy")',
+  },
+  {
+    name: "your try-ons",
+    go: async (page) => {
+      await tryOnFromScratch(page, "Knit button vest");
+      await waitForResult(page);
+      await page.goto("/you/try-ons");
+      await expect(page.getByTestId("tryons-grid")).toBeVisible();
+      await expect(page.locator("img[data-render]")).toHaveCount(1);
+    },
+    primary: "[data-testid=tryons-grid] a",
   },
   {
     name: "honest failure",
@@ -151,7 +194,7 @@ export const SCREENS: Screen[] = [
       await page.goto("/item/jacket/unavailable");
       await expect(page.getByTestId("honest-failure")).toBeVisible();
     },
-    primary: "[data-testid=honest-failure] article button",
+    primary: "[data-testid=honest-failure] [data-testid=closest] button",
   },
   {
     name: "you",
@@ -183,7 +226,8 @@ export const SCREENS: Screen[] = [
     name: "sign-up",
     go: async (page) => {
       await tryOnFromScratch(page, "Knit button vest");
-      await waitForResult(page);
+      await waitForGuestReady(page);
+      await dismissSheet(page);
       await page.goto("/");
       await page
         .locator("article[data-item=coat]")

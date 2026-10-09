@@ -170,6 +170,20 @@ const realProvider: Provider = async (
   };
 };
 
+/**
+ * The HTTP status a provider error carries, if any: `status` / `statusCode` / numeric `code` on
+ * the error (the SDK's ApiError and APIError set `status`), else the leading number of a
+ * message such as "402 API error occurred".
+ */
+export function providerErrorStatus(err: unknown): number | undefined {
+  const e = err as { status?: unknown; statusCode?: unknown; code?: unknown };
+  for (const v of [e?.status, e?.statusCode, e?.code]) {
+    if (typeof v === "number" && v >= 100 && v <= 599) return v;
+  }
+  const m = err instanceof Error ? /^\s*(\d{3})\b/.exec(err.message) : null;
+  return m ? Number(m[1]) : undefined;
+}
+
 /** Throws (never returns an error result) when the fake is selected in production. */
 function selectProvider(): Provider {
   const which = process.env.RENDER_PROVIDER;
@@ -187,7 +201,7 @@ function selectProvider(): Provider {
  * Generates one 1K image. Only 1K is supported: the pricing table is 1K-only.
  *
  * Spend is never under-recorded: a thrown provider error may still have been billed, so it
- * settles at the estimate; a response with no usage settles at the estimate too. Output text and
+ * settles at the estimate (except an HTTP 4xx, which was rejected before generation: zero); a response with no usage settles at the estimate too. Output text and
  * thought token counts are recorded for visibility only. The per-image price is flat, so other
  * output tokens are logged, not priced.
  */
@@ -265,10 +279,19 @@ export async function renderImage(req: RenderRequest): Promise<RenderResult> {
       ...extra,
     };
   } catch (err) {
+    const status = providerErrorStatus(err);
+    // A 4xx was rejected before any generation, so it was not billed: hold nothing.
+    if (status !== undefined && status >= 400 && status <= 499) spent = 0;
+    const message = err instanceof Error ? err.message : String(err);
+    logError(
+      `renderImage: model call failed model=${req.model} pose=${req.meta?.pose ?? "none"} ` +
+        `attempt=${req.meta?.attempt ?? "none"} status=${status ?? "none"}`,
+      err,
+    );
     return {
       ok: false,
       reason: "error",
-      detail: err instanceof Error ? err.message : String(err),
+      detail: status !== undefined ? `status=${status} ${message}` : message,
       costUsd: costUsd(),
       promptTokens,
     };

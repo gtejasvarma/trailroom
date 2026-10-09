@@ -25,6 +25,10 @@ const WORDS = [
 const word = (n: number | string) =>
   typeof n === "number" && WORDS[n] !== undefined ? WORDS[n]! : String(n);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const lower = (s: string | number) => String(s).toLowerCase();
+/** "4 poses" / "1 pose": a count the screen can back up with real images. */
+const poseWord = (n: number | string) =>
+  Number(n) === 1 ? "1 pose" : `${n} poses`;
 
 export const copy = {
   brand: "Trailroom",
@@ -48,14 +52,24 @@ export const copy = {
     lists: "Lists",
     yourTryOns: "Your try-ons",
     signIn: "Sign in",
+    signOut: "Sign out",
     account: "Your account",
     back: "Back",
     listsShortcut: "Open your lists",
   },
   toasts: {
     // Interim: these controls get their real function in a later phase.
-    soon: "Sign-in and lists arrive in the next build.",
+    soon: "Buying and lists arrive soon.",
+    buySoon: "Buying arrives soon.",
     listsSoon: "Lists arrive soon.",
+    outfitSoon: "Outfits arrive soon.",
+    signedIn: "Signed in. Your try-ons are saved.",
+    signedInSoon: "Signed in. Lists and buying arrive soon.",
+    signedOut: "Signed out.",
+    existingAccount:
+      "You are signed in to your existing account. The guest try-on stays with the guest session.",
+    jobFailed: "Your try-on could not be finished.",
+    seeWhy: "See why",
     following: (label: string) => `Following ${label}.`,
     unfollowed: (label: string) => `Unfollowed ${label}.`,
     followFailed: "We could not update that just now, so try again.",
@@ -115,6 +129,7 @@ export const copy = {
   },
   item: {
     tryItOn: "Try it on",
+    seePoses: (n: number) => `See your ${poseWord(n)}`,
     back: "All pieces",
     price: (usd: number) => `$${usd}`,
     imageAlt: (name: string, label: string, photo: string) =>
@@ -238,13 +253,40 @@ export const copy = {
   queue: {
     title: (name: string) => `Trying on ${name}`,
     tilesLabel: "Poses",
-    keepBrowsing: "Keep browsing",
+    keepBrowsing: "Keep browsing while it renders",
     loading: "Loading your try-on",
     pending: "Waiting to render",
+    rendering: "Rendering…",
     poseFailed: "This pose could not be shown",
     missing: "We could not find that try-on.",
     missingAction: "Back to the pieces",
     garmentAlt: (name: string) => `${name}, the piece being rendered`,
+    // "4 poses, coming up" → "4 poses, on you" (signed in) / "4 poses, ready" (guest).
+    titleRunning: (total: number) => `${cap(poseWord(total))}, coming up`,
+    titleReadySignedIn: (n: number) => `${cap(poseWord(n))}, on you`,
+    titleReadyGuest: (n: number) => `${cap(poseWord(n))}, ready`,
+    lineRunning: (name: string, total: number, ready: number) =>
+      `Your photo, the ${lower(name)}, ${poseWord(total)}. ${ready} of ${total} ready, and you can leave this screen while it renders.`,
+    lineReadySignedIn: (name: string, n: number) =>
+      `The ${lower(name)} on your photo, ${poseWord(n)}.`,
+    lineReadyGuest: (name: string, n: number) =>
+      `The ${lower(name)} on your photo, ${poseWord(n)}. Create an account to open ${n === 1 ? "it" : "them"}.`,
+    cta: (n: number) => (n === 1 ? "See it on you" : `See your ${n} poses`),
+    tileAlt: (name: string, pose: string) => `${name}, ${pose} pose, preview`,
+  },
+  // The persistent job chip and the ready bar (shell, every screen while a job runs).
+  chip: {
+    running: (name: string) => `Putting the ${lower(name)} on you`,
+    sub: (ready: number, total: number) =>
+      `${ready} of ${total} poses ready · you can keep browsing`,
+    view: "View",
+    readyLine: (name: string, n: number) =>
+      `Your ${lower(name)} is ready — ${poseWord(n)}`,
+    readyToast: (name: string, n: number) =>
+      `Your ${lower(name)} is ready — ${poseWord(n)}.`,
+    seeIt: "See it",
+    ariaRunning: "Try-on in progress",
+    ariaReady: "Try-on ready",
   },
   status: {
     queued: "Waiting to start",
@@ -266,30 +308,81 @@ export const copy = {
       `AI-generated preview of ${name} by ${label}, ${pose} pose`,
     thumbAlt: (name: string, pose: string) => `${name}, ${pose} pose`,
     thumbsLabel: "Choose a pose",
+    galleryLabel: "Your poses",
+    onYou: "On you",
+    counter: (pose: string, i: number, n: number) =>
+      n > 1 ? `${pose} · ${i}/${n}` : pose,
+    onYouPose: (pose: string) => `On you · ${pose}`,
+    dot: (i: number) => `Show pose ${i}`,
     aiCaption: "AI-generated preview",
     expectation: EXPECTATION_LINE,
     partial:
       "Three of four poses are shown. One could not be rendered well enough to show.",
-    addAnother: "Add another",
+    buy: (price: string, label: string) => `Buy ${price} at ${label}`,
     addToList: "Add to a list",
-    save: "Save",
-    saveLabel: "Save this render",
-    listsLater: "Lists arrive in a later build.",
-    saved: "Saved to your device.",
-    saveFailed: "We could not save that image, so try again.",
-    internalNote: (checks: string) =>
-      `Internal build note: checks not yet run on these renders: ${checks}.`,
-    internalNoteNone: "Internal build note: every check ran on these renders.",
+    saveToList: "Save to a list",
+    outfit: "Build the outfit",
+    outfitSub: "Have a look, then decide",
+    addAnother: "Add another",
   },
+  // The account sheet, by reason (the prototype's gateCopy), minus "ask", which is not built yet.
   account: {
-    title: (n: number) =>
-      n === 1 ? "One pose is ready" : `${cap(word(n))} poses are ready`,
-    body: "Create an account. They're yours to keep.",
+    reasons: ["reveal", "list", "buy", "picknext", "signin"] as const,
+    title: (reason: string, n: number) =>
+      ({
+        reveal: `${poseWord(n)} ${Number(n) === 1 ? "is" : "are"} ready — create an account`,
+        list: "Create an account to save",
+        buy: "Create an account to buy",
+        picknext: "Your photo is in — create an account",
+      })[reason] ?? "Create an account",
+    sub: (reason: string, n: number) =>
+      ({
+        reveal: `Yours to keep. An account is what saves ${Number(n) === 1 ? "it" : "them"}, and your photo, for next time.`,
+        list: "Lists and every try-on you make live in your account.",
+        buy: "So we can keep this try-on and bring you back to it.",
+        picknext:
+          "It saves your photo so you only ever do this once, and keeps every try-on you make.",
+      })[reason] ?? "Your photos and try-ons stay with you.",
+    pending: (reason: string, n: number) =>
+      ({
+        reveal: `Then your ${poseWord(n)} ${Number(n) === 1 ? "opens" : "open"}.`,
+        list: "Then you are back at the piece.",
+        buy: "Then you are back at the piece.",
+        picknext: "Then pick the first thing to see on yourself.",
+      })[reason] ?? "",
+    carryOver: "Your photos and try-ons carry over.",
     google: "Continue with Google",
-    close: "Close",
+    close: "Not now",
     working: "Signing you in",
     error: "We could not sign you in, so try again.",
     popupClosed: "The sign-in window was closed, so try again.",
+    photoAlt: "Your photo",
+    tileAlt: "Your first pose, small preview",
+  },
+  welcome: {
+    title: "Pick three labels",
+    sub: "Whatever they add shows up in Discover.",
+    picked: "Selected",
+    pickMore: (n: number) => `Pick ${n} more`,
+    done: "Done",
+    saving: "Saving",
+    error: "We could not save that just now, so try again.",
+    rowLabel: (name: string) => name,
+    pieces: (n: number) => `${n} ${n === 1 ? "piece" : "pieces"}`,
+  },
+  tryOns: {
+    title: "Your try-ons",
+    sub: "Everything you have tried on, kept until you remove it.",
+    gridLabel: "Your try-ons",
+    openLabel: (name: string) => `Open your ${lower(name)} try-on`,
+    poses: (n: number) => `↔ ${poseWord(n)}`,
+    emptyTitle: "Nothing tried on yet",
+    emptyBody: "Pick a piece and it comes back on you, in four poses.",
+    emptyAction: (name: string) => `Try on the ${lower(name)}`,
+    loading: "Loading your try-ons",
+    guestNote:
+      "Create an account to keep your try-ons. Guest try-ons are cleared after about 48 hours.",
+    cardAlt: (name: string) => `${name}, front pose, preview`,
   },
   signup: {
     title: "Guests get one try-on",
@@ -298,9 +391,10 @@ export const copy = {
     back: "Back to the pieces",
   },
   failure: {
-    notYetTitle: "We can’t show this kind of piece yet",
-    notYetBody: (reason: string) => `${reason} Here are pieces we can show.`,
-    notReadyTitle: "We can't render this one honestly",
+    notYetTitle: (what: string) => `Not yet for ${lower(what)}`,
+    notYetBody: (what: string) =>
+      `We can't put ${lower(what)} on you yet. We'd rather say so than show you a guess.`,
+    notReadyTitle: "We couldn't render this one honestly",
     notReadyBody: (reason: string) =>
       `${reason} We'd rather say so than show you a guess.`,
     renderFailedTitle: "That render did not come out well enough to show",
@@ -311,12 +405,14 @@ export const copy = {
     dailyLimitTitle: "Today's try-ons are used up",
     dailyLimitBody: "Come back tomorrow to try on more.",
     internalTitle: "Something went wrong on our side",
-    internalBody: "Nothing was shown to you. Try again.",
+    internalBody:
+      "Nothing was shown to you, and the problem is ours, not your photo. Try again.",
     tryAgain: "Try again",
     differentPhoto: "Use a different photo",
-    toCatalogue: "Back to the pieces",
+    toCatalogue: "Back to Discover",
     closestTitle: "Closest three we can put on you",
     closestLabel: (name: string) => `Try on ${name}`,
+    pieceAlt: (name: string) => `${name}, the label's photo`,
   },
   you: {
     title: "You",
@@ -349,6 +445,12 @@ export const copy = {
     deleteError: "We could not delete that just now, so try again.",
     browse: "Back to the pieces",
     loading: "Checking your account",
+    signInLine: "Sign in to keep your photos and try-ons.",
+    signIn: "Sign in with Google",
+    signedInAs: (who: string) => `Signed in as ${who}.`,
+    signOut: "Sign out",
+    tryOnsTitle: "Your try-ons",
+    seeAllTryOns: "See your try-ons",
   },
   credits: {
     title: "Photo credits",

@@ -7,13 +7,17 @@ export function useRenderImage(
   poseSetId: string | null,
   pose: string | null,
   enabled = true,
+  size: "tile" | "full" = "full",
 ): { url: string | null; failed: boolean } {
   const [state, setState] = useState<{
     key: string;
     url: string | null;
     failed: boolean;
   }>({ key: "", url: null, failed: false });
-  const key = poseSetId && pose && enabled ? `${poseSetId}/${pose}` : "";
+  const key =
+    poseSetId && pose && enabled
+      ? `${poseSetId}/${pose}${size === "tile" ? "?size=tile" : ""}`
+      : "";
 
   useEffect(() => {
     if (!key) return;
@@ -40,4 +44,48 @@ export function useRenderImage(
 
   if (!key || state.key !== key) return { url: null, failed: false };
   return { url: state.url, failed: state.failed };
+}
+
+/** Several poses of one set at once (a card's frames). Urls are in `poses` order; null while loading. */
+export function useRenderImages(
+  poseSetId: string | null,
+  poses: string[],
+  size: "tile" | "full" = "full",
+): (string | null)[] {
+  const joined = poses.join(",");
+  const [state, setState] = useState<{
+    key: string;
+    urls: (string | null)[];
+  }>({ key: "", urls: [] });
+  const key = poseSetId && joined ? `${poseSetId}|${joined}|${size}` : "";
+
+  useEffect(() => {
+    if (!key || !poseSetId) return;
+    let cancelled = false;
+    const made: string[] = [];
+    Promise.all(
+      joined.split(",").map(async (pose) => {
+        try {
+          const res = await apiRaw(
+            `/api/renders/${poseSetId}/${pose}${size === "tile" ? "?size=tile" : ""}`,
+          );
+          if (!res.ok) return null;
+          const url = URL.createObjectURL(await res.blob());
+          made.push(url);
+          return url;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((urls) => {
+      if (cancelled) made.forEach((u) => URL.revokeObjectURL(u));
+      else setState({ key, urls });
+    });
+    return () => {
+      cancelled = true;
+      made.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [key, poseSetId, joined, size]);
+
+  return state.key === key ? state.urls : [];
 }

@@ -240,26 +240,33 @@ for (const size of SIZES) {
         await nav.getByRole("link", { name: "Lists" }).click();
         await expect(page).toHaveURL(/\/lists$/);
         await nav.getByRole("link", { name: "Your try-ons" }).click();
-        await expect(page).toHaveURL(/\/you$/);
+        await expect(page).toHaveURL(/\/you\/try-ons$/);
         await nav.getByRole("link", { name: "Discover" }).click();
         await expect(page).toHaveURL(/\/$/);
         await nav.getByRole("button", { name: "Sign in" }).click();
-        await expect(page.getByTestId("toast")).toHaveText(
-          "Sign-in and lists arrive in the next build.",
-        );
+        await expect(
+          page.getByRole("dialog", { name: "Create an account" }),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
       }
     });
 
-    test("interim controls open a toast: Add to a list, Buy, New list", async ({
+    test("for a guest, Add to a list and Buy ask for an account; New list is an interim toast", async ({
       page,
     }) => {
       await page.goto("/item/jump");
       await page.getByRole("button", { name: "Add to a list" }).click();
-      await expect(page.getByTestId("toast")).toHaveText(
-        "Sign-in and lists arrive in the next build.",
-      );
+      const dialog = page.getByRole("dialog", {
+        name: "Create an account to save",
+      });
+      await expect(dialog).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeHidden();
       await page.getByRole("button", { name: "Buy $268" }).click();
-      await expect(page.getByTestId("toast")).toBeVisible();
+      await expect(
+        page.getByRole("dialog", { name: "Create an account to buy" }),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
       await page.goto("/lists");
       await page.getByRole("button", { name: "New list" }).first().click();
       await expect(page.getByTestId("toast")).toHaveText("Lists arrive soon.");
@@ -335,7 +342,7 @@ for (const size of SIZES) {
       await page.getByRole("button", { name: "Use this photo" }).click();
       await expect(page).toHaveURL(/\/try-on\//);
       await waitForResult(page);
-      await expect(page.locator("img[data-render]")).toHaveCount(5);
+      await expect(page.locator("img[data-render]")).toHaveCount(4);
     });
 
     test("the jacket is an honest failure with three alternatives and no upload", async ({
@@ -353,7 +360,9 @@ for (const size of SIZES) {
       const screen = page.getByTestId("honest-failure");
       await expect(screen).toHaveAttribute("data-try-on", "cannot");
       await expect(screen).toContainText("folded over an arm");
-      await expect(screen.getByTestId("item-card")).toHaveCount(3);
+      await expect(
+        screen.getByTestId("closest").getByRole("button"),
+      ).toHaveCount(3);
       await expect(page.locator("input[type=file]")).toHaveCount(0);
       expect(calls).toEqual([]);
     });
@@ -367,12 +376,12 @@ for (const size of SIZES) {
       const screen = page.getByTestId("honest-failure");
       await expect(screen).toHaveAttribute("data-try-on", "not_yet");
       await expect(
-        screen.getByRole("heading", {
-          name: "We can’t show this kind of piece yet",
-        }),
+        screen.getByRole("heading", { name: "Not yet for jewellery" }),
       ).toBeVisible();
       await expect(screen).toContainText("jewellery");
-      await expect(screen.getByTestId("item-card")).toHaveCount(3);
+      await expect(
+        screen.getByTestId("closest").getByRole("button"),
+      ).toHaveCount(3);
       await expect(page.locator("input[type=file]")).toHaveCount(0);
     });
 

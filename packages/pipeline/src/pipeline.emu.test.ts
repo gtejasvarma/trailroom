@@ -163,6 +163,31 @@ describe("runInline", () => {
     expect(ps.poses).toEqual([]);
   });
 
+  it("every call erroring at the provider fails the job as internal, not render_failed", async () => {
+    const j = await makeJob("u-allerr");
+    setFakeScript([{ outcome: "error" }]);
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("failed");
+    const job = (await getJob(j.jobId))!;
+    expect(job.failure?.code).toBe("internal");
+    expect(getFakeCalls()).toHaveLength(8);
+    expect(await rendersOf(j)).toEqual([]);
+    expect((await getPoseSet(j.poseSetId))!.status).toBe("failed");
+  });
+
+  it("a mix of provider errors and rejected images stays render_failed", async () => {
+    const j = await makeJob("u-mixerr");
+    setFakeScript([
+      { pose: "front", outcome: "error" },
+      { pose: "three-quarter", outcome: "error" },
+      { pose: "walking", outcome: "blank" },
+      { pose: "seated", outcome: "error" },
+    ]);
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("failed");
+    expect((await getJob(j.jobId))!.failure?.code).toBe("render_failed");
+  });
+
   const REASONS: [FakeOutcome, string][] = [
     ["undersized", "too_small"],
     ["blank", "blank"],

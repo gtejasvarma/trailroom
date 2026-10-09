@@ -2,43 +2,55 @@
 import Link from "next/link";
 import { catalogUrl, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
+import { paths } from "../lib/flow";
+import { useRenderImages } from "../lib/use-render-image";
 import { Button } from "./ui/button";
 import { HeartIcon } from "./ui/icons";
 import { PhotoFrames } from "./ui/photo-frames";
 import { TryOnButton } from "./tryon-button";
+import { useAccount } from "./account-provider";
+import { useMe } from "./me-provider";
 import { useToast } from "./ui/toast";
 
 /**
  * The Discover card: brand row, swipeable label photographs, name, price, stock line, and the
- * actions. `onYou` is the later state, once a render exists: the frames become the four poses
- * and Buy and Add to a list join the row.
+ * actions. When the signed-in person has tried the piece on, the frames become their poses (the
+ * on-you state: their Front first, the ON YOU chip, "4 poses") and the card opens the result.
+ * A guest only ever sees the label's photographs here.
  */
-export function ProductCard({
-  item,
-  onYou = false,
-}: {
-  item: CatalogItem;
-  onYou?: boolean;
-}) {
+export function ProductCard({ item }: { item: CatalogItem }) {
   const say = useToast();
+  const openAccount = useAccount();
+  const { isGuest, tryOns } = useMe();
+  const mine = isGuest ? undefined : tryOns.find((t) => t.itemId === item.id);
+  const urls = useRenderImages(mine?.poseSetId ?? null, mine?.poses ?? []);
+  const onYou = Boolean(mine);
   const price = copy.item.price(item.priceUsd);
-  const soon = () => say(copy.toasts.soon);
+
+  const frames = mine
+    ? mine.poses.map((p, i) => ({
+        src: urls[i] ?? "",
+        alt: copy.result.thumbAlt(item.name, copy.poses[p] ?? p),
+        focus: "50% 30%",
+      }))
+    : item.photos.map((p) => ({
+        src: catalogUrl(p.file),
+        alt: copy.item.imageAlt(item.name, item.label, p.label),
+        focus: p.focus,
+      }));
 
   return (
     <article
       className="rise flex flex-col"
       data-testid="item-card"
       data-item={item.id}
+      data-on-you={onYou ? "true" : undefined}
     >
       <PhotoFrames
         name={item.name}
         state={onYou ? "onYou" : "label"}
-        href={`/item/${item.id}`}
-        frames={item.photos.map((p) => ({
-          src: catalogUrl(p.file),
-          alt: copy.item.imageAlt(item.name, item.label, p.label),
-          focus: p.focus,
-        }))}
+        href={mine ? paths.tryOn(mine.jobId) : `/item/${item.id}`}
+        frames={frames}
         rounded="md:rounded-md"
       />
       <div className="px-4 pt-3 md:px-0">
@@ -70,7 +82,11 @@ export function ProductCard({
         </p>
         <div className="mt-3 flex items-center gap-2">
           {onYou ? (
-            <Button size="md" onClick={soon} className="flex-1">
+            <Button
+              size="md"
+              onClick={() => say(copy.toasts.buySoon)}
+              className="flex-1"
+            >
               {copy.card.buy(price)}
             </Button>
           ) : (
@@ -84,7 +100,11 @@ export function ProductCard({
           <Button
             variant="outline"
             size="md"
-            onClick={soon}
+            onClick={() =>
+              isGuest
+                ? openAccount("list", { itemId: item.id })
+                : say(copy.toasts.listsSoon)
+            }
             aria-label={copy.card.addToList}
             className="size-11 flex-none !px-0"
           >

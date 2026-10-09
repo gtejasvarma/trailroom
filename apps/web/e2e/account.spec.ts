@@ -5,72 +5,58 @@ import {
   expect,
   test,
   tryOnFromScratch,
+  waitForGuestReady,
   waitForResult,
 } from "./helpers";
 
-test("account sheet: dismissible, renders stay full size, actions locked", async ({
+test("guest-ready: tiles only, the sheet is dismissible, and the result stays unreachable", async ({
   page,
 }) => {
   await tryOnFromScratch(page, "Knit button vest");
-  await waitForResult(page);
+  await waitForGuestReady(page);
 
-  const dialog = page.getByRole("dialog", { name: "Four poses are ready" });
+  const dialog = page.getByRole("dialog", {
+    name: "4 poses are ready — create an account",
+  });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText(
-    "Create an account. They're yours to keep.",
+    "Yours to keep. An account is what saves them, and your photo, for next time.",
+  );
+  await expect(dialog).toContainText(
+    "Your photos and try-ons carry over. Then your 4 poses open.",
   );
   await expect(
     dialog.getByRole("button", { name: "Continue with Google" }),
   ).toBeVisible();
+  // Google only: no email field, no other way in.
+  await expect(dialog.getByRole("textbox")).toHaveCount(0);
 
-  const hero = page.locator("img[data-hero]");
-  await expect(hero).toBeVisible();
-  // Layout size, not the bounding box: the hero's reveal animation scales it for 400 ms.
-  const size = () =>
-    hero.evaluate((el) => [
-      (el as HTMLImageElement).offsetWidth,
-      (el as HTMLImageElement).offsetHeight,
-    ]);
-  const before = await size();
-
-  // Escape dismisses.
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(hero).toBeVisible();
-  expect(await size()).toEqual(before);
-  expect(before[0]).toBeGreaterThan(200);
+  await expect(page.getByTestId("queue-title")).toHaveText("4 poses, ready");
+  await expect(page.getByTestId("status-line")).toHaveText(
+    "The knit button vest on your photo, 4 poses. Create an account to open them.",
+  );
+  await expect(page.getByTestId("pose-gallery")).toHaveCount(0);
+  await expect(page.locator("img[data-hero]")).toHaveCount(0);
 
-  // Save is locked for a guest: it re-opens the sheet. The close button dismisses it.
-  await page.getByRole("button", { name: "Save this render" }).click();
+  // The call to action reopens the sheet; the close button dismisses it; a backdrop click too.
+  await page.getByRole("button", { name: "See your 4 poses" }).click();
   await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "Close" }).click();
+  await dialog.getByRole("button", { name: "Not now" }).click();
   await expect(dialog).toBeHidden();
-
-  // So is Add to a list. A click on the backdrop dismisses it too.
-  await page.getByRole("button", { name: "Add to a list" }).click();
+  await page.getByRole("button", { name: "See your 4 poses" }).click();
   await expect(dialog).toBeVisible();
   await page.mouse.click(5, 5);
   await expect(dialog).toBeHidden();
-  expect(await size()).toEqual(before);
 
-  // The result's actions, in order: Add another, Add to a list, Save.
-  const bar = page.locator("div.sticky");
-  const names = await bar
-    .locator("a, button")
-    .evaluateAll((els) =>
-      els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim()),
-    );
-  expect(names).toEqual(["Add another", "Add to a list", "Save this render"]);
-  // No Buy link in this build.
-  await expect(page.getByText(/\bbuy\b/i)).toHaveCount(0);
-  await expect(page.getByTestId("internal-note")).toContainText(
-    "Internal build note",
-  );
+  // The tiles are all there is on the page: four tile-size previews, no hero.
+  await expect(page.locator("img[data-render]")).toHaveCount(4);
 });
 
 test("the sheet traps keyboard focus", async ({ page }) => {
   await tryOnFromScratch(page, "Knit button vest");
-  await waitForResult(page);
+  await waitForGuestReady(page);
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   for (let i = 0; i < 6; i++) {
@@ -84,7 +70,7 @@ test("the sheet traps keyboard focus", async ({ page }) => {
 
 test("a guest's second item goes to the sign-up screen", async ({ page }) => {
   await tryOnFromScratch(page, "Knit button vest");
-  await waitForResult(page);
+  await waitForGuestReady(page);
   await dismissSheet(page);
 
   await page.goto("/");
@@ -106,10 +92,8 @@ test("You: delete everything, visibly, then the next upload starts clean", async
 }) => {
   await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
-  await dismissSheet(page);
 
-  await page.getByRole("link", { name: "Your try-ons" }).click();
-  await expect(page).toHaveURL(/\/you$/);
+  await page.goto("/you");
   await expect(page.getByTestId("photo-count")).toHaveText("1 photo");
   await page.getByRole("button", { name: "Delete everything" }).click();
   const deleted = page.getByTestId("deleted");

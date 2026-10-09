@@ -1,17 +1,25 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { copy } from "../lib/copy";
 import { messageOf, paths } from "../lib/flow";
 import { alertStyle, body, btnLink, btnSecondary, h1, page } from "../lib/ui";
+import { useAccount } from "./account-provider";
+import { useMe } from "./me-provider";
+import { TryOnsGrid } from "./try-ons-view";
 import { YouPhotos } from "./you-photos";
+import { Button } from "./ui/button";
 import type { MeBody } from "../server/me";
 
 type View = "loading" | "ready" | "deleting" | "deleted";
 
 /** You: whether a photo is stored, and the visible discard (Design rule 3). No confirm modal. */
 export function YouScreen() {
+  const openAccount = useAccount();
+  const { who, signOut, isGuest: sessionGuest } = useMe();
+  const router = useRouter();
   const [me, setMe] = useState<MeBody | null>(null);
   const [view, setView] = useState<View>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +39,7 @@ export function YouScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionGuest]);
 
   async function remove() {
     setError(null);
@@ -62,9 +70,42 @@ export function YouScreen() {
         </p>
       ) : null}
       {me ? (
-        <p className={`mt-4 ${body}`}>
-          {me.isGuest ? copy.you.guest : copy.you.account}
-        </p>
+        <div className="mt-4" data-testid="you-account">
+          <p className={body}>
+            {me.isGuest
+              ? copy.you.guest
+              : copy.you.signedInAs(who?.name || copy.you.account)}
+          </p>
+          {me.isGuest ? (
+            <p className={`mt-1 ${body}`}>{copy.you.signInLine}</p>
+          ) : null}
+          <div className="mt-3">
+            {me.isGuest ? (
+              <Button size="md" onClick={() => openAccount("signin")}>
+                {copy.you.signIn}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => void signOut().then(() => router.push("/"))}
+              >
+                {copy.nav.signOut}
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : null}
+      {me ? (
+        <section className="mt-8" aria-labelledby="tryons-heading">
+          <h2
+            id="tryons-heading"
+            className="mb-3 text-[20px] leading-[26px] font-medium tracking-[-0.01em] text-ink"
+          >
+            {copy.you.tryOnsTitle}
+          </h2>
+          <TryOnsGrid />
+        </section>
       ) : null}
       {view === "deleted" ? (
         <div

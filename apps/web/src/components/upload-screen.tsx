@@ -9,10 +9,12 @@ import { accountGateAfterUpload } from "../lib/account-gate";
 import { copy } from "../lib/copy";
 import { messageOf, paths, startTryOnPath } from "../lib/flow";
 import { h1, page } from "../lib/ui";
+import { useAccount } from "./account-provider";
 import { PhotoAdd } from "./photo-add";
 
 export function UploadScreen({ itemId }: { itemId?: string }) {
   const router = useRouter();
+  const openAccount = useAccount();
   const [starting, setStarting] = useState(false);
   const item = itemId ? getItem(itemId) : undefined;
 
@@ -38,8 +40,14 @@ export function UploadScreen({ itemId }: { itemId?: string }) {
               }
               return;
             }
-            await accountGateAfterUpload();
-            router.push(paths.starters);
+            const gated = await accountGateAfterUpload(() =>
+              openAccount("picknext", {
+                photoThumbUrl: `/api/photos/${photo.photoId}/thumb`,
+                // Not now: the photo stays with the guest session, and Discover is next.
+                onDismiss: () => router.push(paths.catalogue),
+              }),
+            );
+            if (!gated) router.push(paths.starters);
           }}
         />
       </div>

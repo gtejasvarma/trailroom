@@ -11,7 +11,7 @@ const POLL_MS = 1500;
  * Live job state: a Firestore listener on jobs/{jobId}, with a 1.5 s poll of GET /api/jobs/[id]
  * if the listener errors. `missing` is true when the job cannot be read at all.
  */
-export function useJob(jobId: string): {
+export function useJob(jobId: string | null): {
   job: JobView | null;
   missing: boolean;
 } {
@@ -19,6 +19,13 @@ export function useJob(jobId: string): {
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
+    if (!jobId) {
+      setJob(null);
+      setMissing(false);
+      return;
+    }
+    setJob((prev) => (prev && prev.jobId === jobId ? prev : null));
+    setMissing(false);
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;

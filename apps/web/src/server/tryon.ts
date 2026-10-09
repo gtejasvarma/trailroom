@@ -127,6 +127,23 @@ export async function startTryOn(
     }
   }
 
+  // One try-on job at a time per person: a second start for a different piece while one is
+  // still rendering is refused (no job, no spend, nothing counted). Reusing the same piece's job
+  // was answered above; a job that stopped moving is not "rendering" any more. Pre-check, not a
+  // lock: two simultaneous starts could both pass, which the daily limit still bounds.
+  if (!user.isGuest) {
+    const sets = await listPoseSetsForUser(user.uid);
+    for (const s of sets) {
+      if (s.id === psId || s.poseSet.status !== "rendering") continue;
+      const j = await getJob(s.poseSet.jobId);
+      const alive =
+        j &&
+        ["queued", "rendering"].includes(j.status) &&
+        now.getTime() - j.updatedAt.toMillis() <= STALE_JOB_MS;
+      if (alive) return err("job_in_progress", { jobId: s.poseSet.jobId });
+    }
+  }
+
   // Counts this start (failed sets count too) and, for a guest, claims their one live set, in a
   // single transaction. Placed after every free refusal and the reuse check, and before the job
   // is created so a refused start leaves nothing behind.

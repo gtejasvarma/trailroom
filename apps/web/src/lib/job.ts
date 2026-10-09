@@ -63,3 +63,41 @@ export function toJobView(
     qaSkipped: Array.isArray(d.qaSkipped) ? d.qaSkipped.map(String) : [],
   };
 }
+
+export const isRunning = (s: JobStatus) => s === "queued" || s === "rendering";
+
+/** The chip's two lines, from the job's real state: a true count, never a "pose N of 4" sequence. */
+export function chipLines(
+  job: JobView,
+  itemName: string,
+): { title: string; sub: string } {
+  return {
+    title: copy.chip.running(itemName),
+    sub: copy.chip.sub(passedPoses(job).length, job.poseOrder.length),
+  };
+}
+
+/** Queue screen title and line for the job's current state. */
+export function queueLines(
+  job: JobView,
+  itemName: string,
+  signedIn: boolean,
+): { title: string; line: string } {
+  const total = job.poseOrder.length;
+  const n = passedPoses(job).length;
+  if (!isFinished(job.status)) {
+    return {
+      title: copy.queue.titleRunning(total),
+      line: copy.queue.lineRunning(itemName, total, n),
+    };
+  }
+  return signedIn
+    ? {
+        title: copy.queue.titleReadySignedIn(n),
+        line: copy.queue.lineReadySignedIn(itemName, n),
+      }
+    : {
+        title: copy.queue.titleReadyGuest(n),
+        line: copy.queue.lineReadyGuest(itemName, n),
+      };
+}

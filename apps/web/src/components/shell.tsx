@@ -4,9 +4,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { copy } from "../lib/copy";
+import { useAccount } from "./account-provider";
+import { JobChips } from "./job-chips";
 import { useMe } from "./me-provider";
 import { BackIcon, HeartIcon } from "./ui/icons";
-import { useToast } from "./ui/toast";
 
 type Section = "discover" | "lists" | "you";
 
@@ -28,7 +29,7 @@ const TABS: { key: Section; href: string; label: string; shape: string }[] = [
 
 function sectionOf(pathname: string): Section | null {
   if (pathname === "/lists") return "lists";
-  if (pathname === "/you") return "you";
+  if (pathname === "/you" || pathname.startsWith("/you/")) return "you";
   if (
     pathname === "/" ||
     pathname.startsWith("/upload") ||
@@ -71,8 +72,8 @@ function Wordmark({ className = "" }: { className?: string }) {
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const say = useToast();
-  const { isGuest, loaded } = useMe();
+  const openAccount = useAccount();
+  const { isGuest, loaded, who, signOut } = useMe();
   const section = sectionOf(pathname);
   const tabBar = hasTabBar(pathname);
   const signedIn = loaded && !isGuest;
@@ -147,21 +148,35 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Wordmark />
           <div className="flex flex-1 justify-center gap-1">
             {navLink("/", copy.nav.discover, section === "discover")}
-            {navLink("/you", copy.nav.yourTryOns, false)}
+            {navLink(
+              "/you/try-ons",
+              copy.nav.yourTryOns,
+              pathname === "/you/try-ons",
+            )}
             {navLink("/lists", copy.nav.lists, section === "lists")}
           </div>
           {signedIn ? (
-            <Link
-              href="/you"
-              aria-label={copy.nav.account}
-              className="grid size-9 place-items-center rounded-full border border-line text-[13px] font-semibold text-ink"
-            >
-              {copy.nav.you.slice(0, 1)}
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/you"
+                aria-label={copy.you.signedInAs(who?.name || copy.nav.you)}
+                data-testid="account-initial"
+                className="grid size-9 place-items-center rounded-full border border-line text-[13px] font-semibold text-ink"
+              >
+                {who?.initial ?? copy.nav.you.slice(0, 1)}
+              </Link>
+              <button
+                type="button"
+                onClick={() => void signOut().then(() => router.push("/"))}
+                className="min-h-9 text-[13px] font-medium text-ink-600 hover:text-ink"
+              >
+                {copy.nav.signOut}
+              </button>
+            </div>
           ) : (
             <button
               type="button"
-              onClick={() => say(copy.toasts.soon)}
+              onClick={() => openAccount("signin")}
               className="min-h-9 rounded-full bg-ink px-[18px] text-[13px] leading-none font-semibold text-canvas"
             >
               {copy.nav.signIn}
@@ -169,6 +184,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
       </header>
+
+      <JobChips />
 
       <main id="main" className={tabBar ? "pb-20 md:pb-0" : ""}>
         {children}

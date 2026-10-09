@@ -37,3 +37,23 @@ export function routeSet(poseStatuses: Record<string, string>): {
   }
   return { status: "failed", published: [] };
 }
+
+/**
+ * Why a failed set failed. `attemptOutcomes` holds, per pose, the recorded render outcome of
+ * every attempt. When every attempt of every pose died on the provider's side (`model_error`),
+ * the model never judged anything: that is our fault (`internal`), not a quality failure. Any
+ * other mix (the model answered and the checks rejected it, or some answered) is `render_failed`.
+ * A pose with no recorded attempt counts as not provider-failed. A capacity branch never
+ * reaches finalize (it ends the job as `capacity` first), so it needs no case here.
+ */
+export function failureCodeForFailedSet(
+  attemptOutcomes: (string | undefined)[][],
+): "internal" | "render_failed" {
+  const allProvider =
+    attemptOutcomes.length > 0 &&
+    attemptOutcomes.every(
+      (outcomes) =>
+        outcomes.length > 0 && outcomes.every((o) => o === "model_error"),
+    );
+  return allProvider ? "internal" : "render_failed";
+}

@@ -355,8 +355,9 @@ describe("jobs and renders", () => {
   });
 
   it("owner gets private no-store JPEG bytes; others and odd params get 404", async () => {
-    const a = await ready();
-    const b = await ready();
+    // A signed-in owner: a guest owner gets tiles only (see phase-c.emu.test.ts).
+    const a = await ready("user");
+    const b = await ready("user");
     const { poseSetId, jobId } = await finish(a, "blouse");
     const pose = (await getPoseSet(poseSetId))!.poses[0]!;
 
@@ -391,7 +392,7 @@ describe("jobs and renders", () => {
   });
 
   it("a failed pose inside a partial set is 404 while its siblings are served", async () => {
-    const t = await ready();
+    const t = await ready("user");
     setFakeScript([{ pose: "seated", outcome: "error" }]);
     const { jobId, poseSetId } = await finish(t, "blouse");
     expect((await getJob(jobId))!.status).toBe("complete_partial");

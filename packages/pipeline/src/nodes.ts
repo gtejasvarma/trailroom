@@ -33,7 +33,12 @@ import {
 import sharp from "sharp";
 import { loadItemImage } from "./catalog-images";
 import { JobTerminalError, RetryableNodeError } from "./errors";
-import { MAX_ATTEMPTS, nextStepForPose, routeSet } from "./policy";
+import {
+  failureCodeForFailedSet,
+  MAX_ATTEMPTS,
+  nextStepForPose,
+  routeSet,
+} from "./policy";
 import { checkImage, SKIPPED_CHECKS } from "./qa";
 import type {
   FailJobInput,
@@ -374,10 +379,12 @@ export async function finalizeSet(input: {
 
   if (status === "failed") {
     await withdraw(job, jobId);
-    await updateJob(jobId, {
-      status: "failed",
-      failure: { code: "render_failed" },
-    });
+    const code = failureCodeForFailedSet(
+      job.poseOrder.map((p) =>
+        Object.values(job.poses[p]?.attempts ?? {}).map((a) => a.outcome),
+      ),
+    );
+    await updateJob(jobId, { status: "failed", failure: { code } });
     await updatePoseSet(job.poseSetId, { status: "failed", poses: [] });
   } else {
     await updateJob(jobId, { status });

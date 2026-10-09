@@ -1,6 +1,7 @@
 "use client";
 // Every call to /api/* carries a fresh Firebase ID token. Errors are { error, message }.
 import type { MeBody } from "../server/me";
+import type { TryOnSummary } from "../server/try-ons";
 import { CONSENT_VERSION } from "./consent";
 import { ensureUser } from "./firebase";
 
@@ -73,6 +74,7 @@ export interface UploadedPhoto {
 
 export const api = {
   me: () => apiFetch<MeBody>("/api/me"),
+  tryOns: () => apiFetch<{ tryOns: TryOnSummary[] }>("/api/try-ons"),
   /** The consent version rides along with every upload; the server records it, then stores. */
   uploadPhoto: (file: Blob, filename = "photo.jpg") => {
     const form = new FormData();

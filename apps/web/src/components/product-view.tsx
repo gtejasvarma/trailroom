@@ -8,7 +8,11 @@ import { TryOnButton } from "./tryon-button";
 import { BrandRow } from "./ui/brand-row";
 import { Button } from "./ui/button";
 import { HeartIcon } from "./ui/icons";
+import { useAccount } from "./account-provider";
+import { useMe } from "./me-provider";
+import { ButtonLink } from "./ui/button";
 import { useToast } from "./ui/toast";
+import { paths } from "../lib/flow";
 
 export function ProductView({ item }: { item: CatalogItem }) {
   const say = useToast();
@@ -17,7 +21,17 @@ export function ProductView({ item }: { item: CatalogItem }) {
   const more = itemsByLabel(item.labelSlug)
     .filter((i) => i.id !== item.id)
     .slice(0, 4);
-  const soon = () => say(copy.toasts.soon);
+  const openAccount = useAccount();
+  const { isGuest, tryOns } = useMe();
+  const mine = isGuest ? undefined : tryOns.find((t) => t.itemId === item.id);
+  const buy = () =>
+    isGuest
+      ? openAccount("buy", { itemId: item.id })
+      : say(copy.toasts.buySoon);
+  const save = () =>
+    isGuest
+      ? openAccount("list", { itemId: item.id })
+      : say(copy.toasts.listsSoon);
 
   return (
     <div className="rise mx-auto w-full max-w-[1600px] pb-12 md:px-10 md:pt-6">
@@ -67,7 +81,18 @@ export function ProductView({ item }: { item: CatalogItem }) {
           >
             {item.description}
           </p>
-          <TryOnButton itemId={item.id} name={item.name} />
+          {mine ? (
+            <ButtonLink
+              href={paths.tryOn(mine.jobId)}
+              size="lg"
+              className="w-full"
+              data-testid="see-poses"
+            >
+              {copy.item.seePoses(mine.poses.length)}
+            </ButtonLink>
+          ) : (
+            <TryOnButton itemId={item.id} name={item.name} />
+          )}
           <p className="mt-2.5 hidden text-[13px] leading-[18px] text-ink-600 md:block">
             {copy.item.notePhoto}
           </p>
@@ -75,7 +100,7 @@ export function ProductView({ item }: { item: CatalogItem }) {
             <Button
               variant="outline"
               size="md"
-              onClick={soon}
+              onClick={buy}
               className="min-h-[46px] flex-1"
             >
               {copy.card.buy(price)}
@@ -83,7 +108,7 @@ export function ProductView({ item }: { item: CatalogItem }) {
             <Button
               variant="outline"
               size="md"
-              onClick={soon}
+              onClick={save}
               aria-label={copy.card.addToList}
               className="size-[46px] flex-none !px-0"
             >
