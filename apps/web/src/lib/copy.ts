@@ -803,6 +803,55 @@ export const copy = {
     deleteHint:
       "Removes your photos, try-ons, lists, asks and sign-in from Trailroom, now.",
   },
+  // Email. Shown only when the server reports it can send (EMAIL_TRANSPORT is not "none"); with no
+  // transport nothing here reaches a screen. copy.test.ts keeps every other string email-free.
+  email: {
+    prefsTitle: "Email",
+    prefsNote: "Only when something happens. You can stop each one here.",
+    newsLabel: "New pieces from labels you follow",
+    newsMeta: "At most one a day",
+    priceLabel: "Price changes on your lists",
+    priceMeta: "Only when something moves",
+    saved: "Email settings saved.",
+    saveFailed: "We could not save that just now, so try again.",
+    newsSubject: (n: number | string, label: string) =>
+      Number(n) === 1
+        ? `${label} added something new`
+        : `${label} and others added ${n} new pieces`,
+    newsIntro: "A label you follow added something new.",
+    newsMore: (n: number | string) => `and ${n} more`,
+    newsCta: "See what is new",
+    priceSubject: (name: string) => `The price of ${lower(name)} changed`,
+    priceSubjectMany: (n: number | string) =>
+      `The price changed on ${n} pieces in your lists`,
+    priceIntro: "A price moved on something in your lists.",
+    priceLine: (name: string, was: string, now: string) =>
+      `${name}: now ${now} (was ${was})`,
+    priceCta: "See your lists",
+    pieceLine: (name: string, label: string, price: string) =>
+      `${name}, ${label}, ${price}`,
+    why: "You are getting this because you switched it on in Trailroom.",
+    unsubscribe: "Stop these emails",
+    footer: "Trailroom",
+  },
+  unsubscribe: {
+    title: "Stop these emails?",
+    body: "One tap and Trailroom stops sending you email. You can switch it back on in You.",
+    button: "Stop emails",
+    working: "Working on it",
+    done: "If that link was one of ours, those emails have stopped.",
+    failed: "We could not do that just now, so try again.",
+    tooMany: "Too many tries from here. Wait a few minutes and try again.",
+    home: "Back to Trailroom",
+  },
+  arrivals: {
+    title: "New from labels you follow",
+    note: "Pieces a label you follow has just added.",
+    onYouTitle: "Arrives on you",
+    onYouNote: "New pieces from labels you follow, already on your photo.",
+    shelf: "New in",
+    cardAlt: (name: string) => `${name} on your photo, front view`,
+  },
   credits: {
     title: "Photo credits",
     intro: "Every image in the catalogue is listed here.",

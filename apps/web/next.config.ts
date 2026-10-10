@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
+  // A second dev server (the e2e run with the buffer switched on) needs its own build directory.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // No image optimizer: it would be a gate-exempt-by-default path to fetch images, and every
   // image here is already sized for the screen.
   images: { unoptimized: true },
@@ -31,6 +33,14 @@ const config: NextConfig = {
           { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+      {
+        source: "/unsubscribe/:token",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+          { key: "Referrer-Policy", value: "no-referrer" },
         ],
       },
       {

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { DEMO_CATALOG_NOTICE } from "@trailroom/catalog";
 import { catalogFiles } from "@trailroom/catalog/server";
+import { loadPublishedCatalog } from "@trailroom/pipeline";
 import { copy } from "../../../lib/copy";
 import { body, btnLink, caption, h1, page } from "../../../lib/ui";
 
-export default function CreditsPage() {
+export default async function CreditsPage() {
+  await loadPublishedCatalog();
   return (
     <div className={`${page} max-w-[760px]`}>
       <h1 className={h1}>{copy.credits.title}</h1>

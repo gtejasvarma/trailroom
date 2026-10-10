@@ -1,6 +1,7 @@
 // ID-token verification. The browser signs in with Firebase Auth (anonymous = Guest Session) and
 // sends `Authorization: Bearer <ID token>` on every /api call.
 import { auth } from "@trailroom/db";
+import { loadPublishedCatalog } from "@trailroom/pipeline";
 import { errorResponse } from "./http";
 
 export interface User {
@@ -16,6 +17,8 @@ export async function requireUser(request: Request): Promise<User | Response> {
   try {
     // checkRevoked: a deleted or revoked user's still-unexpired token is refused.
     const token = await auth().verifyIdToken(match[1]!, true);
+    // Pieces published after the static twelve are part of the catalogue every handler uses.
+    await loadPublishedCatalog();
     return {
       uid: token.uid,
       isGuest: token.firebase?.sign_in_provider === "anonymous",

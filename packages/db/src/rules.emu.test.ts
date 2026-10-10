@@ -34,6 +34,12 @@ const COLLECTIONS = [
   "usage",
   "jobInternals",
   "follows",
+  "publishedPieces",
+  "publishEvents",
+  "arrivals",
+  "emailPrefs",
+  "emailSent",
+  "emailTokens",
 ];
 
 beforeAll(async () => {
@@ -69,6 +75,12 @@ beforeAll(async () => {
     });
     await setDoc(doc(db, "jobInternals/j1"), { failureDetail: "secret" });
     await setDoc(doc(db, "follows/alice"), { labels: ["marchand"] });
+    await setDoc(doc(db, "publishedPieces/p1"), { labelSlug: "marchand" });
+    await setDoc(doc(db, "publishEvents/e1"), { type: "new_piece" });
+    await setDoc(doc(db, "arrivals/alice"), { cards: [], attempted: [] });
+    await setDoc(doc(db, "emailPrefs/alice"), { news: true, price: false });
+    await setDoc(doc(db, "emailSent/alice_e1"), { uid: "alice" });
+    await setDoc(doc(db, "emailTokens/abc"), { uid: "alice" });
     await setDoc(doc(db, "jobs/j2"), { uid: "bob" });
     await setDoc(doc(db, "lists/l1"), { uid: "alice", name: "Wedding" });
     await setDoc(doc(db, "asks/a1"), { uid: "alice", tokenHash: "x" });
@@ -119,6 +131,12 @@ describe("firestore rules: reads", () => {
     ["spendLog/l1"],
     ["usage/alice_2026-01-01"],
     ["jobInternals/j1"],
+    ["publishedPieces/p1"],
+    ["publishEvents/e1"],
+    ["arrivals/alice"],
+    ["emailPrefs/alice"],
+    ["emailSent/alice_e1"],
+    ["emailTokens/abc"],
   ])("nobody reads %s", async (path) => {
     const a = actors();
     await assertFails(getDoc(doc(a.owner, path)));
@@ -158,6 +176,12 @@ describe("firestore rules: no client writes", () => {
     usage: "usage/alice_2026-01-01",
     jobInternals: "jobInternals/j1",
     follows: "follows/alice",
+    publishedPieces: "publishedPieces/p1",
+    publishEvents: "publishEvents/e1",
+    arrivals: "arrivals/alice",
+    emailPrefs: "emailPrefs/alice",
+    emailSent: "emailSent/alice_e1",
+    emailTokens: "emailTokens/abc",
   };
   it.each(COLLECTIONS)("%s: create, update, delete all denied", async (c) => {
     const a = actors();

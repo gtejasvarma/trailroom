@@ -69,8 +69,11 @@ export interface PoseState {
   attempts?: Record<string, AttemptRecord>;
 }
 
-/** What a job renders: one piece on the four poses, or two pieces together in one image. */
-export type RenderKind = "tryon" | "outfit";
+/**
+ * What a job renders: one piece on the four poses, two pieces together in one image, or (an
+ * "arrival") one new piece on the Front pose only, which nobody asked for.
+ */
+export type RenderKind = "tryon" | "outfit" | "arrival";
 
 export interface JobDoc {
   uid: string;

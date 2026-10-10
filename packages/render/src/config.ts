@@ -4,6 +4,8 @@ import { POSES, type Pose } from "./prompt";
 export interface RenderConfig {
   model: ModelKey;
   dailyCapUsd: number;
+  /** The day's ceiling for renders nobody asked for (ARRIVALS_DAILY_USD); never above dailyCapUsd. */
+  unrequestedDailyUsd: number;
   aspectRatio: "3:4";
   poses: Pose[];
 }
@@ -38,6 +40,18 @@ export function renderConfigFromEnv(
     }
   }
 
+  let unrequestedDailyUsd = 1;
+  if (env.ARRIVALS_DAILY_USD !== undefined) {
+    const raw = env.ARRIVALS_DAILY_USD.trim();
+    unrequestedDailyUsd = raw === "" ? NaN : Number(raw);
+    if (!Number.isFinite(unrequestedDailyUsd) || unrequestedDailyUsd < 0) {
+      throw new Error(
+        `ARRIVALS_DAILY_USD "${env.ARRIVALS_DAILY_USD}" must be a finite number of zero or more`,
+      );
+    }
+  }
+  unrequestedDailyUsd = Math.min(unrequestedDailyUsd, dailyCapUsd);
+
   const allPoses = Object.keys(POSES) as Pose[];
   let poses = allPoses;
   if (env.RENDER_POSES !== undefined) {
@@ -55,5 +69,5 @@ export function renderConfigFromEnv(
     poses = parts as Pose[];
   }
 
-  return { model, dailyCapUsd, aspectRatio: "3:4", poses };
+  return { model, dailyCapUsd, unrequestedDailyUsd, aspectRatio: "3:4", poses };
 }

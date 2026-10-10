@@ -15,6 +15,7 @@ import { useWide } from "../lib/use-wide";
 import { alertStyle, body, btnLink } from "../lib/ui";
 import { useAccount } from "./account-provider";
 import { useMe } from "./me-provider";
+import { EmailPrefs } from "./email-prefs";
 import { TryOnsGrid } from "./try-ons-view";
 import { Button } from "./ui/button";
 import {
@@ -199,6 +200,8 @@ export function YouScreen() {
               <FollowingList />
             </section>
           ) : null}
+
+          {!guest && me.emailEnabled ? <EmailPrefs /> : null}
 
           <div className="mb-5">
             <PrivacyRow />

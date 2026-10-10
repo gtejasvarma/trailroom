@@ -15,6 +15,10 @@ export interface SpendDayDoc {
   committedMicros: number;
   pendingMicros: number;
   ceilingMicros: number;
+  /** The part of committed/pending that was spent on renders nobody asked for. */
+  unrequestedCommittedMicros?: number;
+  unrequestedPendingMicros?: number;
+  unrequestedCeilingMicros?: number;
   updatedAt: Timestamp;
 }
 
@@ -32,6 +36,8 @@ export interface SpendLogDoc {
   /** Logged for visibility only; the per-image price is flat, so these are not priced. */
   outputTokens?: number;
   thoughtTokens?: number;
+  /** True for a render the person did not ask for; held to the separate ceiling too. */
+  unrequested?: boolean;
   /** True when a stuck reservation was settled at its estimate by the reaper. */
   reaped?: boolean;
 }
@@ -84,11 +90,24 @@ export function reservationIdFor(
 export class FirestoreDailyLedger implements SpendLedger {
   readonly ceilingMicros: Micros;
 
+  readonly unrequestedCeilingMicros: Micros;
+
+  /**
+   * `unrequestedCeilingUsd` is the day's separate, lower ceiling for renders nobody asked for
+   * (meta.unrequested). It is checked in the same transaction as the daily cap, so a requested
+   * try-on always finds the headroom the other ceiling leaves. Without it, unrequested
+   * reservations are refused outright: the safe default.
+   */
   constructor(
     ceilingUsd: number,
     private readonly now: () => Date = () => new Date(),
+    unrequestedCeilingUsd = 0,
   ) {
     this.ceilingMicros = usdToMicros(ceilingUsd);
+    this.unrequestedCeilingMicros = Math.min(
+      usdToMicros(unrequestedCeilingUsd),
+      this.ceilingMicros,
+    );
   }
 
   private days = () => firestore().collection("spend");
@@ -137,10 +156,25 @@ export class FirestoreDailyLedger implements SpendLedger {
             `spend ceiling $${(this.ceilingMicros / 1e6).toFixed(2)} reached for ${day}`,
           );
         }
+        const u = cur as Partial<SpendDayDoc>;
+        const uCommitted = u.unrequestedCommittedMicros ?? 0;
+        const uPending = u.unrequestedPendingMicros ?? 0;
+        if (
+          meta.unrequested &&
+          uCommitted + uPending + estimateMicros > this.unrequestedCeilingMicros
+        ) {
+          throw new SpendCeilingError(
+            `unrequested-render ceiling $${(this.unrequestedCeilingMicros / 1e6).toFixed(2)} reached for ${day}`,
+          );
+        }
         tx.set(dayRef, {
           committedMicros: cur.committedMicros,
           pendingMicros: cur.pendingMicros + estimateMicros,
           ceilingMicros: this.ceilingMicros,
+          unrequestedCommittedMicros: uCommitted,
+          unrequestedPendingMicros:
+            uPending + (meta.unrequested ? estimateMicros : 0),
+          unrequestedCeilingMicros: this.unrequestedCeilingMicros,
           updatedAt: Timestamp.fromDate(now),
         } satisfies SpendDayDoc);
         tx.set(logRef, {
@@ -154,6 +188,7 @@ export class FirestoreDailyLedger implements SpendLedger {
           state: "reserved",
           createdAt: Timestamp.fromDate(now),
           settledAt: null,
+          ...(meta.unrequested ? { unrequested: true } : {}),
         } satisfies SpendLogDoc);
         return { id: logRef.id, existing: false };
       }),
@@ -197,6 +232,16 @@ export class FirestoreDailyLedger implements SpendLedger {
         tx.update(dayRef, {
           pendingMicros: day.pendingMicros - log.estimateMicros,
           committedMicros: day.committedMicros + actualMicros,
+          ...(log.unrequested
+            ? {
+                unrequestedPendingMicros: Math.max(
+                  0,
+                  (day.unrequestedPendingMicros ?? 0) - log.estimateMicros,
+                ),
+                unrequestedCommittedMicros:
+                  (day.unrequestedCommittedMicros ?? 0) + actualMicros,
+              }
+            : {}),
           updatedAt: now,
         });
         tx.update(logRef, {
@@ -240,6 +285,29 @@ export class FirestoreDailyLedger implements SpendLedger {
         reaped++;
       }
     }
+  }
+
+  /**
+   * How many more renders of this estimate fit today under BOTH ceilings (for unrequested ones) or
+   * the daily cap alone. A cheap look before anything is started; the transactional reserve in
+   * reserveWithId is still the arbiter.
+   */
+  async rendersThatFit(
+    estimateMicros: Micros,
+    unrequested: boolean,
+    now: Date = this.now(),
+  ): Promise<number> {
+    if (estimateMicros <= 0) return 0;
+    const day = await this.getDay(utcDay(now));
+    const spent = (day?.committedMicros ?? 0) + (day?.pendingMicros ?? 0);
+    let room = this.ceilingMicros - spent;
+    if (unrequested) {
+      const uSpent =
+        (day?.unrequestedCommittedMicros ?? 0) +
+        (day?.unrequestedPendingMicros ?? 0);
+      room = Math.min(room, this.unrequestedCeilingMicros - uSpent);
+    }
+    return Math.max(0, Math.floor(room / estimateMicros));
   }
 
   async getDay(day: string): Promise<SpendDayDoc | null> {

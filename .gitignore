@@ -23,6 +23,7 @@ runs/
 
 # build and test output
 .next/
+.next-buffer/
 .turbo/
 next-env.d.ts
 *.tsbuildinfo

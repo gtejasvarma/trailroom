@@ -36,6 +36,7 @@ import {
 } from "@trailroom/render";
 import sharp from "sharp";
 import { loadItemImage } from "./catalog-images";
+import { loadPublishedCatalog } from "./published-catalog";
 import { JobTerminalError, RetryableNodeError } from "./errors";
 import {
   failureCodeForFailedSet,
@@ -91,7 +92,11 @@ async function garmentsAndPrompt(
   job: JobDoc,
   pose: Pose,
 ): Promise<{ garments: InputImage[]; prompt: string }> {
+  await loadPublishedCatalog(); // a piece published after the static twelve
   const ids = kindOf(job) === "outfit" ? (job.itemIds ?? []) : [job.itemId];
+  if (kindOf(job) === "arrival" && pose !== "front") {
+    throw new Error("an arrival is rendered as front only");
+  }
   if (ids.length !== (kindOf(job) === "outfit" ? 2 : 1)) {
     throw new Error(`job ${job.poseSetId} has the wrong number of pieces`);
   }
@@ -183,7 +188,11 @@ export async function renderPose(
   }
 
   const cfg = renderConfigFromEnv();
-  const ledger = new FirestoreDailyLedger(cfg.dailyCapUsd);
+  const ledger = new FirestoreDailyLedger(
+    cfg.dailyCapUsd,
+    undefined,
+    cfg.unrequestedDailyUsd,
+  );
   const record = async (outcome: RenderOutcome, detail?: string) => {
     await setAttemptRecord(jobId, pose, attempt, { outcome, detail });
     return { outcome };
@@ -242,7 +251,13 @@ export async function renderPose(
         images: [...garments, personImage],
         aspectRatio: cfg.aspectRatio,
         meter: ledger,
-        meta: { jobId, pose, attempt },
+        meta: {
+          jobId,
+          pose,
+          attempt,
+          // The buffer's renders were not asked for: they also answer to the lower ceiling.
+          ...(kindOf(job) === "arrival" ? { unrequested: true } : {}),
+        },
       });
     } catch (err) {
       if (err instanceof SpendCeilingError) {

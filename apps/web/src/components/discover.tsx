@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  CATALOG,
+  catalog,
   DEMO_CATALOG_NOTICE,
   SHOP_CATEGORIES,
   catalogUrl,
@@ -12,6 +12,7 @@ import {
 import { copy } from "../lib/copy";
 import { paths } from "../lib/flow";
 import { btnLink, caption } from "../lib/ui";
+import { ArrivalsShelf, useArrivals } from "./arrivals-shelf";
 import { useMe } from "./me-provider";
 import { ProductCard } from "./product-card";
 import { ProofSlider } from "./proof-slider";
@@ -84,10 +85,11 @@ function StartRow() {
 export function Discover() {
   const { loaded, photoCount } = useMe();
   const [filter, setFilter] = useState<Filter>("all");
+  // Read after useArrivals: it registers the pieces it learns about, so the feed includes them.
+  const arrivals = useArrivals();
+  const all = catalog();
   const shown =
-    filter === "all"
-      ? CATALOG
-      : CATALOG.filter((i) => i.shopCategory === filter);
+    filter === "all" ? all : all.filter((i) => i.shopCategory === filter);
 
   return (
     <div className="mx-auto w-full max-w-[1600px] pb-12 md:px-10">
@@ -138,6 +140,7 @@ export function Discover() {
       </div>
 
       <div className="md:mt-5">
+        <ArrivalsShelf data={arrivals} />
         <StartRow />
       </div>
 

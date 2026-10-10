@@ -7,6 +7,7 @@ import {
   listPoseSetsForUser,
 } from "@trailroom/db";
 import { CONSENT_VERSION } from "../lib/consent";
+import { emailEnabled } from "./email/transport";
 import { ok, type Result } from "./http";
 import type { User } from "./auth";
 
@@ -16,6 +17,8 @@ export interface MeBody {
   consented: boolean;
   photoCount: number;
   defaultPhotoId: string | null;
+  /** True when the server can send email (a transport is configured); the UI shows email controls only then. */
+  emailEnabled: boolean;
   /** Slugs of the labels this session follows. */
   follows: string[];
   /** Pose sets that are not failed, for any of the person's photos. */
@@ -45,13 +48,19 @@ export async function getMe(user: User): Promise<Result<MeBody>> {
     consented: consent,
     photoCount,
     defaultPhotoId,
+    emailEnabled: emailEnabled(),
     follows,
     activePoseSets: sets
-      .filter((s) => s.poseSet.status !== "failed")
+      .filter(
+        (s) => s.poseSet.status !== "failed" && kindOf(s.poseSet) !== "arrival",
+      )
       .map((s) => ({
         poseSetId: s.id,
         itemId: s.poseSet.itemId,
-        kind: kindOf(s.poseSet),
+        kind:
+          kindOf(s.poseSet) === "outfit"
+            ? ("outfit" as const)
+            : ("tryon" as const),
         ...(s.poseSet.itemIds ? { itemIds: s.poseSet.itemIds } : {}),
         jobId: s.poseSet.jobId,
         status: s.poseSet.status,

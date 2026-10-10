@@ -6,6 +6,9 @@ import {
   auth,
   deleteAllForUser,
   deleteExpiredAsks,
+  deleteOldEmailKeys,
+  deleteOldEmailTokens,
+  deleteOldEvents,
   deleteOldUsage,
   deleteConsent,
   FirestoreDailyLedger,
@@ -16,6 +19,8 @@ import {
 } from "@trailroom/db";
 import { failJob } from "@trailroom/pipeline";
 import { logError, renderConfigFromEnv } from "@trailroom/render";
+import { runArrivals } from "./arrivals";
+import { runEmail } from "./email/run";
 import { STALE_JOB_MS } from "./limits";
 
 export const PURGE_BATCH = 200;
@@ -32,6 +37,9 @@ export interface PurgeResult {
   usageDeleted: number;
   /** Asks deleted 30 days after their link expired. */
   asksDeleted: number;
+  /** The follow loop: buffer renders started (0 with ARRIVALS_BUFFER off) and emails sent (0 with transport none). */
+  arrivalsStarted: number;
+  emailsSent: number;
 }
 
 type AuthUserLike = { providerData: unknown[] };
@@ -54,8 +62,14 @@ async function deleteAuthUser(uid: string): Promise<void> {
   }
 }
 
+/** Events and email keys are read for a week; tokens work for 400 days. */
+const EVENT_KEEP_MS = 45 * 24 * 60 * 60 * 1000;
+const TOKEN_KEEP_MS = 400 * 24 * 60 * 60 * 1000;
+
 export async function purgeExpiredGuests(
   now: Date = new Date(),
+  /** The absolute origin links in emails are built on (see originOf in asks.ts). */
+  origin: string = process.env.INTERNAL_AUDIENCE ?? "",
 ): Promise<PurgeResult> {
   const result: PurgeResult = {
     purged: 0,
@@ -65,6 +79,8 @@ export async function purgeExpiredGuests(
     staleJobs: 0,
     usageDeleted: 0,
     asksDeleted: 0,
+    arrivalsStarted: 0,
+    emailsSent: 0,
   };
 
   // Expired guests.
@@ -132,6 +148,27 @@ export async function purgeExpiredGuests(
     result.asksDeleted = await deleteExpiredAsks(now, PURGE_BATCH);
   } catch (e) {
     logError("purge: expired asks failed", e);
+  }
+
+  // The follow loop. Each step is a no-op unless its switch is on, and a failure in one never
+  // stops the housekeeping above or the other step.
+  try {
+    result.arrivalsStarted = (await runArrivals(now)).started;
+  } catch (e) {
+    logError("purge: arrivals failed", e);
+  }
+  try {
+    const sent = await runEmail(now, origin.replace(/\/+$/, ""));
+    result.emailsSent = sent.news + sent.price;
+  } catch (e) {
+    logError("purge: email failed", e);
+  }
+  try {
+    await deleteOldEvents(new Date(now.getTime() - EVENT_KEEP_MS));
+    await deleteOldEmailKeys(new Date(now.getTime() - EVENT_KEEP_MS));
+    await deleteOldEmailTokens(new Date(now.getTime() - TOKEN_KEEP_MS));
+  } catch (e) {
+    logError("purge: follow loop cleanup failed", e);
   }
 
   try {

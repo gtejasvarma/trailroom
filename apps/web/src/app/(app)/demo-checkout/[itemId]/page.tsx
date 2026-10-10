@@ -1,5 +1,6 @@
 // Where "Go to <label>" lands. The labels are invented, so there is nothing to buy: this page says
 // so plainly and says what the real product would do. It sells nothing and collects nothing.
+import { loadPublishedCatalog } from "@trailroom/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { catalogUrl, getItem } from "@trailroom/catalog";
@@ -12,6 +13,7 @@ export default async function DemoCheckoutPage({
   params: Promise<{ itemId: string }>;
 }) {
   const { itemId } = await params;
+  await loadPublishedCatalog();
   const item = getItem(itemId);
   if (!item) notFound();
   const photo = item.photos[0]!;

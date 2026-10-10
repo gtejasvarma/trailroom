@@ -56,6 +56,34 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Phase G, the follow loop: published pieces and their events, the arrivals buffer, and
+    // everything held for email (preferences, once-per-event keys, unsubscribe tokens) are
+    // server-only. Clients reach them through /api/arrivals and /api/email-prefs. Explicit so a
+    // later edit cannot loosen them by accident.
+    match /publishedPieces/{id} {
+      allow read, write: if false;
+    }
+
+    match /publishEvents/{id} {
+      allow read, write: if false;
+    }
+
+    match /arrivals/{uid} {
+      allow read, write: if false;
+    }
+
+    match /emailPrefs/{uid} {
+      allow read, write: if false;
+    }
+
+    match /emailSent/{id} {
+      allow read, write: if false;
+    }
+
+    match /emailTokens/{hash} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

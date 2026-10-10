@@ -4,7 +4,7 @@
 // imports Firebase. Kept out of the main entry so client bundles never import node:fs.
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { CATALOG, PROOF_MODEL_FILE, getItem } from "./index";
+import { catalog, PROOF_MODEL_FILE, getItem } from "./index";
 
 // Resolved from process.cwd() (not import.meta.url: Turbopack would try to bundle the directory
 // as an asset). Only dev, tests and scripts ever read it; production reads Cloud Storage and
@@ -33,7 +33,7 @@ export function catalogFileFor(id: string): string | undefined {
 export function catalogFiles(): string[] {
   return [
     ...new Set([
-      ...CATALOG.flatMap((i) => i.photos.map((p) => p.file)),
+      ...catalog().flatMap((i) => i.photos.map((p) => p.file)),
       PROOF_MODEL_FILE,
     ]),
   ];
@@ -46,7 +46,8 @@ export function isCatalogFile(file: string): boolean {
 
 /** The content type for a catalogue file name. */
 export function catalogContentType(file: string): string {
-  return file.endsWith(".webp") ? "image/webp" : "image/jpeg";
+  if (file.endsWith(".webp")) return "image/webp";
+  return file.endsWith(".png") ? "image/png" : "image/jpeg";
 }
 
 /** Reads one file from packages/catalog/assets/prototype. Only catalogue names are accepted. */

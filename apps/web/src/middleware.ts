@@ -1,12 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { GATE_COOKIE, readGateConfig, verifyGateCookie } from "@/lib/gate";
-import { isExempt, isPublicAskPath } from "@/lib/gate-paths";
+import {
+  isExempt,
+  isPublicAskPath,
+  isPublicUnsubscribePath,
+} from "@/lib/gate-paths";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (isExempt(pathname)) {
     const res = NextResponse.next();
-    if (isPublicAskPath(pathname)) {
+    if (isPublicAskPath(pathname) || isPublicUnsubscribePath(pathname)) {
       // The link is the secret: never indexed, cached or sent on as a referrer. (The routes set
       // the same headers themselves; this covers the page.)
       res.headers.set("X-Robots-Tag", "noindex, nofollow");

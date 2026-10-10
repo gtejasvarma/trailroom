@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isExempt, isPublicAskPath } from "./gate-paths";
+import {
+  isExempt,
+  isPublicAskPath,
+  isPublicUnsubscribePath,
+} from "./gate-paths";
 
 const TOKEN = "A".repeat(43);
 
@@ -83,5 +87,37 @@ describe("the password gate's exemptions", () => {
     const src = readFileSync(resolve(__dirname, "../middleware.ts"), "utf8");
     expect(src).toContain('from "@/lib/gate-paths"');
     expect(src).not.toMatch(/pathname\s*===\s*"\/ask/);
+  });
+});
+
+describe("the unsubscribe path through the gate", () => {
+  it.each([
+    `/unsubscribe/${TOKEN}`,
+    "/unsubscribe/anything",
+    `/api/unsubscribe/${TOKEN}`,
+  ])("lets %s through", (p) => {
+    expect(isExempt(p)).toBe(true);
+    expect(isPublicUnsubscribePath(p)).toBe(true);
+  });
+
+  it.each([
+    "/unsubscribe",
+    "/unsubscribe/",
+    "/unsubscribe//",
+    `/unsubscribe/${TOKEN}/`,
+    `/unsubscribe/${TOKEN}/extra`,
+    "/unsubscribe/.",
+    "/unsubscribe/..",
+    "/Unsubscribe/x",
+    "/api/unsubscribe",
+    "/api/unsubscribe/",
+    `/api/unsubscribe/${TOKEN}/extra`,
+    "/api/unsubscribe/..",
+    "/api/email-prefs",
+    "/api/arrivals",
+    "/api/arrivals/seen",
+  ])("keeps %s behind the gate", (p) => {
+    expect(isPublicUnsubscribePath(p)).toBe(false);
+    expect(isExempt(p)).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -188,15 +188,39 @@ describe("account sheet copy by reason (the prototype's gateCopy)", () => {
   });
 });
 
-describe("no email in V0", () => {
-  it("no user-facing string mentions email or e-mail (nothing is sent in V0)", () => {
-    // There is no allowlist: V0 sends no email and promises none (CLAUDE.md, PRD 22.1 rows 3 and 10).
+describe("email copy only appears behind the server's capability", () => {
+  // Email strings live under copy.email (the messages and the two switches) and copy.unsubscribe
+  // (the page an email links to). Nothing else may mention email, and nothing may promise one.
+  const emailPath = /^copy\.(email|unsubscribe)\b/;
+  it("no user-facing string outside copy.email and copy.unsubscribe mentions email", () => {
     for (const [path, text] of all) {
+      if (emailPath.test(path)) continue;
       expect(/e-?mail/i.test(text), `${path}: "${text}"`).toBe(false);
     }
     for (const [code, e] of Object.entries(ERRORS)) {
       expect(/e-?mail/i.test(e.message), `ERRORS.${code}`).toBe(false);
     }
+  });
+
+  it("the email strings carry no fit language and no promise of a time", () => {
+    const mine = all.filter(([p]) => emailPath.test(p));
+    expect(mine.length).toBeGreaterThan(15);
+    for (const [path, text] of mine) {
+      expect(findFitLanguage(text), `${path}: "${text}"`).toBeNull();
+    }
+  });
+
+  it("only components behind the capability use copy.email", () => {
+    const dir = join(fileURLToPath(import.meta.url), "../../components");
+    const users = readdirSync(dir).filter(
+      (f) =>
+        f.endsWith(".tsx") &&
+        /copy\.email\b/.test(readFileSync(join(dir, f), "utf8")),
+    );
+    // email-prefs is mounted only when me.emailEnabled; nothing else may touch the strings.
+    expect(users).toEqual(["email-prefs.tsx"]);
+    const you = readFileSync(join(dir, "you-screen.tsx"), "utf8");
+    expect(you).toMatch(/me\.emailEnabled\s*\?\s*<EmailPrefs/);
   });
 });
 
@@ -296,13 +320,19 @@ describe("phase E copy: You, Studio, Compare and Buy", () => {
       ).toBe(false);
     }
   });
-  it("the You and Studio sources have no email section either", () => {
-    for (const f of [
-      "you-screen.tsx",
-      "you-parts.tsx",
-      "you-photos.tsx",
-      "account-menu.tsx",
-    ]) {
+  it("the You and Studio sources have no email section of their own", () => {
+    // you-screen only mounts the capability-gated EmailPrefs; it writes no email words itself.
+    const gated = readFileSync(
+      join(fileURLToPath(import.meta.url), "../../components/you-screen.tsx"),
+      "utf8",
+    )
+      .replace(/import \{ EmailPrefs \} from "\.\/email-prefs";/, "")
+      .replace(
+        /\{!guest && me\.emailEnabled\s*\?\s*<EmailPrefs\s*\/>\s*:\s*null\}/,
+        "",
+      );
+    expect(/e-?mail|stay in the loop|run a label/i.test(gated)).toBe(false);
+    for (const f of ["you-parts.tsx", "you-photos.tsx", "account-menu.tsx"]) {
       const src = readFileSync(
         join(fileURLToPath(import.meta.url), "../../components", f),
         "utf8",

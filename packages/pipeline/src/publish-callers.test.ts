@@ -6,7 +6,10 @@ const root = resolve(__dirname, "../../..");
 
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
-    if (["node_modules", ".next", ".turbo", "e2e"].includes(name)) return [];
+    if (
+      ["node_modules", ".next", ".next-buffer", ".turbo", "e2e"].includes(name)
+    )
+      return [];
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return sources(path);
     return /\.(ts|tsx|js|mjs)$/.test(name) ? [path] : [];

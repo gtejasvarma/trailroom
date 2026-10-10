@@ -2,6 +2,7 @@
 // catalogue; the asker is only ever a first name. No uid, no voter identity, no token hash.
 import { getItem } from "@trailroom/catalog";
 import { type AskDoc } from "@trailroom/db";
+import { loadPublishedCatalog } from "@trailroom/pipeline";
 import { askImageSource } from "./ask-image";
 
 export interface AskPieceView {
@@ -33,6 +34,7 @@ export async function buildAskView(
   ask: AskDoc,
   opts: { imageBase: string; myVote: string | null; isAsker: boolean },
 ): Promise<AskView> {
+  await loadPublishedCatalog();
   const pieces = await Promise.all(
     ask.itemIds.map(async (id): Promise<AskPieceView | null> => {
       const item = getItem(id);

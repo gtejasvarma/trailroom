@@ -1,19 +1,25 @@
 import { ITEMS, type CatalogItem, type ShopCategory } from "./items";
+import { allItems } from "./published";
 
 export * from "./items";
+export * from "./published";
 export * from "./labels";
 export * from "./copy-rules";
 
 /** Items below this readiness are refused up front (the honest-failure path). */
 export const READINESS_THRESHOLD = 70;
 
+/** The twelve static pieces. Use `catalog()` for everything shown, which adds published pieces. */
 export const CATALOG: readonly CatalogItem[] = ITEMS;
+
+/** Static plus published pieces. */
+export const catalog = (): readonly CatalogItem[] => allItems();
 
 export const DEMO_CATALOG_NOTICE =
   "Labels and prices in this catalogue are invented demo data.";
 
 export function getItem(id: string): CatalogItem | undefined {
-  return CATALOG.find((i) => i.id === id);
+  return allItems().find((i) => i.id === id);
 }
 
 /** Whether we render this piece: apparel we can show honestly, above the readiness bar. */
@@ -25,7 +31,7 @@ export function isRenderReady(item: CatalogItem): boolean {
 export const catalogUrl = (file: string): string => `/catalog/${file}`;
 
 export function itemsByLabel(slug: string): CatalogItem[] {
-  return CATALOG.filter((i) => i.labelSlug === slug);
+  return allItems().filter((i) => i.labelSlug === slug);
 }
 
 /** "Start with these": render-ready pieces that have four label photographs. */
@@ -44,7 +50,7 @@ export function labelAvatar(slug: string): string | undefined {
  */
 export function closestThree(itemId: string): CatalogItem[] {
   const self = getItem(itemId);
-  const others = CATALOG.filter(
+  const others = allItems().filter(
     (i) => i.id !== itemId && isRenderReady(i) && i.shopCategory === "apparel",
   );
   const rank = (i: CatalogItem) =>
@@ -122,7 +128,7 @@ export function isOutfitPair(a: string, b: string): boolean {
 export function outfitPairsFor(itemId: string): CatalogItem[] {
   const self = getItem(itemId);
   if (!self) return [];
-  return CATALOG.filter(
+  return allItems().filter(
     (o) =>
       o.id !== itemId &&
       (self.pairsWith.includes(o.id) || o.pairsWith.includes(itemId)) &&

@@ -59,7 +59,12 @@ export async function loadCatalogFile(
   if (process.env.NODE_ENV === "production") {
     throw new CatalogImageMissingError(catalogPath(file));
   }
-  const data = readCatalogAsset(file);
+  let data: Buffer;
+  try {
+    data = readCatalogAsset(file);
+  } catch {
+    return null; // a published piece's image that was never uploaded
+  }
   const contentType = catalogContentType(file);
   await putCatalogImage(file, data, contentType);
   return { data, contentType };

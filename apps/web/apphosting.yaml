@@ -91,3 +91,27 @@ env:
   #   value: https://trailroom.ai
   #   availability:
   #     - RUNTIME
+
+  # ---- Phase G, the follow loop. Both switches are OFF until the owner decides. ----
+  # May the "arrives on you" buffer render pieces nobody asked for? off (the default, and what
+  # an absent value means) renders nothing unrequested. on lets the scheduled housekeeping call
+  # pre-render up to five Front cards per signed-in person for new pieces from labels they
+  # follow, only after they have seen the last five, only under DAILY_CAP_USD and the separate
+  # ARRIVALS_DAILY_USD below. Any other value stops the app.
+  - variable: ARRIVALS_BUFFER
+    value: "off"
+    availability:
+      - RUNTIME
+  # The most the buffer may spend in a UTC day (default 1; never above DAILY_CAP_USD). It is
+  # checked in the same transaction as the daily cap, so requested try-ons keep the rest.
+  # - variable: ARRIVALS_DAILY_USD
+  #   value: "1"
+  #   availability:
+  #     - RUNTIME
+  # How email leaves: none (the default) sends nothing, records nothing and hides every email
+  # control and sentence in the product. Uncomment and set it when a provider transport exists;
+  # "log" is for local dev and tests only and is refused in production.
+  # - variable: EMAIL_TRANSPORT
+  #   value: none
+  #   availability:
+  #     - RUNTIME

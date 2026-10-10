@@ -37,11 +37,13 @@ export async function getJobForUser(
   }
   // 404 for someone else's job, never 403, so ids cannot be probed.
   if (!job || job.uid !== user.uid) return err("not_found");
+  // An arrivals-buffer render is a card in Discover, not a job anyone watches or opens.
+  if (kindOf(job) === "arrival") return err("not_found");
   return ok({
     jobId,
     poseSetId: job.poseSetId,
     itemId: job.itemId,
-    kind: kindOf(job),
+    kind: kindOf(job) === "outfit" ? ("outfit" as const) : ("tryon" as const),
     itemIds: job.itemIds ?? [job.itemId],
     photoId: job.photoId,
     aiGenerated: true as const,

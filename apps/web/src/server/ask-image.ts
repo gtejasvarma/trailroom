@@ -2,6 +2,7 @@
 // in the ask, when that piece's frozen pose set is still complete and still theirs, otherwise the
 // label's own photograph. Never another pose, another piece, the photo, or staging.
 import { getItem } from "@trailroom/catalog";
+import { loadPublishedCatalog } from "@trailroom/pipeline";
 import {
   getPhoto,
   getPoseSet,
@@ -100,6 +101,7 @@ export async function askImage(
   ask: AskDoc,
   itemId: string,
 ): Promise<Result<Served>> {
+  await loadPublishedCatalog();
   const item = ask.itemIds.includes(itemId) ? getItem(itemId) : undefined;
   if (!item) return err("not_found");
   try {

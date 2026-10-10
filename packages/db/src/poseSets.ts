@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./app";
 import { assertSegment } from "./paths";
+import { arrivalPoseSetId } from "./arrivals";
 import { expiryFor, type PoseSetDoc } from "./types";
 
 const col = () => firestore().collection("poseSets");
@@ -62,6 +63,8 @@ export interface ClaimPoseSetInput {
   photoId: string;
   jobId: string;
   isGuest: boolean;
+  /** An "arrivals" buffer render: one piece, Front only, under its own id. */
+  arrival?: boolean;
 }
 
 /** Atomically claims the cache key with create(); a second claim throws PoseSetExistsError. */
@@ -70,15 +73,19 @@ export async function claimPoseSet(
   now: Date = new Date(),
 ): Promise<{ id: string; poseSet: PoseSetDoc }> {
   const [first, second] = input.itemIds ?? [];
-  const id = input.itemIds
-    ? outfitPoseSetId(input.uid, input.photoId, first!, second!)
-    : poseSetId(input.uid, input.photoId, input.itemId);
+  const id = input.arrival
+    ? arrivalPoseSetId(input.uid, input.photoId, input.itemId)
+    : input.itemIds
+      ? outfitPoseSetId(input.uid, input.photoId, first!, second!)
+      : poseSetId(input.uid, input.photoId, input.itemId);
   const poseSet: PoseSetDoc = {
     uid: input.uid,
     itemId: input.itemIds ? [first!, second!].sort()[0]! : input.itemId,
     ...(input.itemIds
       ? { kind: "outfit" as const, itemIds: [first!, second!].sort() }
-      : {}),
+      : input.arrival
+        ? { kind: "arrival" as const }
+        : {}),
     photoId: input.photoId,
     jobId: input.jobId,
     status: "rendering",

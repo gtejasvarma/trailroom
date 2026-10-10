@@ -1,6 +1,8 @@
 "use client";
 // Every call to /api/* carries a fresh Firebase ID token. Errors are { error, message }.
+import type { ArrivalsBody } from "../server/arrivals";
 import type { AskSummary } from "../server/asks";
+import type { EmailPrefsBody } from "../server/email/prefs";
 import type { InboxDetail, InboxSummary } from "../server/inbox";
 import type { ListBody } from "../server/lists";
 import type { MeBody } from "../server/me";
@@ -167,5 +169,17 @@ export const api = {
   inboxDetail: (askId: string) => apiFetch<InboxDetail>(`/api/inbox/${askId}`),
   inboxVote: (askId: string, itemId: string) =>
     apiFetch<InboxDetail>(`/api/inbox/${askId}/vote`, json({ itemId })),
+  /** New pieces from followed labels, and the caller's pre-rendered cards (empty unless the buffer made some). */
+  arrivals: () => apiFetch<ArrivalsBody>("/api/arrivals"),
+  arrivalsSeen: (itemIds: string[]) =>
+    apiFetch<{ seen: true }>("/api/arrivals/seen", json({ itemIds })),
+  /** 404 while the server has no email transport. */
+  emailPrefs: () => apiFetch<EmailPrefsBody>("/api/email-prefs"),
+  setEmailPrefs: (change: Partial<EmailPrefsBody>) =>
+    apiFetch<EmailPrefsBody>("/api/email-prefs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(change),
+    }),
   attach: () => apiFetch<{ isGuest: false }>("/api/account/attach", json({})),
 };

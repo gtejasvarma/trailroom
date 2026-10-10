@@ -154,6 +154,7 @@ describe("renderConfigFromEnv", () => {
     expect(renderConfigFromEnv({})).toEqual({
       model: "nano-banana-2.1",
       dailyCapUsd: 5,
+      unrequestedDailyUsd: 1,
       aspectRatio: "3:4",
       poses: ["front", "three-quarter", "walking", "seated"],
     });
@@ -170,6 +171,21 @@ describe("renderConfigFromEnv", () => {
       dailyCapUsd: 2.5,
       poses: ["front", "walking"],
     });
+  });
+
+  it("reads the ceiling for unrequested renders and never lets it pass the daily cap", () => {
+    expect(
+      renderConfigFromEnv({ ARRIVALS_DAILY_USD: "0.5" }).unrequestedDailyUsd,
+    ).toBe(0.5);
+    expect(
+      renderConfigFromEnv({ ARRIVALS_DAILY_USD: "0" }).unrequestedDailyUsd,
+    ).toBe(0);
+    expect(
+      renderConfigFromEnv({ DAILY_CAP_USD: "2", ARRIVALS_DAILY_USD: "9" })
+        .unrequestedDailyUsd,
+    ).toBe(2);
+    expect(() => renderConfigFromEnv({ ARRIVALS_DAILY_USD: "-1" })).toThrow();
+    expect(() => renderConfigFromEnv({ ARRIVALS_DAILY_USD: "abc" })).toThrow();
   });
 
   it("rejects a daily cap above the sanity bound, accepts the bound itself", () => {
@@ -199,7 +215,14 @@ describe("renderConfigFromEnv", () => {
 // CLAUDE.md hard rule: never call an image model outside packages/render.
 describe("the chokepoint", () => {
   const root = resolve(import.meta.dirname, "../../..");
-  const skip = new Set(["node_modules", ".next", ".turbo", "dist", "build"]);
+  const skip = new Set([
+    "node_modules",
+    ".next",
+    ".next-buffer",
+    ".turbo",
+    "dist",
+    "build",
+  ]);
 
   function sources(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {

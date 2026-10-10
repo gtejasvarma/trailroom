@@ -6,6 +6,7 @@ import {
   getJob,
   GuestLiveSetError,
   isConsentCurrent,
+  kindOf,
   refundDailyStart,
   deleteJob,
   deletePoseSetIfFailed,
@@ -171,6 +172,8 @@ export async function launchRender(
     const sets = await listPoseSetsForUser(user.uid);
     for (const s of sets) {
       if (s.id === psId || s.poseSet.status !== "rendering") continue;
+      // A buffer render is not the person's try-on: it never makes them wait.
+      if (kindOf(s.poseSet) === "arrival") continue;
       const j = await getJob(s.poseSet.jobId);
       const alive =
         j &&

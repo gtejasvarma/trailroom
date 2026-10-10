@@ -5,3 +5,5 @@ export * from "./errors";
 export * from "./nodes";
 export * from "./inline";
 export * from "./catalog-images";
+export * from "./published-catalog";
+export * from "./script-guard";

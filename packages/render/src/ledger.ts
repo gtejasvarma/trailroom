@@ -20,6 +20,12 @@ export interface SpendMeta {
   pose?: string;
   jobId?: string;
   attempt?: number;
+  /**
+   * True for a render the person did not ask for (the "arrives on you" buffer). A durable ledger
+   * also holds these to a separate, lower ceiling, so they can never use the headroom that
+   * requested try-ons need.
+   */
+  unrequested?: boolean;
 }
 
 /** Extra facts to keep on the spend-log line when settling. Logged, never priced. */

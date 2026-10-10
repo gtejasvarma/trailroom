@@ -175,3 +175,73 @@ describe("FirestoreDailyLedger", () => {
     });
   });
 });
+
+describe("the separate ceiling for renders nobody asked for", () => {
+  const at = T("2026-03-01T12:00:00Z");
+  const meta = (i: number, unrequested: boolean) => ({
+    jobId: "j",
+    pose: `p${i}`,
+    attempt: 1,
+    unrequested,
+  });
+
+  it("stops unrequested reserves at its own ceiling and leaves the headroom to requested ones", async () => {
+    // $1.00 a day in all; $0.30 of it may go on renders nobody asked for.
+    const ledger = new FirestoreDailyLedger(1, at, 0.3);
+    for (let i = 0; i < 3; i++) await ledger.reserve(TEN_CENTS, meta(i, true));
+    await expect(ledger.reserve(TEN_CENTS, meta(3, true))).rejects.toThrow(
+      /unrequested-render ceiling/,
+    );
+    // Requested renders still fit in the rest of the day.
+    for (let i = 10; i < 17; i++)
+      await ledger.reserve(TEN_CENTS, meta(i, false));
+    // ...up to the daily cap, which holds for both kinds.
+    await expect(
+      ledger.reserve(TEN_CENTS, meta(20, false)),
+    ).rejects.toBeInstanceOf(SpendCeilingError);
+    const day = await ledger.getDay("2026-03-01");
+    expect(day!.pendingMicros).toBe(1_000_000);
+    expect(day!.unrequestedPendingMicros).toBe(300_000);
+  });
+
+  it("checks both ceilings in one transaction: a full day refuses an unrequested render with room under its own ceiling", async () => {
+    const ledger = new FirestoreDailyLedger(0.2, at, 0.5); // clamped to the cap
+    expect(ledger.unrequestedCeilingMicros).toBe(200_000);
+    await ledger.reserve(TEN_CENTS, meta(1, false));
+    await ledger.reserve(TEN_CENTS, meta(2, false));
+    await expect(
+      ledger.reserve(TEN_CENTS, meta(3, true)),
+    ).rejects.toBeInstanceOf(SpendCeilingError);
+  });
+
+  it("refuses unrequested renders outright when no ceiling was given", async () => {
+    const ledger = new FirestoreDailyLedger(1, at);
+    await expect(
+      ledger.reserve(TEN_CENTS, meta(1, true)),
+    ).rejects.toBeInstanceOf(SpendCeilingError);
+    await ledger.reserve(TEN_CENTS, meta(2, false));
+  });
+
+  it("settles an unrequested render against its own counter, once", async () => {
+    const ledger = new FirestoreDailyLedger(1, at, 0.3);
+    const settle = await ledger.reserve(TEN_CENTS, meta(1, true));
+    await settle(60_000);
+    await settle(60_000);
+    const day = await ledger.getDay("2026-03-01");
+    expect(day).toMatchObject({
+      committedMicros: 60_000,
+      pendingMicros: 0,
+      unrequestedCommittedMicros: 60_000,
+      unrequestedPendingMicros: 0,
+    });
+  });
+
+  it("rendersThatFit reports the room under both ceilings", async () => {
+    const ledger = new FirestoreDailyLedger(1, at, 0.3);
+    expect(await ledger.rendersThatFit(TEN_CENTS, true)).toBe(3);
+    expect(await ledger.rendersThatFit(TEN_CENTS, false)).toBe(10);
+    await ledger.reserve(TEN_CENTS, meta(1, true));
+    expect(await ledger.rendersThatFit(TEN_CENTS, true)).toBe(2);
+    expect(await ledger.rendersThatFit(TEN_CENTS, false)).toBe(9);
+  });
+});
