@@ -76,7 +76,8 @@ fixed in the same session; the spec and `docs/DEPLOY.md` carry the detail. Calls
   count, and deleting your photo does not reset the count.
 - **Spend is recorded conservatively.** A call that fails or dies mid-flight settles at its
   estimate, not zero, because Google may have billed it. The ledger can therefore read slightly
-  high. It should never read low.
+  high. It should never read low. *(Narrowed on 2026-10-08, see the amendment below: a provider
+  rejection with a 4xx status settles at zero.)*
 - **Google sign-in opens a popup.** Design rule 2 lists system popups as "Interrupt" and allows
   only the share sheet and the photo picker. The account sheet is sanctioned by PRD §21.1; the
   Google popup inside it is a third exception, accepted because a redirect flow loses the render
@@ -92,6 +93,29 @@ Known and not fixed:
   Cloud Armor is the real control.
 - **Upload safety filters** (Design.md §12: "day one") are not built.
 
+## Amendment — 2026-10-08: the first real run on the deployed site
+
+The first try-on on the deployed site (Phase C) failed. Every image-model call was refused with
+HTTP 402, because the API key in use was not on an account with billing for the image model. The
+Cloud Workflow itself ran correctly from start to finish; what it reported was the failure. Three
+things changed in Phase C because of it:
+
+1. **A provider failure is not a quality failure.** A set whose every attempt failed on the
+   provider's side now fails as `internal` ("something went wrong on our side"). It used to fail as
+   `render_failed`, the screen that says we could not render the piece honestly, which blamed the
+   garment for a fault that was ours.
+2. **A rejected call costs nothing.** A provider rejection with a 4xx status was refused before any
+   generation, so it settles at zero against the daily cap. Timeouts and 5xx responses still settle
+   at the estimate. This narrows the conservative rule in the 2026-10-07 amendment and nothing
+   else.
+3. **Each failed model call is logged once, with its status.** The first run had to be diagnosed
+   from the spend log and the per-pose reasons; the status is now in the server's logs too
+   (`runs/diag.sh`, local and git-ignored, prints all three; `docs/DEPLOY.md`).
+
+The key was replaced on 2026-10-08 with one verified by a single real image call; the secret is
+`GEMINI_API_KEY` version 2. **As of 2026-10-09 no successful render has been observed on the
+deployed site.** Seeing one is the first item of the smoke test.
+
 ## Owed before the password gate comes off
 
 - [ ] App Check or a per-device guest limit; Cloud Armor in front of the gate
@@ -102,6 +126,10 @@ Known and not fixed:
 - [ ] BIPA reviewed by someone qualified (BUILD_PLAN §7)
 - [ ] Vertex AI in place of the API key
 - [ ] The three follow-ups in ADR 0001 (billing, leftover data, sole IAM owner)
+- [ ] A successful real render observed on the deployed site, with the spend documents checked (`docs/DEPLOY.md` smoke test). Not done as of 2026-10-09.
+- [ ] The full end-to-end suite run to green after the final Phase C fix (last full run: 234 of 235), and a camera upload shown to succeed, which the tests do not guarantee (the fake camera frame can be rejected for size)
+- [ ] Automatic rollouts on push working, or the manual rollout step accepted as policy (`docs/DEPLOY.md`)
+- [ ] The old Firebase Hosting site from the earlier attempt checked, and taken down if it is still up
 
 The image-rights question that ADR 0005 first added here is answered (the owner cleared the
 catalogue images, 2026-10-07) and is not owed.

@@ -1,6 +1,6 @@
 # Spec — M2 + M3: the vertical slice and the render graph
 
-Status: built 2026-10-07, not yet deployed. **Its screens and catalogue are superseded** by PRD v0.7 §22 and BUILD_PLAN §12 (ADR 0005); everything below the screens carries over. Owner: Tejas. Branch: `m2-m3-build`.
+Status: built 2026-10-07 and deployed behind the password (its pipeline and workflow are live; the first real model call on 2026-10-08 was refused for billing, ADR 0004). **Its screens and catalogue are superseded** by PRD v0.7 §22 and BUILD_PLAN §12 (ADR 0005); everything below the screens carries over. Owner: Tejas. Branch: `m2-m3-build`.
 Implements `docs/BUILD_PLAN.md` §8 (M2) and §9 (M3). PRD sections: §4, §6, §7 C1 Path B, §7 C6,
 §10.2–10.4, §15, §16, §21.1–21.2. Design: `docs/Design.md` §1, §2, §8, §9, §11.
 

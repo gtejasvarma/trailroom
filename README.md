@@ -4,10 +4,30 @@ Try fashion products without leaving your couch. One photo of you, and every pie
 from the labels you follow comes back on your body — in four poses (Front, Three-quarter,
 Walking, Seated) — before you buy.
 
-**Where it stands.** The product is being built to match two prototypes, as a single responsive web
-app. V0 is a demonstration on Friday 9 October 2026 (the first three phases of the build plan:
-catalogue and Discover, photos and capture, and the queue, account and result). Email is designed
-but not sent in V0.
+**Where it stands (2026-10-09).** V0 is built and live behind a password at
+`https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`: Phases A, B and C of the build plan.
+It has Discover with the proof slider, product and label pages with Follow, several photos per person,
+upload and in-page camera capture with a consent line, a walk-away queue (a chip on every screen and a
+ready toast), account to open (a guest sees tile-sized images only; Google sign-in opens the result, on
+phone and desktop), a four-pose result with the AI caption and Buy as the filled action, tried pieces
+shown "on you", a "Your try-ons" page, and honest-failure screens. Buy, Add to a list and Build the
+outfit show a "coming soon" toast. No email is sent. **No successful render has yet been observed on
+the deployed site**: the first real run was refused by the image model for billing, and the key has
+been replaced. **Next:** Phase D (lists, asks, the public vote page; no email) is in progress; then
+email, and Phases E to H (`docs/BUILD_PLAN.md` §12).
+
+## Running it locally
+
+Local renders are coloured test images from a fake provider (nothing calls the image model), and local
+Google sign-in is the emulator's simulated one.
+
+```bash
+npm ci
+npm run test:e2e        # the suite, against a dev server and the emulators
+npm run emulators:exec -- "cd apps/web && GATE_PASSWORD=local GATE_COOKIE_SECRET=local-only-cookie-secret RENDER_PROVIDER=fake ORCHESTRATOR=inline NEXT_PUBLIC_USE_EMULATORS=1 GOOGLE_CLOUD_PROJECT=demo-trailroom npx next dev --port 3000"
+```
+
+The last command previews the app at `http://localhost:3000`; the gate password is `local`.
 
 ## What's here
 
@@ -15,7 +35,7 @@ but not sent in V0.
 |---|---|
 | `docs/PRD.md` | **The PRD** (v0.7), one consistent document. §22 holds the decisions and their reasoning; §19 is the register of the original mock-vs-PRD audit. |
 | `docs/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Derive every value from §11 and do not invent tokens. |
-| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H, with V0 = A to C). |
+| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H; V0 = A to C is live, D in progress). |
 | `docs/DEPLOY.md` | The manual deploy runbook (Tejas runs it; agents do not deploy). |
 | `docs/decisions/` | ADRs — one file per irreversible call (infra, vendor, architecture, scope). |
 | `specs/` | Units of work — one spec file per increment being built. |
@@ -28,7 +48,7 @@ but not sent in V0.
 Open `mocks/Trailroom Prototype.dc.html` (mobile) or `mocks/Trailroom Desktop.dc.html` (desktop)
 directly in a browser. Images are in `mocks/assets/`; reference screenshots are in `mocks/screens/`.
 They are the target prototypes with the PRD §22.1 decisions applied (no fit sentences, a consent line
-under the upload controls, Google sign-in only, no promise of email).
+under the upload controls, Google sign-in only, no promise of email). The reference screenshots in `mocks/screens/` still show the prototype's two-step onboarding and its email promises, which V0 does not have.
 
 - `mocks/Trailroom Desktop Designer.dc.html` — the designer back office, a reference for a deferred
   milestone.

@@ -10,12 +10,14 @@ Seated), garments from labels the user follows.
 `Trailroom Desktop.dc.html`; ADR 0005). They win on flow, layout and copy, and the PRD (v0.7) agrees
 with them except where §22.1 says the build differs (no fit sentences, consent by a line under the upload controls, no live selfie
 claim, no email sent in V0). The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
-**V0 is a demonstration on Friday 9 October 2026: Phases A, B and C.** Phase D without email is the
-stretch goal; E to H and sending email come after Friday. **Phase A is done and deployed behind the password; Phase B is in progress.**
+**V0 is a demonstration on Friday 9 October 2026: Phases A, B and C, built and live behind the password**
+at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` (`a5b7918`, `f3ab209`, `2f11325`).
+**Phase D (lists, asks, the vote page; no email) is in progress**; E to H and sending email come after
+Friday. No successful render has yet been observed on the deployed site (the first real run was refused
+by the image model with HTTP 402; the key was replaced); seeing one is the first item of the smoke test.
 
-Where things stand: M0 is done. M2 + M3 (one plain journey, the pipeline, the Cloud Workflow) are
-built but not deployed; their screens and catalogue are being replaced, everything beneath them
-carries over. **M1 (the eval) is unfinished**: the QA gate in `packages/pipeline` is structural
+Where things stand: M0 is done. M2 + M3 (the pipeline, the Cloud Workflow) are deployed and
+carry over; their original screens and catalogue were replaced in Phases A to C. **M1 (the eval) is unfinished**: the QA gate in `packages/pipeline` is structural
 only, and its identity, proportion, garment and cross-pose checks are empty slots until M1 supplies
 them (ADR 0004).
 
@@ -26,6 +28,7 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 
 - `npm run verify` — prettier --check + tsc --noEmit across the repo. Must be green before any turn ends.
 - `npm run format` — prettier --write across the repo.
+- `runs/diag.sh` — local, git-ignored. **The first thing to run when a try-on fails on the deployed site:** it prints the latest job's per-pose reasons, the server-side error detail and the spend log.
 - `npm test` — unit tests. `npm run test:emu` — tests against the Firebase emulators. `npm run test:e2e` —
   Playwright against a dev server and the emulators. Prefix the last two with `caffeinate -i` on a Mac.
   All tests use a fake render provider; nothing here calls the image model.
@@ -50,7 +53,7 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 | `docs/DEPLOY.md` | The manual deploy runbook. Read before changing anything deploy-related. |
 | `packages/render-eval/` | M1: the eval harness. `npm run eval:generate -- --dry-run` plans a run; drop `--dry-run` to generate into `runs/<run>/`. |
 | `fixtures/` | Eval inputs: `manifest.json` (committed), `CONSENT.md`, images (git-ignored; repo is public). See ADR 0002. |
-| `apps/web/` | M2: the vertical slice. Next.js on Firebase App Hosting. `src/server/` holds the logic behind the route handlers; all UI strings live in `src/lib/copy.ts`. |
+| `apps/web/` | The product: Next.js on Firebase App Hosting, Phases A to C live behind the password. `src/server/` holds the logic behind the route handlers; all UI strings live in `src/lib/copy.ts`. |
 | `tools/label.html` | Standalone contact-sheet labeler for eval error analysis (BUILD_PLAN §2.2c) — `j`/`k` to navigate, `1`/`0` to label, writes JSONL. Open directly in a browser. |
 | `archive/prototypes-2026-10-07/` | The verbatim extracted source of the two linked prototype artifacts. Provenance only; the aligned versions in `mocks/` are the spec. |
 | `archive/` (rest), `archive/mocks-v0.6/` | Superseded docs and the earlier v0.6-edited mocks. Provenance only, not current guidance. |

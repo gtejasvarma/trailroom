@@ -498,7 +498,16 @@ Nothing from M2 + M3 is thrown away below the screens. What carries over: the re
 
 ### 12.0a V0 for Friday 9 October 2026
 
-V0 is a demonstration on Friday 9 October 2026. It is **Phases A, B and C**: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open, Google sign-in, the two post-signup steps (step 1's email preferences are stored, nothing is sent), the result, and honest failure. **Phase D without email** — lists, asks, the public vote page, the Asks inbox — is the stretch goal if A to C are done and seen. **Phases E to H follow after Friday**, and sending email (the first message of the old Phase D, now its own step below) is the first thing after V0. No email is sent in V0 (PRD §22.1 row 10): where the interface promises one, V0 shows the result in the app or does not show the promise.
+V0 was a demonstration on Friday 9 October 2026. It is **Phases A, B and C**: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open, Google sign-in, the result, and honest failure. **All three are built and deployed** at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`, behind the password (Phase A `a5b7918`, Phase B `f3ab209`, Phase C `2f11325`). **Phase D without email** — lists, asks, the public vote page, the Asks inbox — is the stretch goal and is **in progress**. **Phases E to H follow after Friday**, and sending email (the first message of the old Phase D, now its own step below) is the first thing after V0. No email is sent in V0 (PRD §22.1 row 10): where the interface promises one, V0 shows the result in the app or does not show the promise. Buy, Add to a list and Build the outfit show a "coming soon" toast until Phases D, E and F.
+
+**Known gaps in V0, stated plainly:**
+
+- **No successful render has been observed on the deployed site.** The first real run, on 2026-10-08, was refused by the image model with HTTP 402 (the key was not on an account with billing for it; ADR 0004 amendment). The workflow ran correctly end to end. The key was replaced the same day with one verified by a single real image call. Seeing one real render through the whole path is the first item of the smoke test in `docs/DEPLOY.md`.
+- The full end-to-end suite was last run at 234 of 235 and was not re-run in full after the final fix.
+- A successful camera upload is not guaranteed by the tests: the fake camera frame can be rejected for size.
+- The reference screenshots in `mocks/screens/` still show the prototype's two-step onboarding and its email promises, which V0 does not have.
+- Automatic rollouts on push do not work; each rollout is started by hand (`docs/DEPLOY.md`).
+- The old Firebase Hosting site from the earlier attempt may still be up.
 
 **Phase A was reviewed by the owner on 2026-10-07, and three changes were folded into Phase B:** no filter heading text on Discover, no Follow on listing cards, and consent by a line under the upload controls instead of a tick (PRD §22.1 rows 2, 19, 20; ADR 0005 amendment). Three calls Claude made in his absence ("on you" wording restored, account to open on desktop too, no tints or scrims) are rows 21 to 23 and open to being overturned.
 
@@ -507,6 +516,8 @@ V0 is a demonstration on Friday 9 October 2026. It is **Phases A, B and C**: the
 1. **The prototype is the spec for anything you can see.** Every phase that touches the interface starts from the matching screens in the aligned prototypes, `mocks/Trailroom Prototype.dc.html` and `mocks/Trailroom Desktop.dc.html` (markup, inline styles and state logic are all in those files; reference screenshots are in `mocks/screens/`), and from PRD §22.1 for the rows that decide where the build differs. The verbatim extracted source at `archive/prototypes-2026-10-07/` is for provenance. Design.md supplies tokens and type; it does not supply layouts.
 2. **Tejas sees it before the next phase starts.** Each phase ends with paired screenshots, prototype beside build, at 390 px and 1440 px, for every screen the phase touched, plus the phase deployed at the password-gated URL. The next phase does not start until he has looked. The M2 build failed this test by never taking it.
 3. **A phase is done when its gate is green, not when its code exists.** The gate is `npm run verify`, `npm test`, `npm run test:emu`, `npm run build`, `npm run test:e2e`, run by Claude independently of whichever agent built the phase, plus the phase's own checks below. Screenshot baselines are part of the e2e suite from Phase A on, so a later phase cannot quietly bend an earlier screen.
+
+**What happened to rule 2.** It was not followed for B to C and C to D. The deadline was Friday, and the owner's instruction was to continue; Phase A was seen and reviewed (2026-10-07), and Phases B and C were not looked at before the next began. Owner feedback is folded into the phase that follows it instead, and the screenshot baselines for B and C are in the e2e suite.
 
 Agents build, as before: one Sonnet subagent per phase, sequentially, because the phases share files. Read-only review agents run in parallel at the end.
 
@@ -518,7 +529,9 @@ The deploy that was in progress when this plan was written should be finished wi
 
 Sizes are relative. M2 + M3 together were about one long working session of agent time plus review; an L phase is about that, an M about half.
 
-#### Phase A — Catalogue, shell and Discover (L)
+#### Phase A — Catalogue, shell and Discover (L) — done, commit `a5b7918`, 2026-10-07
+
+*Built as planned and live behind the password. The owner's review the same day removed the filter heading text and the Follow row on cards (PRD §22.1 rows 19, 20); those landed in Phase B. The follows collection's Firestore rules were redeployed in this phase.*
 
 The first screen a person sees has to look like the prototype, so this goes first.
 
@@ -533,7 +546,9 @@ Tests: catalogue integrity (every image present in Storage, every pairing resolv
 
 **Checkpoint:** Discover, a product page and a label page, side by side with the prototype.
 
-#### Phase B — Photos and capture (M)
+#### Phase B — Photos and capture (M) — done, commit `f3ab209`, 2026-10-08
+
+*Built as planned, with the owner's Phase A review folded in. Live behind the password. The camera shows static guidance and one computed cue (a brightness hint); no other cue is invented.*
 
 - **Data model.** Several full-body photos per person with one default, replacing one photo per person. A try-on is keyed by person, photo and piece. Existing test data is discarded, not migrated; nothing real exists yet.
 - **Upload screen.** The prototype's screen, with one consent line directly under the upload controls ("By adding a photo you confirm you're 18 or over and agree to it being used to make your try-ons."), on every surface that can take a photo. No tick, no consent screen, nothing blocks the picker or camera (PRD §22.1 row 2 as amended 2026-10-07). The server records consent (version, time) with each upload and refuses an upload without the current consent version. A check runs in the browser the moment a photo is chosen (size, shape, one clear reason on a miss) and the server repeats it.
@@ -546,12 +561,20 @@ Tests: the consent line is present under the upload controls on every surface th
 
 **Checkpoint:** both paths up to the moment a render would start.
 
-#### Phase C — The queue, the account, the result (L)
+#### Phase C — The queue, the account, the result (L) — done, commit `2f11325`, 2026-10-08
 
-- **Queue.** The walk-away chip across every screen ("Putting the wool car coat on you · Pose 2 of 4" becomes a true count of poses ready), the queue screen with tiles filling, "Keep browsing while it renders", and the ready toast with "See it". One job at a time, as the prototype.
+*Built, with these differences from the text below:*
+
+- *No email-preferences step. V0 shows only "Pick three labels", once, on the upload-first path, because no email is sent and the hard rule forbids promising one. This is Claude's call and open to being overturned (PRD §22.1 rows 5 and 10); the email step returns with the email phase.*
+- *The desktop gate is built: Google sign-in on desktop, enforced by the server on both layouts.*
+- *Three fixes came out of the first real run's HTTP 402 (ADR 0004 amendment): a set whose every attempt failed on the provider side now fails as `internal`, not as a quality failure; a provider rejection with a 4xx status settles at zero against the daily cap, while timeouts and 5xx still settle at the estimate; each failed model call is logged once with its status.*
+- *Also built: a "Your try-ons" page, and tried pieces shown "on you" in Discover.*
+- *The checkpoint below has not been met: no successful real render has been observed on the deployed site (§12.0a).*
+
+- **Queue.** The walk-away chip across every screen (the prototype's "Putting the wool car coat on you · pose 2 of 4" becomes a true count of poses ready), the queue screen with tiles filling, "Keep browsing while it renders", and the ready toast with "See it". One job at a time, as the prototype.
 - **Account to open (row 4), on desktop as well as mobile (row 22).** Enforced by the server, not the page: a guest's request gets tile-sized images only; full-size renders need an account. The sheet's copy and the five reasons it can appear (open, buy, list, ask, after upload) follow the prototype, and after sign-in the person lands where they were going.
 - **Sign-in.** Google, by linking the guest session so the photo and the render carry over with no re-render.
-- **After sign-up.** Step 1 of 2, email preferences; step 2 of 2, pick three labels, when there is no render yet (row 5).
+- **After sign-up.** *Plan:* step 1 of 2, email preferences; step 2 of 2, pick three labels, when there is no render yet (row 5). *Built:* "Pick three labels" only (see the note above).
 - **Result.** The swipe gallery with pose thumbnails and labels, the AI caption beside it, Buy as the filled action, Add to a list, Build the outfit.
 - **Discover, on you.** A piece you have tried shows your render and "See your 4 poses".
 - **When we can't render it.** The honest-failure screen with the closest three (the "Email me if we get better photos" request is not shown in V0, because no email is sent; it returns with the email step); the "not yet" state for jewellery and accessories.
@@ -561,7 +584,7 @@ Tests: a guest cannot fetch a full-size render by any route (API tests, includin
 
 **Checkpoint:** the whole signed-out journey, end to end, with real renders on the deployed site. This is the point at which the demo is worth showing.
 
-#### Phase D — Lists, asks and the vote page (L)
+#### Phase D — Lists, asks and the vote page (L) — in progress
 
 The social loop, and the first public surface. The stretch goal for V0; without email.
 
@@ -579,7 +602,7 @@ Tests: token entropy and expiry; revoke takes effect on the next request; a vote
 
 #### Email — first after V0 (M)
 
-Its own step, after Friday and before or alongside Phase E; the owner has a provider and DNS access. A provider and a verified `trailroom.ai` sending domain. The first real message is "a vote landed", one per list, not per vote. Every message has a one-tap unsubscribe and obeys the three toggles stored since Phase C. The "Email me if we get better photos" request returns to the honest-failure screen. PRD §12 is the program.
+Its own step, after Friday and before or alongside Phase E; the owner has a provider and DNS access. A provider and a verified `trailroom.ai` sending domain. The first real message is "a vote landed", one per list, not per vote. Every message has a one-tap unsubscribe and obeys the three toggles. The email-preferences step that V0 omitted is built here, before the first message. The "Email me if we get better photos" request returns to the honest-failure screen. PRD §12 is the program.
 
 Tests: email against the provider's sandbox, including unsubscribe and each toggle; one message per event.
 
@@ -632,6 +655,6 @@ Sending email (first after V0, above). The designer back office. Jewellery and a
 
 ### 12.6 What Tejas needs to supply
 
-- **Before V0 (Friday 9 October):** nothing. The images are committed, and no email is sent.
+- **Before V0 (Friday 9 October):** nothing. The images are committed, and no email is sent. *(Done: V0 is live.)* To see a real render on the deployed site, the replaced `GEMINI_API_KEY` (secret version 2) must be on an account with billing for the image model; the smoke test checks it.
 - **For the email step, after V0:** an account with an email provider, and access to `trailroom.ai`'s DNS to verify the sending domain. The owner has both.
 - **Before anyone outside the password:** everything on ADR 0004's list. The image-rights question is answered (ADR 0005).

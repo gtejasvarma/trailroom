@@ -65,7 +65,7 @@ Three things Tejas decided after the table above. Each is an owner decision, not
    the interface promises an email (a vote landed, better photos, new pieces), V0 either shows the
    result in the app (vote counts on the list, the Asks inbox) or does not show the promise. Sending
    through a provider from a verified domain is the first thing after V0. Tejas has a provider and DNS
-   access. PRD §22.1 row 10 carries the amended row.
+   access. PRD §22.1 row 10 carries the amended row. (In the build, V0 also leaves out the preferences step; see the last section.)
 3. **The catalogue images are cleared.** See the next section.
 
 ## Reasoning worth keeping
@@ -151,3 +151,20 @@ question 6. The server-side version check is what keeps the record honest.
   is one rule on both layouts. (Row 22.)
 - Tinted bands and gradient scrims behind imagery in the prototypes are not carried into the build;
   Design.md Rule 1 (colourless surround) stands. (Row 23.)
+
+## V0 build, 2026-10-08 to 2026-10-09: one more call by Claude
+
+**The email step after sign-up is not shown in V0.** The prototype's first post-signup step (email
+address and three toggles, "we'll email you") is left out; V0 shows only "Pick three labels", once,
+on the upload-first path. Row 5 of PRD §22.1 had said to build both steps and store the email
+choices. But no email is sent in V0 (row 10), and the hard rule in `CLAUDE.md` forbids copy that
+promises one, so a screen that collects an address and three choices for a message that never
+comes is exactly that promise. **This is Claude's call, made in the owner's absence and open to
+being overturned.** The email step returns with the email phase, in front of the first message
+(BUILD_PLAN §12.3). PRD §22.1 rows 5 and 10, §7 C1 step 10 and BUILD_PLAN Phase C carry it.
+
+Phases A, B and C are built and live behind the password (`a5b7918`, `f3ab209`, `2f11325`). The
+desktop gate (row 22) is built, not just decided. The first real run on the deployed site failed
+at the image model with HTTP 402 and led to three fixes in Phase C; that is recorded in the
+2026-10-08 amendment to ADR 0004, with the open item that no successful render has yet been
+observed on the deployed site.
