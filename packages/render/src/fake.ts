@@ -46,6 +46,10 @@ const calls: {
   outcome: FakeOutcome;
   /** The mime type of each input image the provider was handed, in order. */
   inputMimeTypes: string[];
+  /** The byte length of each input image, in order, so a test can tell which image went where. */
+  inputBytes: number[];
+  /** The prompt the provider was handed. */
+  prompt: string;
 }[] = [];
 
 /** Every provider call since the last setFakeScript()/resetFakeCalls(), for tests. */
@@ -53,6 +57,8 @@ export function getFakeCalls(): readonly {
   pose: string | undefined;
   outcome: FakeOutcome;
   inputMimeTypes: string[];
+  inputBytes: number[];
+  prompt: string;
 }[] {
   return calls;
 }
@@ -154,6 +160,8 @@ export const fakeProvider: Provider = async (
     pose: call.meta.pose,
     outcome,
     inputMimeTypes: call.images.map((i) => i.mimeType),
+    inputBytes: call.images.map((i) => i.data.length),
+    prompt: call.prompt,
   });
   const img = (data: Buffer) => ({ mimeType: "image/png", data });
 

@@ -12,9 +12,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { getItem } from "@trailroom/catalog";
+import { getItem, outfitPairsFor, type CatalogItem } from "@trailroom/catalog";
 import { ApiError, api } from "../lib/api";
 import { copy } from "../lib/copy";
+import { paths } from "../lib/flow";
 import { useRenderImage } from "../lib/use-render-image";
 import type { PurchaseBody } from "../server/purchases";
 import { useMe } from "./me-provider";
@@ -22,8 +23,11 @@ import { Button, buttonClass } from "./ui/button";
 import { Sheet } from "./ui/sheet";
 import { useToast } from "./ui/toast";
 
-const OpenBuy = createContext<(itemId: string) => void>(() => {});
-/** Opens the buy sheet for a piece. Signed-in people only: use `useBuy` from a Buy button. */
+const OpenBuy = createContext<(itemId: string | string[]) => void>(() => {});
+/**
+ * Opens the buy sheet for a piece, or for both pieces of an outfit (one sheet, a "Go to LABEL" for
+ * each). Signed-in people only: use `useBuy` from a Buy button.
+ */
 export const useOpenBuySheet = () => useContext(OpenBuy);
 
 /** After the demo tab opens, ask on return to this tab once this long has passed. */
@@ -61,7 +65,7 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
   const say = useToast();
   const { loaded, isGuest, tryOns } = useMe();
   const signedIn = loaded && !isGuest;
-  const [buyFor, setBuyFor] = useState<string | null>(null);
+  const [buyFor, setBuyFor] = useState<string[]>([]);
   const [buyOpen, setBuyOpen] = useState(false);
   const [arrivedFor, setArrivedFor] = useState<string | null>(null);
   const [arrivedOpen, setArrivedOpen] = useState(false);
@@ -93,8 +97,8 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
     };
   }, [signedIn]);
 
-  const openBuy = useCallback((itemId: string) => {
-    setBuyFor(itemId);
+  const openBuy = useCallback((itemId: string | string[]) => {
+    setBuyFor(Array.isArray(itemId) ? itemId : [itemId]);
     setBuyOpen(true);
   }, []);
 
@@ -144,10 +148,11 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
     };
   }, [askArrived, arrivedOpen]);
 
-  const onGo = (itemId: string) => {
+  const onGo = (itemId: string, close = true) => {
     // The link opens the demo page in a new tab; this records the intent beside it.
     awaiting.current.add(itemId);
-    setBuyOpen(false);
+    // An outfit's sheet stays open: the other piece has its own "Go to" still to press.
+    if (close) setBuyOpen(false);
     void api
       .recordPurchase(itemId)
       .then((r) =>
@@ -166,7 +171,19 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
       setPurchases((prev) =>
         (prev ?? []).map((p) => (p.itemId === itemId ? r.purchase : p)),
       );
-      if (arrived) say(copy.toasts.markedMine);
+      if (arrived) {
+        // "See what goes with it": opens the pair row on this piece's result, when it has a valid
+        // pair and the person has a try-on of it to open.
+        const mine = tryOns.find((t) => t.itemId === itemId);
+        if (mine && outfitPairsFor(itemId).length > 0) {
+          say(copy.toasts.markedMine, {
+            label: copy.toasts.seeWhatGoesWith,
+            href: `${paths.tryOn(mine.jobId)}?pair=1`,
+          });
+        } else {
+          say(copy.toasts.markedMine);
+        }
+      }
     } catch (e) {
       // Answered before (another tab): nothing more to ask.
       if (!(e instanceof ApiError && e.code === "already_answered"))
@@ -176,7 +193,11 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
     setArrivedOpen(false);
   };
 
-  const buyItem = buyFor ? getItem(buyFor) : undefined;
+  const buyItems = buyFor
+    .map((id) => getItem(id))
+    .filter((i): i is CatalogItem => Boolean(i));
+  const buyItem = buyItems.length === 1 ? buyItems[0] : undefined;
+  const outfitItems = buyItems.length === 2 ? buyItems : null;
   const arrivedItem = arrivedFor ? getItem(arrivedFor) : undefined;
   const value = useMemo(() => openBuy, [openBuy]);
   return (
@@ -222,6 +243,67 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
             size="md"
             onClick={() => setBuyOpen(false)}
             className="mt-2.5 w-full !text-ink-600 !no-underline"
+          >
+            {copy.buy.keep}
+          </Button>
+        </Sheet>
+      ) : null}
+      {outfitItems ? (
+        <Sheet
+          open={buyOpen}
+          kicker={copy.buy.outfitKicker}
+          title={copy.buy.outfitTitle(
+            copy.item.price(outfitItems.reduce((n, i) => n + i.priceUsd, 0)),
+          )}
+          onClose={() => setBuyOpen(false)}
+        >
+          <p className="mt-2 mb-3.5 text-[14px] leading-5 text-ink-700">
+            {copy.buy.outfitLine}
+          </p>
+          <ul
+            data-testid="outfit-buy-rows"
+            className="m-0 mb-3 flex list-none flex-col gap-3 p-0"
+          >
+            {outfitItems.map((i) => (
+              <li key={i.id} className="flex items-center gap-3">
+                <span className="block aspect-[3/4] w-14 flex-none overflow-hidden rounded-[10px] bg-surface">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/catalog/${i.photos[0]!.file}`}
+                    alt={copy.buy.outfitRowAlt(i.name)}
+                    className="size-full object-cover"
+                    style={{ objectPosition: i.photos[0]!.focus }}
+                  />
+                </span>
+                <span className="block min-w-0 flex-1">
+                  <span className="block truncate text-[14px] leading-5 text-ink">
+                    {i.name}
+                  </span>
+                  <span
+                    className={`block text-[13px] leading-[18px] ${i.stock.low ? "text-danger" : "text-ink-600"}`}
+                  >
+                    {copy.item.price(i.priceUsd)} · {i.stock.line}
+                  </span>
+                </span>
+                <a
+                  href={`/demo-checkout/${i.id}`}
+                  target="_blank"
+                  rel="noopener"
+                  data-testid="go-to-label"
+                  data-item={i.id}
+                  onClick={() => onGo(i.id, false)}
+                  className={buttonClass("filled", "md", "flex-none")}
+                >
+                  {copy.buy.go(i.label.toUpperCase())}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <Button
+            variant="quiet"
+            size="md"
+            onClick={() => setBuyOpen(false)}
+            className="mt-1 w-full !text-ink-600 !no-underline"
           >
             {copy.buy.keep}
           </Button>

@@ -1,7 +1,7 @@
 // The data behind Compare: the caller's own finished pose sets, by id. A guest has no full renders
 // to compare (403 account_required); an id that is not the caller's, or not finished, is 404 for
 // the whole request, so ids cannot be probed.
-import { getPoseSet } from "@trailroom/db";
+import { getPoseSet, kindOf } from "@trailroom/db";
 import { POSES } from "@trailroom/render";
 import {
   MAX_COMPARE,
@@ -32,6 +32,7 @@ export async function getCompare(
     if (
       !set ||
       set.uid !== user.uid ||
+      kindOf(set) !== "tryon" ||
       (set.status !== "complete" && set.status !== "complete_partial") ||
       set.poses.length === 0
     )
@@ -40,6 +41,7 @@ export async function getCompare(
       poseSetId: id,
       jobId: set.jobId,
       itemId: set.itemId,
+      photoId: set.photoId,
       status: set.status,
       poses: Object.keys(POSES).filter((p) => set.poses.includes(p)),
       createdAt: set.createdAt.toDate().toISOString(),

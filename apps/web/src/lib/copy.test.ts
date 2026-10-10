@@ -98,6 +98,26 @@ describe("copy.ts lint", () => {
   });
 });
 
+describe("outfit copy", () => {
+  it("says what an outfit is without promising an email, fit or a second render", () => {
+    const text = all.filter(([p]) => /^copy\.(outfit)\b/.test(p));
+    expect(text.length).toBeGreaterThan(20);
+    for (const [path, t] of text) {
+      expect(/e-?mail|notify|we.ll let you know/i.test(t), path).toBe(false);
+    }
+    expect(
+      copy.chip.outfitRunning("Wool car coat", "Bias-cut slip dress"),
+    ).toBe("Putting the wool car coat and the bias-cut slip dress on you");
+    expect(copy.chip.outfitSub).toBe("Rendering · you can keep browsing");
+    expect(copy.outfit.title("Wool car coat", "Bias-cut slip dress")).toBe(
+      "wool car coat over the bias-cut slip dress",
+    );
+    expect(copy.outfit.pairAdd("$598")).toBe(
+      "Add to the outfit — $598 together",
+    );
+  });
+});
+
 describe("counts in copy", () => {
   it("the account sheet states the real number of poses", () => {
     expect(copy.account.title("reveal", 4)).toBe(
@@ -251,7 +271,6 @@ describe("phase E copy: You, Studio, Compare and Buy", () => {
     expect(copy.buy.yes).toBe("Yes, it’s mine");
     expect(copy.buy.no).toBe("Didn’t buy it");
     for (const [path, text] of all) {
-      if (path.includes("outfitSoon")) continue;
       expect(/arrives? soon/i.test(text), `${path}: "${text}"`).toBe(false);
     }
   });

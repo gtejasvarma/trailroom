@@ -253,9 +253,10 @@ for (const size of SIZES) {
       await expect(
         page.getByRole("button", { name: "Add to a list" }),
       ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Build the outfit" }),
-      ).toBeVisible();
+      await expect(page.getByTestId("outfit-row")).toContainText(
+        size.width >= 768 ? "Wear it with" : "Build the outfit",
+      );
+      await expect(page.getByTestId("pair-thumb")).toHaveCount(1);
       await expect(
         page.getByRole("button", { name: /download|save/i }),
       ).toHaveCount(0);

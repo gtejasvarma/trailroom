@@ -1,5 +1,201 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`the outfit prompt > matches the snapshot for bottom + top 1`] = `
+"Image 1 is a product photo of the first garment. Image 2 is a product photo of the second garment. Image 3 is a photo of a person.
+
+Edit Image 3 so the person is wearing both garments together. Image 1 is the pleated wool trousers: replacing their current bottoms with the pleated wool trousers. Image 2 is the silk shell blouse: replacing their current top with the silk shell blouse. The pleated wool trousers and the silk shell blouse are worn together as one outfit. This is an edit
+of Image 3, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce each garment exactly as it appears in its own
+product photo (Image 1 and Image 2) — same color, fabric texture, pattern
+scale and alignment, print and logo placement and text, neckline, sleeve
+length, hem length, buttons, zippers, pockets, and stitching. If a garment
+image is worn by a model, take only the garment and ignore that model's face,
+body, skin tone, hair, and pose.
+
+Fit: drape each garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering: hair, arms, and hands that are in front of the clothing stay in front. The
+hem of each garment should fall at the same point on the body as in its product photo.
+
+Preserve from Image 3 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match both garments to Image 3's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 3."
+`;
+
+exports[`the outfit prompt > matches the snapshot for dress + outerwear 1`] = `
+"Image 1 is a product photo of the first garment. Image 2 is a product photo of the second garment. Image 3 is a photo of a person.
+
+Edit Image 3 so the person is wearing both garments together. Image 1 is the bias-cut slip dress: replacing their current top and current bottoms with the bias-cut slip dress. Image 2 is the wool car coat: adding the wool car coat as an outer layer, worn open over the bias-cut slip dress so that the bias-cut slip dress stays visible. The wool car coat is the outer layer and the bias-cut slip dress is worn underneath it. This is an edit
+of Image 3, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce each garment exactly as it appears in its own
+product photo (Image 1 and Image 2) — same color, fabric texture, pattern
+scale and alignment, print and logo placement and text, neckline, sleeve
+length, hem length, buttons, zippers, pockets, and stitching. If a garment
+image is worn by a model, take only the garment and ignore that model's face,
+body, skin tone, hair, and pose.
+
+Fit: drape each garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering: the wool car coat sits over the bias-cut slip dress; hair, arms, and hands that are in front of the clothing stay in front. The
+hem of each garment should fall at the same point on the body as in its product photo.
+
+Preserve from Image 3 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match both garments to Image 3's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 3."
+`;
+
+exports[`the outfit prompt > matches the snapshot for outerwear + bottom 1`] = `
+"Image 1 is a product photo of the first garment. Image 2 is a product photo of the second garment. Image 3 is a photo of a person.
+
+Edit Image 3 so the person is wearing both garments together. Image 1 is the wool car coat: adding the wool car coat as an outer layer, worn open over the pleated wool trousers so that the pleated wool trousers stays visible. Image 2 is the pleated wool trousers: replacing their current bottoms with the pleated wool trousers. The wool car coat is the outer layer and the pleated wool trousers is worn underneath it. This is an edit
+of Image 3, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce each garment exactly as it appears in its own
+product photo (Image 1 and Image 2) — same color, fabric texture, pattern
+scale and alignment, print and logo placement and text, neckline, sleeve
+length, hem length, buttons, zippers, pockets, and stitching. If a garment
+image is worn by a model, take only the garment and ignore that model's face,
+body, skin tone, hair, and pose.
+
+Fit: drape each garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering: the wool car coat sits over the pleated wool trousers; hair, arms, and hands that are in front of the clothing stay in front. The
+hem of each garment should fall at the same point on the body as in its product photo.
+
+Preserve from Image 3 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match both garments to Image 3's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 3."
+`;
+
+exports[`the outfit prompt > matches the snapshot for outerwear + dress 1`] = `
+"Image 1 is a product photo of the first garment. Image 2 is a product photo of the second garment. Image 3 is a photo of a person.
+
+Edit Image 3 so the person is wearing both garments together. Image 1 is the wool car coat: adding the wool car coat as an outer layer, worn open over the bias-cut slip dress so that the bias-cut slip dress stays visible. Image 2 is the bias-cut slip dress: replacing their current top and current bottoms with the bias-cut slip dress. The wool car coat is the outer layer and the bias-cut slip dress is worn underneath it. This is an edit
+of Image 3, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce each garment exactly as it appears in its own
+product photo (Image 1 and Image 2) — same color, fabric texture, pattern
+scale and alignment, print and logo placement and text, neckline, sleeve
+length, hem length, buttons, zippers, pockets, and stitching. If a garment
+image is worn by a model, take only the garment and ignore that model's face,
+body, skin tone, hair, and pose.
+
+Fit: drape each garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering: the wool car coat sits over the bias-cut slip dress; hair, arms, and hands that are in front of the clothing stay in front. The
+hem of each garment should fall at the same point on the body as in its product photo.
+
+Preserve from Image 3 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match both garments to Image 3's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 3."
+`;
+
+exports[`the outfit prompt > matches the snapshot for outerwear + top 1`] = `
+"Image 1 is a product photo of the first garment. Image 2 is a product photo of the second garment. Image 3 is a photo of a person.
+
+Edit Image 3 so the person is wearing both garments together. Image 1 is the wool car coat: adding the wool car coat as an outer layer, worn open over the silk shell blouse so that the silk shell blouse stays visible. Image 2 is the silk shell blouse: replacing their current top with the silk shell blouse. The wool car coat is the outer layer and the silk shell blouse is worn underneath it. This is an edit
+of Image 3, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce each garment exactly as it appears in its own
+product photo (Image 1 and Image 2) — same color, fabric texture, pattern
+scale and alignment, print and logo placement and text, neckline, sleeve
+length, hem length, buttons, zippers, pockets, and stitching. If a garment
+image is worn by a model, take only the garment and ignore that model's face,
+body, skin tone, hair, and pose.
+
+Fit: drape each garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering: the wool car coat sits over the silk shell blouse; hair, arms, and hands that are in front of the clothing stay in front. The
+hem of each garment should fall at the same point on the body as in its product photo.
+
+Preserve from Image 3 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match both garments to Image 3's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 3."
+`;
+
+exports[`the outfit prompt > matches the snapshot for top + bottom 1`] = `
+"Image 1 is a product photo of the first garment. Image 2 is a product photo of the second garment. Image 3 is a photo of a person.
+
+Edit Image 3 so the person is wearing both garments together. Image 1 is the silk shell blouse: replacing their current top with the silk shell blouse. Image 2 is the pleated wool trousers: replacing their current bottoms with the pleated wool trousers. The silk shell blouse and the pleated wool trousers are worn together as one outfit. This is an edit
+of Image 3, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce each garment exactly as it appears in its own
+product photo (Image 1 and Image 2) — same color, fabric texture, pattern
+scale and alignment, print and logo placement and text, neckline, sleeve
+length, hem length, buttons, zippers, pockets, and stitching. If a garment
+image is worn by a model, take only the garment and ignore that model's face,
+body, skin tone, hair, and pose.
+
+Fit: drape each garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering: hair, arms, and hands that are in front of the clothing stay in front. The
+hem of each garment should fall at the same point on the body as in its product photo.
+
+Preserve from Image 3 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match both garments to Image 3's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 3."
+`;
+
+exports[`the outfit prompt > matches the snapshot for top + outerwear 1`] = `
+"Image 1 is a product photo of the first garment. Image 2 is a product photo of the second garment. Image 3 is a photo of a person.
+
+Edit Image 3 so the person is wearing both garments together. Image 1 is the silk shell blouse: replacing their current top with the silk shell blouse. Image 2 is the wool car coat: adding the wool car coat as an outer layer, worn open over the silk shell blouse so that the silk shell blouse stays visible. The wool car coat is the outer layer and the silk shell blouse is worn underneath it. This is an edit
+of Image 3, not a new photograph: change only the clothing in that region.
+
+Garment fidelity: reproduce each garment exactly as it appears in its own
+product photo (Image 1 and Image 2) — same color, fabric texture, pattern
+scale and alignment, print and logo placement and text, neckline, sleeve
+length, hem length, buttons, zippers, pockets, and stitching. If a garment
+image is worn by a model, take only the garment and ignore that model's face,
+body, skin tone, hair, and pose.
+
+Fit: drape each garment naturally over the person's existing body shape and pose, with realistic folds where the body bends. Keep correct layering: the wool car coat sits over the silk shell blouse; hair, arms, and hands that are in front of the clothing stay in front. The
+hem of each garment should fall at the same point on the body as in its product photo.
+
+Preserve from Image 3 exactly: face and facial features, expression, skin
+tone, hair, body shape and proportions, pose and hand positions, all
+clothing and accessories not being replaced, the background, camera angle, and
+framing.
+
+Lighting: match both garments to Image 3's light direction, color
+temperature, and shadows so it looks photographed in the same scene.
+
+Output one photorealistic image with the same aspect ratio and framing as
+Image 3."
+`;
+
 exports[`the try-on prompt > matches the snapshot for front / bottom 1`] = `
 "Image 1 is a product photo of a garment. Image 2 is a photo of a person.
 

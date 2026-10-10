@@ -57,6 +57,11 @@ export const ERRORS = {
     message:
       "This piece does not render reliably yet, so try one of the closest alternatives.",
   },
+  invalid_outfit: {
+    status: 422,
+    message:
+      "Those two pieces do not make an outfit together, so choose a different pair.",
+  },
   signup_required: {
     status: 403,
     message:

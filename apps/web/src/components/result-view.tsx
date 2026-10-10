@@ -3,10 +3,10 @@
 // chip), the AI caption directly under it, pose thumbnails that jump the gallery, then the piece
 // and its actions. From 768px the thumbnails sit in a column beside a large pose and the details
 // sit to the right (the desktop product view in its on-you state).
-// Buy opens the buy sheet; Add to a list opens the list sheet; Build the outfit arrives in a later
-// phase (Phase F) and says so in a toast. On wide screens the piece can be added to Compare.
+// Buy opens the buy sheet; Add to a list opens the list sheet; Build the outfit opens the pair preview
+// (outfit-row.tsx). On wide screens the piece can be added to Compare.
 import { useRef, useState } from "react";
-import { catalogUrl, getItem, type CatalogItem } from "@trailroom/catalog";
+import type { CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
 import { passedPoses, type JobView } from "../lib/job";
 import { useRenderImage } from "../lib/use-render-image";
@@ -15,7 +15,7 @@ import { Chip } from "./ui/chip";
 import { useBuy } from "./use-buy";
 import { useCompare } from "./compare-provider";
 import { useSaveToList } from "./save-to-list";
-import { useToast } from "./ui/toast";
+import { OutfitRow } from "./outfit-row";
 
 function Slide({
   job,
@@ -103,54 +103,8 @@ function Thumb({
   );
 }
 
-function OutfitRow({
-  item,
-  onClick,
-}: {
-  item: CatalogItem;
-  onClick: () => void;
-}) {
-  const pairs = item.pairsWith
-    .map((id) => getItem(id))
-    .filter((p): p is CatalogItem => Boolean(p))
-    .slice(0, 2);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mt-4 flex w-full items-center gap-2.5 border-t border-line-soft pt-3.5 text-left"
-    >
-      <span className="block flex-1">
-        <span className="block text-[14px] leading-[19px] font-semibold text-ink">
-          {copy.result.outfit}
-        </span>
-        <span className="block text-[12px] leading-4 text-ink-600">
-          {copy.result.outfitSub}
-        </span>
-      </span>
-      <span aria-hidden="true" className="flex flex-none gap-2">
-        {pairs.map((p) => (
-          <span
-            key={p.id}
-            className="block size-[52px] overflow-hidden rounded-full border border-line"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={catalogUrl(p.photos[0]!.file)}
-              alt=""
-              className="size-full object-cover"
-              style={{ objectPosition: p.photos[0]!.focus }}
-            />
-          </span>
-        ))}
-      </span>
-    </button>
-  );
-}
-
 /** The signed-in person's result. Guests never get here: the server serves them tiles only. */
 export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
-  const say = useToast();
   const saveToList = useSaveToList();
   const buy = useBuy();
   const compare = useCompare();
@@ -345,7 +299,7 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
                 : copy.compare.add}
             </Button>
           ) : null}
-          <OutfitRow item={item} onClick={() => say(copy.toasts.outfitSoon)} />
+          <OutfitRow item={item} job={job} />
         </div>
       </div>
     </div>

@@ -61,8 +61,7 @@ export const copy = {
     listsShortcut: "Open your lists",
   },
   toasts: {
-    // Interim: this control gets its real function in a later phase (outfits, Phase F).
-    outfitSoon: "Outfits arrive soon.",
+    seeWhatGoesWith: "See what goes with it",
     signedIn: "Signed in. Your try-ons are saved.",
     tryOnRemoved: (piece: string) => `Removed your ${lower(piece)} try-on.`,
     tryOnRemoveFailed: "We could not remove that just now, so try again.",
@@ -479,6 +478,13 @@ export const copy = {
     readyToast: (name: string, n: number) =>
       `Your ${lower(name)} is ready — ${poseWord(n)}.`,
     seeIt: "See it",
+    outfitRunning: (a: string, b: string) =>
+      `Putting the ${lower(a)} and the ${lower(b)} on you`,
+    outfitSub: "Rendering · you can keep browsing",
+    outfitReadyLine: (a: string, b: string) =>
+      `Your outfit is ready — the ${lower(a)} and the ${lower(b)}`,
+    outfitReadyToast: (a: string, b: string) =>
+      `Your outfit is ready — the ${lower(a)} and the ${lower(b)}.`,
     ariaRunning: "Try-on in progress",
     ariaReady: "Try-on ready",
   },
@@ -489,6 +495,49 @@ export const copy = {
       `Rendering ${word(total)} poses. ${ready} of ${total} ready.`,
     ready: (n: number, total: number) => `${n} of ${total} poses ready`,
     failed: "This try-on could not be finished",
+    outfitRendering: "Rendering the outfit",
+    outfitReady: "Outfit ready",
+    outfitFailed: "This outfit could not be finished",
+  },
+  // Phase F: two pieces on one photo, rendered as one image.
+  outfit: {
+    pairKicker: "Add to the outfit",
+    pairTitle: (name: string) => `Worn with your ${lower(name)}`,
+    pairAlt: (name: string) => `${name}, the label’s photo`,
+    pairAdd: (total: string) => `Add to the outfit — ${total} together`,
+    pairAdding: "Starting the outfit…",
+    pairNot: "Not this one",
+    pairNote:
+      "One render with both pieces on you. It is kept in You as an outfit, and each piece gets its own try-on only when you try it on.",
+    chip: "Outfit · on you",
+    heroAlt: (title: string) =>
+      `AI-generated preview of an outfit on you: ${title}`,
+    title: (outer: string, inner: string) =>
+      `${lower(outer)} over the ${lower(inner)}`,
+    titleWith: (a: string, b: string) => `${lower(a)} with the ${lower(b)}`,
+    both: "Both pieces",
+    piecesLabel: "The two pieces",
+    openPiece: (name: string) => `Open the ${lower(name)}`,
+    buy: "Buy the outfit",
+    addToList: "Add outfit to a list",
+    tryIt: "Try it on",
+    queueTitle: "Both pieces, coming up",
+    queueLine: (a: string, b: string) =>
+      `Your photo, the ${lower(a)} and the ${lower(b)}, rendered as one image. You can leave this screen while it renders.`,
+    queueRendering: "Rendering…",
+    keepBrowsing: "Keep browsing while it renders",
+    tag: "Outfit",
+    openLabel: (a: string, b: string) =>
+      `Open your outfit, ${lower(a)} and ${lower(b)}`,
+    cardAlt: (a: string, b: string) => `${a} and ${b}, outfit on you, preview`,
+    removeLabel: (a: string, b: string) =>
+      `Remove your outfit, ${lower(a)} and ${lower(b)}`,
+    removed: (a: string, b: string) =>
+      `Removed your ${lower(a)} and ${lower(b)} outfit.`,
+    names: (a: string, b: string) => `${a} and ${b}`,
+    failedTitle: "That outfit did not come out well enough to show",
+    failedPieces: "The outfit",
+    startFailed: "We could not start that outfit just now, so try again.",
   },
   poses: {
     front: "Front",
@@ -517,6 +566,11 @@ export const copy = {
     saveToList: "Save to a list",
     outfit: "Build the outfit",
     outfitSub: "Have a look, then decide",
+    // The desktop prototype words the same row differently.
+    outfitWide: "Wear it with",
+    outfitWideSub: "Both pieces, one render",
+    outfitRowLabel: "Pieces that make an outfit with this one",
+    pairOpen: (name: string) => `See the ${lower(name)} with this piece`,
     addAnother: "Add another",
   },
   // The account sheet, by reason (the prototype's gateCopy), minus "ask", which is not built yet.
@@ -630,6 +684,11 @@ export const copy = {
     go: (label: string) => `Go to ${label}`,
     keep: "Keep looking",
     thumbAlt: (name: string) => `${name}, your try-on`,
+    outfitKicker: "Buying the outfit",
+    outfitTitle: (total: string) => `Both pieces, ${total}`,
+    outfitLine:
+      "The pieces come from separate labels, so each opens its own page. We ask once whether each arrived.",
+    outfitRowAlt: (name: string) => `${name}, the label’s photo`,
     arrivedTitle: (name: string) => `Did the ${lower(name)} arrive?`,
     arrivedBody: "It tells us whether the render was honest.",
     yes: "Yes, it’s mine",

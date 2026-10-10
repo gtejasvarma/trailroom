@@ -6,13 +6,16 @@ import { useAccount } from "./account-provider";
 import { useOpenBuySheet } from "./buy-provider";
 import { useMe } from "./me-provider";
 
-export function useBuy(): (itemId: string) => void {
+export function useBuy(): (itemId: string | string[]) => void {
   const openAccount = useAccount();
   const openSheet = useOpenBuySheet();
   const { isGuest } = useMe();
   return useCallback(
-    (itemId: string) => {
-      if (isGuest) openAccount("buy", { itemId });
+    (itemId: string | string[]) => {
+      if (isGuest)
+        openAccount("buy", {
+          itemId: Array.isArray(itemId) ? itemId[0] : itemId,
+        });
       else openSheet(itemId);
     },
     [isGuest, openAccount, openSheet],

@@ -75,12 +75,18 @@ export function JobProvider({ children }: { children: React.ReactNode }) {
     const here = onPath.current === `/try-on/${job.jobId}`;
     if (here) return;
     const name = getItem(job.itemId)?.name ?? "";
+    const second = getItem(job.itemIds[1] ?? "")?.name ?? "";
     if (isFinished(job.status)) {
       setReadyId(job.jobId);
-      say(copy.chip.readyToast(name, passedPoses(job).length), {
-        label: copy.chip.seeIt,
-        href: `/try-on/${job.jobId}`,
-      });
+      say(
+        job.kind === "outfit"
+          ? copy.chip.outfitReadyToast(name, second)
+          : copy.chip.readyToast(name, passedPoses(job).length),
+        {
+          label: copy.chip.seeIt,
+          href: `/try-on/${job.jobId}`,
+        },
+      );
     } else {
       say(copy.toasts.jobFailed, {
         label: copy.toasts.seeWhy,

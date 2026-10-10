@@ -84,7 +84,43 @@ export async function startTryOn(
     });
   }
 
-  const psId = poseSetId(user.uid, photo.id, itemId);
+  return launchRender(
+    user,
+    {
+      kind: "tryon",
+      psId: poseSetId(user.uid, photo.id, itemId),
+      photoId: photo.id,
+      itemId,
+      poses: renderConfigFromEnv().poses as string[],
+      promptVersion: PROMPT_VERSION,
+    },
+    now,
+  );
+}
+
+export interface LaunchInput {
+  kind: "tryon" | "outfit";
+  psId: string;
+  photoId: string;
+  /** The piece (a try-on) or the first of the two (an outfit, canonical order). */
+  itemId: string;
+  /** An outfit's two pieces in canonical order. */
+  itemIds?: [string, string];
+  poses: string[];
+  promptVersion: string;
+}
+
+/**
+ * The shared tail of a start, once every free refusal has passed: reuse a live set, clear a failed
+ * one, apply the one-at-a-time and daily-start rules, then create the job and set and start the
+ * graph. A try-on and an outfit take exactly the same path, so the rules cannot drift apart.
+ */
+export async function launchRender(
+  user: User,
+  input: LaunchInput,
+  now: Date,
+): Promise<Result<TryOnBody>> {
+  const { psId, itemId } = input;
   let existing = await getPoseSet(psId);
   if (existing?.status === "rendering") {
     // A job that stopped moving (workflow died, fail-job lost) must not be reused forever.
@@ -161,11 +197,14 @@ export async function startTryOn(
   }
 
   const cfg = renderConfigFromEnv();
-  const poses = cfg.poses as string[];
+  const poses = input.poses;
   const { id: jobId } = await createJob({
     uid: user.uid,
     itemId,
-    photoId: photo.id,
+    ...(input.kind === "outfit"
+      ? { kind: "outfit" as const, itemIds: input.itemIds }
+      : {}),
+    photoId: input.photoId,
     poseSetId: psId,
     poseOrder: poses,
     poses: Object.fromEntries(
@@ -173,14 +212,15 @@ export async function startTryOn(
     ),
     qaSkipped: [],
     model: cfg.model,
-    promptVersion: PROMPT_VERSION,
+    promptVersion: input.promptVersion,
     isGuest: user.isGuest,
   });
   try {
     await claimPoseSet({
       uid: user.uid,
       itemId,
-      photoId: photo.id,
+      ...(input.itemIds ? { itemIds: input.itemIds } : {}),
+      photoId: input.photoId,
       jobId,
       isGuest: user.isGuest,
     });

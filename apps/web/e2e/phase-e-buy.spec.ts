@@ -118,7 +118,12 @@ for (const size of SIZES) {
       expect(await serious(page)).toEqual([]);
       await ask.getByRole("button", { name: "Yes, it’s mine" }).click();
       await expect(ask).toBeHidden();
-      await expect(page.getByTestId("toast")).toHaveText("Marked as yours.");
+      // The vest goes with the coat, so the toast offers to show what goes with it.
+      const toast = page.getByTestId("toast");
+      await expect(toast).toContainText("Marked as yours.");
+      await toast.getByRole("link", { name: "See what goes with it" }).click();
+      await expect(page).toHaveURL(/\/try-on\/[^/]+\?pair=1$/);
+      await expect(page.getByTestId("pair-thumb")).toBeFocused();
       await expect
         .poll(async () => (await purchases())[0]!.fields.arrived.booleanValue)
         .toBe(true);

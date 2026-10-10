@@ -18,6 +18,7 @@ import { ApiError, api, apiFetch } from "../lib/api";
 import { signOutNow } from "../lib/account";
 import { copy } from "../lib/copy";
 import { getFirebaseAuth, peekUser } from "../lib/firebase";
+import type { OutfitSummary } from "../server/outfits";
 import type { TryOnSummary } from "../server/try-ons";
 import { useToast } from "./ui/toast";
 
@@ -34,8 +35,12 @@ interface MeState {
   activeJobId: string | null;
   /** The person's finished try-ons, newest first. Always empty for a guest. */
   tryOns: TryOnSummary[];
+  /** The person's finished outfits (two pieces, one image), newest first. Never in Compare. */
+  outfits: OutfitSummary[];
   /** The visible discard: the tile leaves at once, a toast says so. No confirm. */
   removeTryOn: (poseSetId: string, name: string) => Promise<void>;
+  /** Removes an outfit the same way: it leaves at once, a toast says so. */
+  removeOutfit: (poseSetId: string, a: string, b: string) => Promise<void>;
   /** Re-reads the server's view of the person (after sign-in, sign-out, a finished job). */
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -50,7 +55,9 @@ const MeContext = createContext<MeState>({
   who: null,
   activeJobId: null,
   tryOns: [],
+  outfits: [],
   removeTryOn: async () => {},
+  removeOutfit: async () => {},
   refresh: async () => {},
   signOut: async () => {},
 });
@@ -66,6 +73,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
   const [who, setWho] = useState<MeState["who"]>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [tryOns, setTryOns] = useState<TryOnSummary[]>([]);
+  const [outfits, setOutfits] = useState<OutfitSummary[]>([]);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -94,9 +102,15 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
         setWho(null);
         setActiveJobId(null);
         setTryOns([]);
+        setOutfits([]);
       } else {
         const me = await api.me();
-        const mine = me.isGuest ? [] : (await api.tryOns()).tryOns;
+        const [mine, mineOutfits] = me.isGuest
+          ? [[], []]
+          : await Promise.all([
+              api.tryOns().then((r) => r.tryOns),
+              api.outfits().then((r) => r.outfits),
+            ]);
         if (!alive.current) return;
         setPhotoCount(me.photoCount);
         setIsGuest(me.isGuest);
@@ -112,6 +126,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
             null,
         );
         setTryOns(mine);
+        setOutfits(mineOutfits);
       }
     } catch {
       // Browsing works without it: treat as a new visitor.
@@ -170,6 +185,34 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
     [say],
   );
 
+  const removeOutfit = useCallback(
+    async (poseSetId: string, a: string, b: string) => {
+      let removed: OutfitSummary | undefined;
+      setOutfits((prev) => {
+        removed = prev.find((t) => t.poseSetId === poseSetId);
+        return prev.filter((t) => t.poseSetId !== poseSetId);
+      });
+      try {
+        await api.removeTryOn(poseSetId);
+        say(copy.outfit.removed(a, b));
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) {
+          say(copy.outfit.removed(a, b));
+          return;
+        }
+        const back = removed;
+        if (back)
+          setOutfits((prev) =>
+            [...prev, back].sort((x, y) =>
+              y.createdAt.localeCompare(x.createdAt),
+            ),
+          );
+        say(copy.toasts.tryOnRemoveFailed);
+      }
+    },
+    [say],
+  );
+
   const toggleFollow = useCallback(
     async (slug: string) => {
       const name = getLabel(slug)?.name ?? slug;
@@ -210,7 +253,9 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
       who,
       activeJobId,
       tryOns,
+      outfits,
       removeTryOn,
+      removeOutfit,
       refresh,
       signOut,
     }),
@@ -223,7 +268,9 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
       who,
       activeJobId,
       tryOns,
+      outfits,
       removeTryOn,
+      removeOutfit,
       refresh,
       signOut,
     ],

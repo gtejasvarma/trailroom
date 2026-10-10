@@ -1,4 +1,4 @@
-import { listPoseSetsForUser, removeTryOn } from "@trailroom/db";
+import { kindOf, listPoseSetsForUser, removeTryOn } from "@trailroom/db";
 import { POSES } from "@trailroom/render";
 import { err, ok, type Result } from "./http";
 import type { User } from "./auth";
@@ -7,13 +7,15 @@ export interface TryOnSummary {
   poseSetId: string;
   jobId: string;
   itemId: string;
+  /** The photo it was rendered from: an outfit built from this result uses the same one. */
+  photoId: string;
   status: "complete" | "complete_partial";
   /** Published poses, in the fixed pose order. */
   poses: string[];
   createdAt: string;
 }
 
-/** GET /api/try-ons: the caller's finished pose sets, newest first. Nobody else's. */
+/** GET /api/try-ons: the caller's finished try-ons (outfits are GET /api/outfits), newest first. Nobody else's. */
 export async function listTryOns(
   user: User,
 ): Promise<Result<{ tryOns: TryOnSummary[] }>> {
@@ -23,6 +25,7 @@ export async function listTryOns(
       .filter(
         (s) =>
           s.poseSet.uid === user.uid &&
+          kindOf(s.poseSet) === "tryon" &&
           (s.poseSet.status === "complete" ||
             s.poseSet.status === "complete_partial") &&
           s.poseSet.poses.length > 0,
@@ -32,6 +35,7 @@ export async function listTryOns(
         poseSetId: s.id,
         jobId: s.poseSet.jobId,
         itemId: s.poseSet.itemId,
+        photoId: s.poseSet.photoId,
         status: s.poseSet.status as "complete" | "complete_partial",
         poses: Object.keys(POSES).filter((p) => s.poseSet.poses.includes(p)),
         createdAt: s.poseSet.createdAt.toDate().toISOString(),

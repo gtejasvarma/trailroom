@@ -26,7 +26,11 @@ export function JobChips() {
 
   if (job && isRunning(job.status) && pathname !== `/try-on/${job.jobId}`) {
     const item = getItem(job.itemId);
-    const lines = chipLines(job, item?.name ?? "");
+    const lines = chipLines(
+      job,
+      item?.name ?? "",
+      getItem(job.itemIds[1] ?? "")?.name ?? "",
+    );
     return (
       <Link
         href={`/try-on/${job.jobId}`}
@@ -72,7 +76,15 @@ export function JobChips() {
           ) : null}
         </span>
         <span className="flex-1 text-[13px] leading-[17px] font-semibold text-accent">
-          {copy.chip.readyLine(item?.name ?? "", passedPoses(readyJob).length)}
+          {readyJob.kind === "outfit"
+            ? copy.chip.outfitReadyLine(
+                item?.name ?? "",
+                getItem(readyJob.itemIds[1] ?? "")?.name ?? "",
+              )
+            : copy.chip.readyLine(
+                item?.name ?? "",
+                passedPoses(readyJob).length,
+              )}
         </span>
         <span className="flex-none text-[12px] font-semibold text-accent">
           {copy.chip.seeIt}

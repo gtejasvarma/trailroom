@@ -3,11 +3,15 @@ import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderConfigFromEnv } from "./config";
 import {
+  buildOutfitPrompt,
   buildPrompt,
   CATEGORIES,
   GENERIC_WEARING,
+  OUTFIT_PROMPT_VERSION,
+  outfitPlan,
   POSES,
   PROMPT_VERSION,
+  type Category,
   type Pose,
 } from "./prompt";
 
@@ -49,6 +53,99 @@ describe("the try-on prompt", () => {
         );
       }
     }
+  });
+});
+
+describe("the outfit prompt", () => {
+  const T = {
+    top: "silk shell blouse",
+    bottom: "pleated wool trousers",
+    dress: "bias-cut slip dress",
+    outerwear: "wool car coat",
+  } as const;
+  const valid: [Category, Category][] = [
+    ["outerwear", "top"],
+    ["top", "outerwear"],
+    ["outerwear", "bottom"],
+    ["outerwear", "dress"],
+    ["dress", "outerwear"],
+    ["top", "bottom"],
+    ["bottom", "top"],
+  ];
+  const build = (a: Category, b: Category) =>
+    buildOutfitPrompt({
+      wearing: GENERIC_WEARING,
+      pieces: [
+        { category: a, target: T[a] },
+        { category: b, target: T[b] },
+      ],
+    });
+
+  it("has its own version and leaves edit-v1 alone", () => {
+    expect(OUTFIT_PROMPT_VERSION).toBe("outfit-v1");
+    expect(PROMPT_VERSION).toBe("edit-v1");
+  });
+
+  for (const [a, b] of valid) {
+    it(`matches the snapshot for ${a} + ${b}`, () => {
+      expect(build(a, b)).toMatchSnapshot();
+    });
+  }
+
+  it("keeps the person's body and never asks to change it", () => {
+    for (const [a, b] of valid) {
+      const text = build(a, b);
+      expect(text).toContain("body shape and proportions");
+      expect(text).toContain("Image 3");
+      expect(text).not.toMatch(
+        /\b(slim\w*|thinner|smooth\w*|enhanc\w*|flatter\w*|lengthen\w*|taller|retouch\w*)\b/i,
+      );
+    }
+  });
+
+  it("states which piece is over which", () => {
+    expect(build("outerwear", "dress")).toContain(
+      "worn open over the bias-cut slip dress",
+    );
+    expect(build("dress", "outerwear")).toContain(
+      "the wool car coat sits over the bias-cut slip dress",
+    );
+  });
+
+  it("refuses an invalid pair", () => {
+    expect(() => build("top", "top")).toThrow();
+  });
+
+  it("decides all 16 category pairs", () => {
+    const ok = new Map<string, 0 | 1 | null>([
+      ["outerwear|top", 0],
+      ["outerwear|bottom", 0],
+      ["outerwear|dress", 0],
+      ["top|outerwear", 1],
+      ["bottom|outerwear", 1],
+      ["dress|outerwear", 1],
+      ["top|bottom", null],
+      ["bottom|top", null],
+    ]);
+    let n = 0;
+    for (const a of CATEGORIES) {
+      for (const b of CATEGORIES) {
+        n++;
+        const plan = outfitPlan(a, b);
+        const want = ok.get(`${a}|${b}`);
+        if (want === undefined) expect(plan.ok).toBe(false);
+        else expect(plan).toEqual({ ok: true, outer: want });
+      }
+    }
+    expect(n).toBe(16);
+    expect(outfitPlan("dress", "top")).toEqual({
+      ok: false,
+      reason: "dress_conflict",
+    });
+    expect(outfitPlan("top", "top")).toEqual({
+      ok: false,
+      reason: "same_category",
+    });
   });
 });
 

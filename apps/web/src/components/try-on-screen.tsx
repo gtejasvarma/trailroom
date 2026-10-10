@@ -7,6 +7,7 @@ import { useJob } from "../lib/use-job";
 import { body, btnLink, page } from "../lib/ui";
 import { FailureScreen, failureKindOf } from "./failure-screen";
 import { useMe } from "./me-provider";
+import { OutfitScreen } from "./outfit-screen";
 import { QueueView } from "./queue-view";
 import { ResultView } from "./result-view";
 
@@ -37,6 +38,7 @@ export function TryOnScreen({ jobId }: { jobId: string }) {
       </div>
     );
   }
+  if (job.kind === "outfit") return <OutfitScreen job={job} />;
   const item = getItem(job.itemId);
   if (!item) return null;
   if (job.status === "failed") {

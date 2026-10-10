@@ -4,6 +4,7 @@ import type { AskSummary } from "../server/asks";
 import type { InboxDetail, InboxSummary } from "../server/inbox";
 import type { ListBody } from "../server/lists";
 import type { MeBody } from "../server/me";
+import type { OutfitSummary } from "../server/outfits";
 import type { PurchaseBody } from "../server/purchases";
 import type { TryOnSummary } from "../server/try-ons";
 import { CONSENT_VERSION } from "./consent";
@@ -85,6 +86,13 @@ const patch = (body: unknown): RequestInit => ({
 export const api = {
   me: () => apiFetch<MeBody>("/api/me"),
   tryOns: () => apiFetch<{ tryOns: TryOnSummary[] }>("/api/try-ons"),
+  outfits: () => apiFetch<{ outfits: OutfitSummary[] }>("/api/outfits"),
+  /** Two pieces on one photo, rendered as one image. Signed-in people only. */
+  startOutfit: (itemIds: [string, string], photoId?: string) =>
+    apiFetch<{ jobId: string; poseSetId: string; reused: boolean }>(
+      "/api/outfits",
+      json({ itemIds, photoId }),
+    ),
   /** The visible discard: the pose set, its renders and its job. */
   removeTryOn: (poseSetId: string) =>
     apiFetch<{ removed: true }>(`/api/try-ons/${poseSetId}`, {

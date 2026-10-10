@@ -147,3 +147,20 @@ describe("failureCodeForFailedSet", () => {
     expect(failureCodeForFailedSet(input)).toBe(want);
   });
 });
+
+describe("routeSet, a one-pose set (an outfit)", () => {
+  it("completes when its one image passed", () => {
+    expect(routeSet({ front: "passed" })).toEqual({
+      status: "complete",
+      published: ["front"],
+    });
+  });
+  it("fails otherwise, publishing nothing", () => {
+    for (const s of ["failed", "pending", "rendering"]) {
+      expect(routeSet({ front: s })).toEqual({
+        status: "failed",
+        published: [],
+      });
+    }
+  });
+});

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { catalogUrl, closestThree, getItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
-import { messageOf, paths, startTryOnPath } from "../lib/flow";
+import { messageOf, paths, startOutfitPath, startTryOnPath } from "../lib/flow";
 import { alertStyle, btnPrimary, btnSecondary, labelStyle } from "../lib/ui";
 
 export type FailureKind =
@@ -23,9 +23,12 @@ export function failureKindOf(code: string | undefined): FailureKind {
 export function FailureScreen({
   kind,
   itemId,
+  outfit,
 }: {
   kind: FailureKind;
   itemId: string;
+  /** An outfit that failed: both pieces, and the photo it was made from, so Try again repeats it. */
+  outfit?: { itemIds: [string, string]; photoId: string | null };
 }) {
   const router = useRouter();
   const item = getItem(itemId);
@@ -36,7 +39,11 @@ export function FailureScreen({
     setBusy(id);
     setError(null);
     try {
-      router.push(await startTryOnPath(id));
+      router.push(
+        outfit && id === itemId
+          ? await startOutfitPath(outfit.itemIds, outfit.photoId)
+          : await startTryOnPath(id),
+      );
     } catch (e) {
       setError(messageOf(e));
       setBusy(null);
@@ -53,7 +60,7 @@ export function FailureScreen({
             copy.failure.notReadyBody((item?.readinessReasons ?? []).join(" ")),
           ],
     render_failed: [
-      copy.failure.renderFailedTitle,
+      outfit ? copy.outfit.failedTitle : copy.failure.renderFailedTitle,
       copy.failure.renderFailedBody,
     ],
     capacity: [copy.failure.capacityTitle, copy.failure.capacityBody],
@@ -61,8 +68,11 @@ export function FailureScreen({
     internal: [copy.failure.internalTitle, copy.failure.internalBody],
   }[kind];
 
-  const showClosest = kind === "not_ready" || kind === "render_failed";
-  const photo = item?.photos[0];
+  const showClosest =
+    !outfit && (kind === "not_ready" || kind === "render_failed");
+  const photos = (outfit ? outfit.itemIds : [itemId])
+    .map((id) => getItem(id))
+    .flatMap((i) => (i?.photos[0] ? [{ item: i, photo: i.photos[0] }] : []));
 
   return (
     <div
@@ -70,19 +80,23 @@ export function FailureScreen({
       data-testid="honest-failure"
       data-kind={kind}
       data-try-on={item?.tryOn}
+      data-outfit={outfit ? "true" : undefined}
     >
       <div className="mb-[18px] flex items-start gap-3 rounded-lg border border-line p-3.5">
-        {photo ? (
-          <span className="block aspect-[3/4] w-14 flex-none overflow-hidden rounded-sm bg-surface">
+        {photos.map(({ item: piece, photo }) => (
+          <span
+            key={piece.id}
+            className="block aspect-[3/4] w-14 flex-none overflow-hidden rounded-sm bg-surface"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={catalogUrl(photo.file)}
-              alt={copy.failure.pieceAlt(item!.name)}
+              alt={copy.failure.pieceAlt(piece.name)}
               className="size-full object-cover"
               style={{ objectPosition: photo.focus }}
             />
           </span>
-        ) : null}
+        ))}
         <div className="flex-1">
           <h1 className="text-[17px] leading-[23px] font-semibold tracking-[-0.01em] text-ink">
             {title}
@@ -107,7 +121,7 @@ export function FailureScreen({
             {copy.failure.tryAgain}
           </button>
         ) : null}
-        {kind === "render_failed" ? (
+        {kind === "render_failed" && !outfit ? (
           <Link href={paths.library(itemId)} className={btnSecondary}>
             {copy.failure.differentPhoto}
           </Link>

@@ -10,6 +10,7 @@ import {
   getListFor,
   isAskLive,
   listAsksForUser,
+  kindOf,
   listPoseSetsForUser,
   revokeAskFor,
   type AskWithId,
@@ -124,6 +125,7 @@ export async function createAsk(
       sets.find(
         (s) =>
           s.poseSet.uid === user.uid &&
+          kindOf(s.poseSet) === "tryon" &&
           s.poseSet.itemId === id &&
           (s.poseSet.status === "complete" ||
             s.poseSet.status === "complete_partial") &&

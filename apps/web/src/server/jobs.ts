@@ -1,4 +1,4 @@
-import { getJob, type JobDoc } from "@trailroom/db";
+import { getJob, kindOf, type JobDoc } from "@trailroom/db";
 import { closestThree } from "@trailroom/catalog";
 import { err, ok, type Result } from "./http";
 import type { User } from "./auth";
@@ -8,6 +8,10 @@ export interface JobBody {
   jobId: string;
   poseSetId: string;
   itemId: string;
+  /** "outfit" for two pieces rendered together; both ids in itemIds (itemId is the first). */
+  kind: "tryon" | "outfit";
+  itemIds: string[];
+  photoId: string;
   /** Always true: the UI shows a visible AI caption next to (not on) each image. */
   aiGenerated: true;
   status: JobDoc["status"];
@@ -37,6 +41,9 @@ export async function getJobForUser(
     jobId,
     poseSetId: job.poseSetId,
     itemId: job.itemId,
+    kind: kindOf(job),
+    itemIds: job.itemIds ?? [job.itemId],
+    photoId: job.photoId,
     aiGenerated: true as const,
     status: job.status,
     // The internal detail string is not exposed.

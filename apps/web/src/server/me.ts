@@ -3,6 +3,7 @@ import {
   countPhotos,
   getDefaultPhotoId,
   isConsentCurrent,
+  kindOf,
   listPoseSetsForUser,
 } from "@trailroom/db";
 import { CONSENT_VERSION } from "../lib/consent";
@@ -21,6 +22,9 @@ export interface MeBody {
   activePoseSets: {
     poseSetId: string;
     itemId: string;
+    /** An outfit's two pieces; absent for a try-on. */
+    itemIds?: string[];
+    kind: "tryon" | "outfit";
     jobId: string;
     status: string;
   }[];
@@ -47,6 +51,8 @@ export async function getMe(user: User): Promise<Result<MeBody>> {
       .map((s) => ({
         poseSetId: s.id,
         itemId: s.poseSet.itemId,
+        kind: kindOf(s.poseSet),
+        ...(s.poseSet.itemIds ? { itemIds: s.poseSet.itemIds } : {}),
         jobId: s.poseSet.jobId,
         status: s.poseSet.status,
       })),

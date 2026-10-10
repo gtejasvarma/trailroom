@@ -6,7 +6,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { auth, bucket, firestore } from "./app";
 import { getConsent } from "./consent";
 import { assertSegment, photoPath, renderPath } from "./paths";
-import { poseSetId as poseSetIdFor } from "./poseSets";
+import { poseSetIdFor } from "./poseSets";
 import {
   deletePhotoObject,
   deleteRendersForPoseSet,
@@ -163,7 +163,7 @@ export async function mergeGuestInto(
   const movedSets: { id: string; doc: PoseSetDoc }[] = [];
   for (const s of candidates) {
     if (!movedPhotoIds.has(s.doc.photoId)) continue;
-    const newId = poseSetIdFor(accountUid, s.doc.photoId, s.doc.itemId);
+    const newId = poseSetIdFor(accountUid, s.doc);
     const existing = await db.collection("poseSets").doc(newId).get();
     const sameJob = existing.exists && existing.get("jobId") === s.doc.jobId;
     if (existing.exists && !sameJob) continue; // the account's own finished set wins

@@ -71,3 +71,27 @@ export function messageOf(e: unknown): string {
   if (e instanceof TypeError) return copy.errors.network;
   return copy.errors.generic;
 }
+
+/**
+ * Starts (or reuses) an outfit and returns where to go. The photo is the one the base piece's
+ * try-on used; if it has since been removed, the default photo is used instead. Throws a plain
+ * Error carrying the server's sentence for the UI.
+ */
+export async function startOutfitPath(
+  itemIds: [string, string],
+  photoId?: string | null,
+): Promise<string> {
+  try {
+    let r;
+    try {
+      r = await api.startOutfit(itemIds, photoId ?? undefined);
+    } catch (e) {
+      if (!(photoId && e instanceof ApiError && e.code === "not_found"))
+        throw e;
+      r = await api.startOutfit(itemIds);
+    }
+    return paths.tryOn(r.jobId);
+  } catch (e) {
+    throw new Error(messageOf(e));
+  }
+}

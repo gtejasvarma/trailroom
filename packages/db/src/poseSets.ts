@@ -17,6 +17,33 @@ export function poseSetId(
   );
 }
 
+/**
+ * An outfit's id: {uid}_{photoId}_{idA}={idB}, the two piece ids sorted so A+B and B+A are one
+ * outfit. "=" is already a legal path-segment character, so the validator is unchanged.
+ */
+export function outfitPoseSetId(
+  uid: string,
+  photoId: string,
+  idA: string,
+  idB: string,
+): string {
+  const [a, b] = idA <= idB ? [idA, idB] : [idB, idA];
+  return assertSegment(
+    "poseSetId",
+    `${assertSegment("uid", uid)}_${assertSegment("photoId", photoId)}_${assertSegment("itemId", a)}=${assertSegment("itemId", b)}`,
+  );
+}
+
+/** The id a pose set document has (or would have) under another uid: for moving it. */
+export function poseSetIdFor(
+  uid: string,
+  doc: Pick<PoseSetDoc, "photoId" | "itemId" | "kind" | "itemIds">,
+): string {
+  return doc.kind === "outfit" && doc.itemIds?.length === 2
+    ? outfitPoseSetId(uid, doc.photoId, doc.itemIds[0]!, doc.itemIds[1]!)
+    : poseSetId(uid, doc.photoId, doc.itemId);
+}
+
 export class PoseSetExistsError extends Error {
   constructor(
     readonly id: string,
@@ -30,6 +57,8 @@ export class PoseSetExistsError extends Error {
 export interface ClaimPoseSetInput {
   uid: string;
   itemId: string;
+  /** Present for an outfit: both pieces. `itemId` is then the first of them. */
+  itemIds?: [string, string];
   photoId: string;
   jobId: string;
   isGuest: boolean;
@@ -40,10 +69,16 @@ export async function claimPoseSet(
   input: ClaimPoseSetInput,
   now: Date = new Date(),
 ): Promise<{ id: string; poseSet: PoseSetDoc }> {
-  const id = poseSetId(input.uid, input.photoId, input.itemId);
+  const [first, second] = input.itemIds ?? [];
+  const id = input.itemIds
+    ? outfitPoseSetId(input.uid, input.photoId, first!, second!)
+    : poseSetId(input.uid, input.photoId, input.itemId);
   const poseSet: PoseSetDoc = {
     uid: input.uid,
-    itemId: input.itemId,
+    itemId: input.itemIds ? [first!, second!].sort()[0]! : input.itemId,
+    ...(input.itemIds
+      ? { kind: "outfit" as const, itemIds: [first!, second!].sort() }
+      : {}),
     photoId: input.photoId,
     jobId: input.jobId,
     status: "rendering",

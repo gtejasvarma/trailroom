@@ -69,9 +69,16 @@ export interface PoseState {
   attempts?: Record<string, AttemptRecord>;
 }
 
+/** What a job renders: one piece on the four poses, or two pieces together in one image. */
+export type RenderKind = "tryon" | "outfit";
+
 export interface JobDoc {
   uid: string;
   itemId: string;
+  /** Absent on documents from before outfits: a try-on. */
+  kind?: RenderKind;
+  /** Both pieces of an outfit, canonical (sorted) order; itemId is the first. Absent on a try-on. */
+  itemIds?: string[];
   photoId: string;
   poseSetId: string;
   status: JobStatus;
@@ -93,6 +100,8 @@ export type PoseSetStatus =
 export interface PoseSetDoc {
   uid: string;
   itemId: string;
+  kind?: RenderKind;
+  itemIds?: string[];
   photoId: string;
   jobId: string;
   status: PoseSetStatus;
@@ -171,3 +180,7 @@ export interface PurchaseDoc {
   arrived: boolean | null;
   answeredAt?: Timestamp;
 }
+
+/** A job or pose set's kind, with the default for documents from before outfits. */
+export const kindOf = (d: { kind?: RenderKind }): RenderKind =>
+  d.kind ?? "tryon";

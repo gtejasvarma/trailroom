@@ -76,3 +76,56 @@ export const SHOP_CATEGORIES: readonly {
   { id: "jewellery", file: "p14411703.jpg", focus: "50% 25%" },
   { id: "accessories", file: "p14411703.jpg", focus: "50% 45%" },
 ];
+
+/**
+ * Whether two prompt categories can be worn together as one outfit: outerwear over a top, bottom
+ * or dress, or a top with a bottom. The same rule as `outfitPlan` in @trailroom/render (a test in
+ * @trailroom/pipeline checks all sixteen pairs agree); kept here so the client never imports the
+ * render package.
+ */
+export function outfitCompatible(
+  a: CatalogItem["category"],
+  b: CatalogItem["category"],
+): boolean {
+  if (!a || !b || a === b) return false;
+  if (a === "outerwear" || b === "outerwear") return true;
+  if (a === "dress" || b === "dress") return false;
+  return true; // top + bottom
+}
+
+/** Two piece ids in canonical (sorted) order, so A+B and B+A name one outfit. */
+export function canonicalOutfitIds(a: string, b: string): [string, string] {
+  return a <= b ? [a, b] : [b, a];
+}
+
+/** Whether these two catalogue pieces make a valid outfit: both ready apparel, a valid pair. */
+export function isOutfitPair(a: string, b: string): boolean {
+  const x = getItem(a);
+  const y = getItem(b);
+  return (
+    !!x &&
+    !!y &&
+    x.id !== y.id &&
+    isRenderReady(x) &&
+    isRenderReady(y) &&
+    x.shopCategory === "apparel" &&
+    y.shopCategory === "apparel" &&
+    outfitCompatible(x.category, y.category)
+  );
+}
+
+/**
+ * The pieces "Build the outfit" offers for this one: those named in either piece's `pairsWith`
+ * (the label's own suggestion, taken both ways) that make a valid outfit with it and are ready to
+ * render. Jewellery and pieces we cannot render never appear. Empty means no control is shown.
+ */
+export function outfitPairsFor(itemId: string): CatalogItem[] {
+  const self = getItem(itemId);
+  if (!self) return [];
+  return CATALOG.filter(
+    (o) =>
+      o.id !== itemId &&
+      (self.pairsWith.includes(o.id) || o.pairsWith.includes(itemId)) &&
+      isOutfitPair(itemId, o.id),
+  );
+}

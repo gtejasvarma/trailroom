@@ -12,6 +12,7 @@ import {
   getPhotoBytes,
   getPoseSet,
   getStaging,
+  kindOf,
   publishRender,
   putStaging,
   setAttemptRecord,
@@ -22,12 +23,15 @@ import {
   type JobDoc,
 } from "@trailroom/db";
 import {
+  buildOutfitPrompt,
   buildPrompt,
   GENERIC_WEARING,
   renderConfigFromEnv,
   renderImage,
   ReservationExistsError,
   SpendCeilingError,
+  type Category,
+  type InputImage,
   type Pose,
 } from "@trailroom/render";
 import sharp from "sharp";
@@ -77,6 +81,49 @@ function attemptRecord(
   const state = job.poses[pose];
   if (!state) throw new Error(`job ${job.poseSetId} has no pose ${pose}`);
   return state.attempts?.[String(attempt)];
+}
+
+/**
+ * The garment images (one for a try-on, two for an outfit, in the prompt's order) and the prompt
+ * that names them. An outfit is only ever the Front view.
+ */
+async function garmentsAndPrompt(
+  job: JobDoc,
+  pose: Pose,
+): Promise<{ garments: InputImage[]; prompt: string }> {
+  const ids = kindOf(job) === "outfit" ? (job.itemIds ?? []) : [job.itemId];
+  if (ids.length !== (kindOf(job) === "outfit" ? 2 : 1)) {
+    throw new Error(`job ${job.poseSetId} has the wrong number of pieces`);
+  }
+  const items = ids.map((id) => {
+    const item = getItem(id);
+    if (!item) throw new Error(`unknown catalogue item ${id}`);
+    if (!item.category) throw new Error(`${item.id} has no prompt category`);
+    return item as typeof item & { category: Category };
+  });
+  const garments = await Promise.all(items.map((i) => loadItemImage(i.id)));
+  if (items.length === 2) {
+    if (pose !== "front")
+      throw new Error("an outfit is rendered as front only");
+    const prompt = buildOutfitPrompt({
+      wearing: GENERIC_WEARING,
+      pieces: [
+        { category: items[0]!.category, target: items[0]!.promptDescription },
+        { category: items[1]!.category, target: items[1]!.promptDescription },
+      ],
+    });
+    return { garments, prompt };
+  }
+  const item = items[0]!;
+  return {
+    garments,
+    prompt: buildPrompt({
+      pose,
+      category: item.category,
+      wearing: GENERIC_WEARING,
+      target: item.promptDescription,
+    }),
+  };
 }
 
 /** Marks the job rendering and records which QA checks this build does not run. */
@@ -178,29 +225,21 @@ export async function renderPose(
       return joinOrRecover();
     }
 
-    const item = getItem(job.itemId);
-    if (!item) throw new Error(`unknown catalogue item ${job.itemId}`);
     const person = await getPhotoBytes(job.uid, job.photoId);
     if (!person) throw new Error(`no photo stored for ${job.uid}`);
-    if (!item.category) throw new Error(`${item.id} has no prompt category`);
-    const garment = await loadItemImage(item.id);
+    // Garments first, in the order the prompt names them, then the person last.
+    const { garments, prompt } = await garmentsAndPrompt(job, pose as Pose);
+    const personImage = { mimeType: person.contentType, data: person.data };
 
     await setPoseState(jobId, pose, { status: "rendering", attempt });
-
-    const prompt = buildPrompt({
-      pose: pose as Pose,
-      category: item.category,
-      wearing: GENERIC_WEARING,
-      target: item.promptDescription,
-    });
 
     let res;
     try {
       res = await renderImage({
         model: cfg.model,
         prompt,
-        // Garment first, then the person: the prompt says "Image 1" / "Image 2".
-        images: [garment, { mimeType: person.contentType, data: person.data }],
+        // Garment(s) first, then the person: the prompt says "Image 1" / "Image 2" (/ "Image 3").
+        images: [...garments, personImage],
         aspectRatio: cfg.aspectRatio,
         meter: ledger,
         meta: { jobId, pose, attempt },

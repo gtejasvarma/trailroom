@@ -8,6 +8,7 @@ import { getItem, startWithThese } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
 import { paths } from "../lib/flow";
 import { useRenderImage } from "../lib/use-render-image";
+import type { OutfitSummary } from "../server/outfits";
 import type { TryOnSummary } from "../server/try-ons";
 import { useAccount } from "./account-provider";
 import { useCompare } from "./compare-provider";
@@ -141,6 +142,83 @@ function TryOnCard({ t, variant }: { t: TryOnSummary; variant: Variant }) {
   );
 }
 
+function OutfitCard({ o, variant }: { o: OutfitSummary; variant: Variant }) {
+  const { removeOutfit } = useMe();
+  const a = getItem(o.itemIds[0]);
+  const b = getItem(o.itemIds[1]);
+  const { url } = useRenderImage(o.poseSetId, "front");
+  if (!a || !b) return null;
+  const strip = variant === "strip";
+  return (
+    <article data-testid="outfit-card" data-items={o.itemIds.join(",")}>
+      <div className="relative">
+        <Link
+          href={paths.tryOn(o.jobId)}
+          aria-label={copy.outfit.openLabel(a.name, b.name)}
+          className={`relative block overflow-hidden bg-surface ${
+            strip
+              ? "aspect-[3/4] rounded-[10px]"
+              : "aspect-[3/4] rounded-md md:aspect-[4/5] md:rounded-[12px]"
+          }`}
+        >
+          <span className={`block size-full ${url ? "" : "skeleton"}`}>
+            {url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={url}
+                alt={copy.outfit.cardAlt(a.name, b.name)}
+                data-render
+                className="reveal size-full object-cover"
+                style={{ objectPosition: "50% 30%" }}
+              />
+            ) : null}
+          </span>
+          <Chip
+            upper
+            data-testid="outfit-tag"
+            className="absolute top-2 left-2"
+          >
+            {copy.outfit.tag}
+          </Chip>
+        </Link>
+        <button
+          type="button"
+          onClick={() => void removeOutfit(o.poseSetId, a.name, b.name)}
+          aria-label={copy.outfit.removeLabel(a.name, b.name)}
+          data-testid="remove-outfit"
+          className="absolute top-0.5 right-0.5 grid size-11 place-items-center rounded-full md:top-1 md:right-1"
+        >
+          <span
+            aria-hidden="true"
+            className="grid size-[26px] place-items-center rounded-full bg-ink/70 text-[12px] text-canvas"
+          >
+            ✕
+          </span>
+        </button>
+      </div>
+      <p
+        className={`mt-1.5 text-ink-600 ${strip ? "text-[11px] leading-[14px]" : "text-[12px] leading-4"}`}
+      >
+        {copy.result.aiCaption}
+      </p>
+      {strip ? (
+        <p className="truncate text-[12px] leading-4 text-ink-800">
+          {copy.outfit.names(a.name, b.name)}
+        </p>
+      ) : (
+        <div className="flex items-baseline gap-2">
+          <p className="min-w-0 flex-1 text-[14px] leading-5 text-ink-800">
+            {copy.outfit.names(a.name, b.name)}
+          </p>
+          <p className="flex-none text-[14px] leading-5 font-medium text-ink tabular-nums">
+            {copy.item.price(a.priceUsd + b.priceUsd)}
+          </p>
+        </div>
+      )}
+    </article>
+  );
+}
+
 export function TryOnsEmpty() {
   const start = startWithThese()[0];
   return (
@@ -164,7 +242,7 @@ export function TryOnsEmpty() {
 }
 
 export function TryOnsGrid({ variant = "page" }: { variant?: Variant }) {
-  const { loaded, isGuest, tryOns } = useMe();
+  const { loaded, isGuest, tryOns, outfits } = useMe();
   const openAccount = useAccount();
   if (!loaded) {
     return (
@@ -193,7 +271,12 @@ export function TryOnsGrid({ variant = "page" }: { variant?: Variant }) {
       </div>
     );
   }
-  if (tryOns.length === 0) return <TryOnsEmpty />;
+  if (tryOns.length === 0 && outfits.length === 0) return <TryOnsEmpty />;
+  // Try-ons and outfits in one grid, newest first.
+  const kept = [
+    ...tryOns.map((t) => ({ kind: "tryon" as const, t, at: t.createdAt })),
+    ...outfits.map((o) => ({ kind: "outfit" as const, o, at: o.createdAt })),
+  ].sort((x, y) => y.at.localeCompare(x.at));
   return (
     <ul
       aria-label={copy.tryOns.gridLabel}
@@ -204,11 +287,17 @@ export function TryOnsGrid({ variant = "page" }: { variant?: Variant }) {
           : "m-0 grid list-none grid-cols-2 gap-x-3 gap-y-5 p-0 md:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] md:gap-x-5 md:gap-y-8"
       }
     >
-      {tryOns.map((t) => (
-        <li key={t.poseSetId}>
-          <TryOnCard t={t} variant={variant} />
-        </li>
-      ))}
+      {kept.map((k) =>
+        k.kind === "tryon" ? (
+          <li key={k.t.poseSetId}>
+            <TryOnCard t={k.t} variant={variant} />
+          </li>
+        ) : (
+          <li key={k.o.poseSetId}>
+            <OutfitCard o={k.o} variant={variant} />
+          </li>
+        ),
+      )}
     </ul>
   );
 }

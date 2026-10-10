@@ -361,3 +361,14 @@ describe("the fake provider", () => {
     expect((await renderImage(request())).ok).toBe(true);
   });
 });
+
+describe("the reservation estimate", () => {
+  it("counts every input image: an outfit's three cost more than a try-on's two", () => {
+    const two = estimateCostMicros("nano-banana-2.1", 2);
+    const three = estimateCostMicros("nano-banana-2.1", 3);
+    expect(three).toBeGreaterThan(two);
+    // 2000 estimated tokens per image at $1.5 per million tokens = 3000 micro-USD.
+    expect(three - two).toBeGreaterThanOrEqual(3000);
+    expect(three).toBe(Math.ceil(0.0336 * 1e6 + (3 * 2000 + 500) * 1.5));
+  });
+});

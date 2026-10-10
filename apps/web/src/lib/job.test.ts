@@ -15,6 +15,9 @@ function job(status: JobStatus, poses: Record<string, string>): JobView {
     jobId: "j",
     poseSetId: "p",
     itemId: "vest",
+    kind: "tryon",
+    itemIds: ["vest"],
+    photoId: "photo1",
     status,
     failure: null,
     poseOrder: POSES,
@@ -211,5 +214,49 @@ describe("queueLines", () => {
     expect(queueLines(job("complete_partial", three), "x", true).title).toBe(
       "3 poses, on you",
     );
+  });
+});
+
+describe("an outfit job", () => {
+  const outfit: JobView = {
+    ...job("rendering", { front: "rendering" }),
+    kind: "outfit",
+    itemIds: ["coat", "slip"],
+    poseOrder: ["front"],
+    poses: { front: { status: "rendering" } },
+  };
+  it("the chip names both pieces and says it is rendering, with no count", () => {
+    expect(chipLines(outfit, "Wool car coat", "Bias-cut slip dress")).toEqual({
+      title: "Putting the wool car coat and the bias-cut slip dress on you",
+      sub: "Rendering · you can keep browsing",
+    });
+  });
+  it("the status line is about the outfit", () => {
+    expect(statusLine(outfit)).toBe("Rendering the outfit");
+    expect(statusLine({ ...outfit, status: "complete" })).toBe("Outfit ready");
+    expect(statusLine({ ...outfit, status: "failed" })).toBe(
+      "This outfit could not be finished",
+    );
+  });
+  it("is read from the job document, defaulting old documents to a try-on", () => {
+    const base = { status: "complete", poseOrder: ["front"], poses: {} };
+    expect(
+      toJobView("j", {
+        ...base,
+        itemId: "coat",
+        kind: "outfit",
+        itemIds: ["coat", "slip"],
+        photoId: "p1",
+      }),
+    ).toMatchObject({
+      kind: "outfit",
+      itemIds: ["coat", "slip"],
+      photoId: "p1",
+    });
+    expect(toJobView("j", { ...base, itemId: "coat" })).toMatchObject({
+      kind: "tryon",
+      itemIds: ["coat"],
+      photoId: null,
+    });
   });
 });
