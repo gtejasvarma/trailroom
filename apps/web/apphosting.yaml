@@ -85,12 +85,13 @@ env:
     value: "1"
     availability:
       - RUNTIME
-  # Extra origins the app may build links with, besides INTERNAL_AUDIENCE (comma-separated), e.g.
-  # a custom domain. Left unset, links use INTERNAL_AUDIENCE alone.
-  # - variable: PUBLIC_ORIGINS
-  #   value: https://trailroom.ai
-  #   availability:
-  #     - RUNTIME
+  # Extra origins the app may build links with, besides INTERNAL_AUDIENCE (comma-separated): the
+  # custom domain. A share link is built on the address the person is using when it is one of
+  # these; anything else falls back to INTERNAL_AUDIENCE.
+  - variable: PUBLIC_ORIGINS
+    value: https://trailroom.ai,https://www.trailroom.ai
+    availability:
+      - RUNTIME
 
   # ---- Phase G, the follow loop. Both switches are OFF until the owner decides. ----
   # May the "arrives on you" buffer render pieces nobody asked for? off (the default, and what
