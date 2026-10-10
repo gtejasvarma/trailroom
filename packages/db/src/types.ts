@@ -159,3 +159,15 @@ export interface InboxAskDoc {
   votedItemId: string | null;
   unread: boolean;
 }
+
+/**
+ * purchases/{uid}_{itemId}: the person pressed "Go to <label>" on a piece (the intent), and later
+ * said whether it arrived (`arrived`, set once). Written only by the server.
+ */
+export interface PurchaseDoc {
+  uid: string;
+  itemId: string;
+  clickedAt: Timestamp;
+  arrived: boolean | null;
+  answeredAt?: Timestamp;
+}

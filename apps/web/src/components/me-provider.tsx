@@ -14,7 +14,7 @@ import {
 } from "react";
 import { getLabel } from "@trailroom/catalog";
 import { onAuthStateChanged } from "firebase/auth";
-import { api, apiFetch } from "../lib/api";
+import { ApiError, api, apiFetch } from "../lib/api";
 import { signOutNow } from "../lib/account";
 import { copy } from "../lib/copy";
 import { getFirebaseAuth, peekUser } from "../lib/firebase";
@@ -34,6 +34,8 @@ interface MeState {
   activeJobId: string | null;
   /** The person's finished try-ons, newest first. Always empty for a guest. */
   tryOns: TryOnSummary[];
+  /** The visible discard: the tile leaves at once, a toast says so. No confirm. */
+  removeTryOn: (poseSetId: string, name: string) => Promise<void>;
   /** Re-reads the server's view of the person (after sign-in, sign-out, a finished job). */
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -48,6 +50,7 @@ const MeContext = createContext<MeState>({
   who: null,
   activeJobId: null,
   tryOns: [],
+  removeTryOn: async () => {},
   refresh: async () => {},
   signOut: async () => {},
 });
@@ -138,6 +141,35 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const removeTryOn = useCallback(
+    async (poseSetId: string, name: string) => {
+      let removed: TryOnSummary | undefined;
+      setTryOns((prev) => {
+        removed = prev.find((t) => t.poseSetId === poseSetId);
+        return prev.filter((t) => t.poseSetId !== poseSetId);
+      });
+      try {
+        await api.removeTryOn(poseSetId);
+        say(copy.toasts.tryOnRemoved(name));
+      } catch (e) {
+        // Already gone is as good as removed; anything else puts the tile back.
+        if (e instanceof ApiError && e.status === 404) {
+          say(copy.toasts.tryOnRemoved(name));
+          return;
+        }
+        const back = removed;
+        if (back)
+          setTryOns((prev) =>
+            [...prev, back].sort((a, b) =>
+              b.createdAt.localeCompare(a.createdAt),
+            ),
+          );
+        say(copy.toasts.tryOnRemoveFailed);
+      }
+    },
+    [say],
+  );
+
   const toggleFollow = useCallback(
     async (slug: string) => {
       const name = getLabel(slug)?.name ?? slug;
@@ -178,6 +210,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
       who,
       activeJobId,
       tryOns,
+      removeTryOn,
       refresh,
       signOut,
     }),
@@ -190,6 +223,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
       who,
       activeJobId,
       tryOns,
+      removeTryOn,
       refresh,
       signOut,
     ],

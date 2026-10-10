@@ -7,7 +7,9 @@ import { copy } from "../lib/copy";
 import { paths } from "../lib/flow";
 import { useRenderImage } from "../lib/use-render-image";
 import type { TryOnSummary } from "../server/try-ons";
+import { Button } from "./ui/button";
 import { Chip } from "./ui/chip";
+import { useBuy } from "./use-buy";
 
 export function ListPiece({
   item,
@@ -18,6 +20,7 @@ export function ListPiece({
   tryOn: TryOnSummary | undefined;
   remove?: () => void;
 }) {
+  const buy = useBuy();
   const { url } = useRenderImage(
     tryOn?.poseSetId ?? null,
     "front",
@@ -97,6 +100,15 @@ export function ListPiece({
       <p className="text-[14px] leading-[19px] text-ink tabular-nums">
         {copy.item.price(item.priceUsd)}
       </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => buy(item.id)}
+        data-testid="list-buy"
+        className="mt-2 min-h-9"
+      >
+        {copy.card.buy(copy.item.price(item.priceUsd))}
+      </Button>
     </article>
   );
 }

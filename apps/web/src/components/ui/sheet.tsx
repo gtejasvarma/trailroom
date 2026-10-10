@@ -28,11 +28,14 @@ export function Sheet({
   title,
   subtitle,
   aside,
+  kicker,
   onClose,
   children,
 }: {
   open: boolean;
   title: string;
+  /** A small uppercase line above the title (the buy sheet's "Checking out with ..."). */
+  kicker?: string;
   /** With `aside`: the line under the title, beside the picture. */
   subtitle?: React.ReactNode;
   /**
@@ -66,7 +69,7 @@ export function Sheet({
       className={`sheet m-0 mx-auto mt-auto w-full rounded-t-lg border-0 bg-canvas text-ink shadow-8 ${
         aside
           ? "max-w-[480px] overflow-hidden p-6 md:my-auto md:max-w-[760px] md:rounded-lg md:p-0"
-          : "max-w-[480px] p-6"
+          : "max-w-[480px] p-6 md:my-auto md:max-w-[520px] md:rounded-lg md:p-[26px]"
       }`}
     >
       {aside ? (
@@ -91,6 +94,11 @@ export function Sheet({
         </div>
       ) : (
         <>
+          {kicker ? (
+            <p className="mb-[3px] text-[11px] leading-[15px] font-semibold tracking-[0.08em] text-ink-600 uppercase">
+              {kicker}
+            </p>
+          ) : null}
           <h2 id={titleId} className={h2}>
             {title}
           </h2>

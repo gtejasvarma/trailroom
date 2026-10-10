@@ -3,7 +3,8 @@
 // chip), the AI caption directly under it, pose thumbnails that jump the gallery, then the piece
 // and its actions. From 768px the thumbnails sit in a column beside a large pose and the details
 // sit to the right (the desktop product view in its on-you state).
-// Buy, Add to a list and Build the outfit arrive in later phases: each says so in a toast.
+// Buy opens the buy sheet; Add to a list opens the list sheet; Build the outfit arrives in a later
+// phase (Phase F) and says so in a toast. On wide screens the piece can be added to Compare.
 import { useRef, useState } from "react";
 import { catalogUrl, getItem, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
@@ -11,6 +12,8 @@ import { passedPoses, type JobView } from "../lib/job";
 import { useRenderImage } from "../lib/use-render-image";
 import { Button } from "./ui/button";
 import { Chip } from "./ui/chip";
+import { useBuy } from "./use-buy";
+import { useCompare } from "./compare-provider";
 import { useSaveToList } from "./save-to-list";
 import { useToast } from "./ui/toast";
 
@@ -149,6 +152,8 @@ function OutfitRow({
 export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
   const say = useToast();
   const saveToList = useSaveToList();
+  const buy = useBuy();
+  const compare = useCompare();
   const poses = passedPoses(job);
   const n = poses.length;
   const scroller = useRef<HTMLDivElement>(null);
@@ -312,7 +317,8 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
           </p>
           <Button
             size="lg"
-            onClick={() => say(copy.toasts.buySoon)}
+            onClick={() => buy(item.id)}
+            data-testid="buy"
             className="mt-3 w-full"
           >
             {copy.result.buy(price, item.label.toUpperCase())}
@@ -325,6 +331,20 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
           >
             {copy.result.addToList}
           </Button>
+          {compare.enabled ? (
+            <Button
+              variant="outline"
+              size="md"
+              aria-pressed={compare.has(job.poseSetId)}
+              data-testid="compare-toggle"
+              onClick={() => compare.toggle(job.poseSetId)}
+              className="mt-2.5 w-full min-h-12"
+            >
+              {compare.has(job.poseSetId)
+                ? copy.compare.inCompare
+                : copy.compare.add}
+            </Button>
+          ) : null}
           <OutfitRow item={item} onClick={() => say(copy.toasts.outfitSoon)} />
         </div>
       </div>

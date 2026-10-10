@@ -50,6 +50,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Phase E: the record that someone pressed "Go to <label>" and whether it arrived. Server-only;
+    // the app reads it through /api/purchases. Explicit so a later edit cannot loosen it.
+    match /purchases/{purchaseId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

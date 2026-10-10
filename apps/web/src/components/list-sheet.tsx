@@ -48,13 +48,15 @@ function Tick({ on }: { on: boolean }) {
 
 export function ListSheet({
   open,
-  itemId,
+  itemIds,
   onClose,
 }: {
   open: boolean;
-  itemId: string | null;
+  /** The pieces to save: one from a heart or a result, several from Compare, none to only make a list. */
+  itemIds: string[];
   onClose: () => void;
 }) {
+  const itemId = itemIds[0] ?? null;
   const say = useToast();
   const { lists, toggle, create } = useLists();
   const [name, setName] = useState("");
@@ -72,8 +74,14 @@ export function ListSheet({
     if (!itemId || busy) return;
     setBusy(true);
     setError(null);
-    const had = list.itemIds.includes(itemId);
-    const r = await toggle(list.id, itemId);
+    // Every piece is in it: take them out. Otherwise add the ones that are missing.
+    const had = itemIds.every((id) => list.itemIds.includes(id));
+    const todo = itemIds.filter((id) => list.itemIds.includes(id) === had);
+    let r: Awaited<ReturnType<typeof toggle>> = { ok: true, list };
+    for (const id of todo) {
+      r = await toggle(list.id, id);
+      if (!r.ok) break;
+    }
     setBusy(false);
     if (!r.ok) return setError(explain(r.code));
     say(
@@ -91,7 +99,11 @@ export function ListSheet({
     if (trimmed.length > NAME_MAX) return setError(copy.sheet.nameTooLong);
     setBusy(true);
     setError(null);
-    const r = await create(trimmed, itemId ?? undefined);
+    let r = await create(trimmed, itemId ?? undefined);
+    for (const id of itemIds.slice(1)) {
+      if (!r.ok) break;
+      r = await toggle(r.list.id, id);
+    }
     setBusy(false);
     if (!r.ok) return setError(explain(r.code));
     setName("");
@@ -121,7 +133,9 @@ export function ListSheet({
           className="m-0 mb-3.5 flex max-h-[38vh] list-none flex-col gap-2 overflow-y-auto p-0"
         >
           {lists.map((l) => {
-            const inIt = itemId !== null && l.itemIds.includes(itemId);
+            const inIt =
+              itemIds.length > 0 &&
+              itemIds.every((id) => l.itemIds.includes(id));
             return (
               <li key={l.id}>
                 <button

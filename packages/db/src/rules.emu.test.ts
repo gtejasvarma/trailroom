@@ -77,6 +77,11 @@ beforeAll(async () => {
       voterUid: "bob",
     });
     await setDoc(doc(db, "inbox/bob/asks/a1"), { askerFirstName: "Maya" });
+    await setDoc(doc(db, "purchases/alice_wool-car-coat"), {
+      uid: "alice",
+      itemId: "wool-car-coat",
+      arrived: null,
+    });
     // A real object, so a denied read is a permission error and not a not-found.
     await uploadBytes(
       ref(ctx.storage(), "photos/alice/p1.jpg"),
@@ -222,6 +227,28 @@ describe("phase D: lists, asks, votes and inbox are server-only", () => {
         ),
       ),
     );
+  });
+});
+
+describe("phase E: purchases are server-only", () => {
+  const path = "purchases/alice_wool-car-coat";
+  it("nobody reads, writes or deletes a purchase, not even its owner", async () => {
+    const a = actors();
+    for (const db of [a.owner, a.stranger, a.anon]) {
+      await assertFails(getDoc(doc(db, path)));
+      await assertFails(setDoc(doc(db, path), { arrived: true }));
+      await assertFails(updateDoc(doc(db, path), { arrived: true }));
+      await assertFails(deleteDoc(doc(db, path)));
+      await assertFails(
+        setDoc(doc(db, "purchases/alice_new"), { uid: "alice" }),
+      );
+      await assertFails(getDocs(collection(db, "purchases")));
+      await assertFails(
+        getDocs(
+          query(collection(db, "purchases"), where("uid", "==", "alice")),
+        ),
+      );
+    }
   });
 });
 

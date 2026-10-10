@@ -43,7 +43,7 @@ interface ListsState {
   removePiece: (listId: string, itemId: string) => Promise<ListResult>;
   remove: (listId: string) => Promise<boolean>;
   /** Opens the list sheet for a piece (or with no piece, to make a list). Signed-in people only. */
-  openSheet: (itemId: string | null) => void;
+  openSheet: (itemId: string | string[] | null) => void;
   /** The latest ask made from a list, if any. */
   askFor: (listId: string) => AskSummary | undefined;
 }
@@ -80,7 +80,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   const [asks, setAsks] = useState<AskSummary[]>([]);
   const [inbox, setInbox] = useState<InboxSummary[]>([]);
   const [unread, setUnread] = useState(0);
-  const [sheet, setSheet] = useState<{ itemId: string | null } | null>(null);
+  const [sheet, setSheet] = useState<{ itemIds: string[] } | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const alive = useRef(true);
   useEffect(() => {
@@ -200,8 +200,10 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
     [say],
   );
 
-  const openSheet = useCallback((itemId: string | null) => {
-    setSheet({ itemId });
+  const openSheet = useCallback((itemId: string | string[] | null) => {
+    setSheet({
+      itemIds: itemId === null ? [] : Array.isArray(itemId) ? itemId : [itemId],
+    });
     setSheetOpen(true);
   }, []);
 
@@ -261,7 +263,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
       {sheet ? (
         <ListSheet
           open={sheetOpen}
-          itemId={sheet.itemId}
+          itemIds={sheet.itemIds}
           onClose={() => setSheetOpen(false)}
         />
       ) : null}

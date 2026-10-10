@@ -221,18 +221,16 @@ describe("daily limits and the guest race", () => {
     expect((await getUsage(uidOf(u)))!.starts).toBe(SIGNED_IN_DAILY_STARTS);
   });
 
-  it("Delete everything then re-upload does not reset the count", async () => {
+  it("Delete everything leaves the day's count alone, and the deleted sign-in is refused", async () => {
     const g = await ready("guest");
     setFakeScript([{ outcome: "error" }]);
     for (let i = 0; i < GUEST_DAILY_STARTS; i++) await finish(g, "blouse");
     await photoDELETE(req("DELETE", "/api/photo", { token: g }));
-    await uploadOk(g);
-    const res = await tryOn(g, "blouse");
-    // The new photo is a new cache key, so the guest's one-live-set cap answers first; either
-    // way the count was not reset and nothing renders.
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("signup_required");
+    // The count is not reset by deleting data...
     expect((await getUsage(uidOf(g)))!.starts).toBe(GUEST_DAILY_STARTS);
+    // ...and the sign-in is gone too, so the old token starts nothing.
+    const res = await tryOn(g, "blouse");
+    expect(res.status).toBe(401);
   });
 
   it("reusing a pose set and refusals do not consume a start", async () => {

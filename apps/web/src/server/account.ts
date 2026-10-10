@@ -1,4 +1,5 @@
 import {
+  auth,
   deleteAllForUser,
   mergeGuestInto,
   promoteGuest,
@@ -20,6 +21,12 @@ export async function deleteMyData(
   user: User,
 ): Promise<Result<{ deleted: true }>> {
   await deleteAllForUser(user.uid);
+  // The sign-in goes too, so the person comes back as a new visitor. Already gone is fine.
+  try {
+    await auth().deleteUser(user.uid);
+  } catch (e) {
+    if ((e as { code?: string }).code !== "auth/user-not-found") throw e;
+  }
   return ok({ deleted: true as const });
 }
 

@@ -350,7 +350,9 @@ for (const size of SIZES) {
       await expect(page.getByTestId("library-photo")).toHaveCount(1);
       await shot("library");
       await page.goto("/you");
-      await page.getByRole("button", { name: "Manage" }).click();
+      // Phone: the row opens with Manage. Desktop (Studio): the photos are always shown.
+      if (size.name === "phone")
+        await page.getByRole("button", { name: "Manage" }).click();
       await expect(page.getByTestId("manage-photo")).toHaveCount(1);
       await shot("you-photos");
     });
@@ -444,6 +446,7 @@ test.describe("camera", () => {
 });
 
 test.describe("You: photos", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
   test("add, make default, remove; the consent line sits by the add control", async ({
     page,
   }) => {

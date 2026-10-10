@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { copy } from "../lib/copy";
 import { useAccount } from "./account-provider";
+import { AccountMenu } from "./account-menu";
+import { CompareTray } from "./compare-tray";
 import { JobChips } from "./job-chips";
 import { useLists } from "./lists-provider";
 import { useMe } from "./me-provider";
@@ -36,7 +38,12 @@ function sectionOf(pathname: string): Section | null {
     pathname.startsWith("/asked/")
   )
     return "lists";
-  if (pathname === "/you" || pathname.startsWith("/you/")) return "you";
+  if (
+    pathname === "/you" ||
+    pathname === "/studio" ||
+    pathname.startsWith("/you/")
+  )
+    return "you";
   if (
     pathname === "/" ||
     pathname.startsWith("/upload") ||
@@ -48,7 +55,8 @@ function sectionOf(pathname: string): Section | null {
 }
 
 /** Roots have no back button; everything pushed from them does. */
-const isRoot = (p: string) => p === "/" || p === "/lists" || p === "/you";
+const isRoot = (p: string) =>
+  p === "/" || p === "/lists" || p === "/you" || p === "/studio";
 
 /** Focused flow screens (photo, queue, result) run without the tab bar. */
 function hasTabBar(p: string): boolean {
@@ -185,23 +193,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           {signedIn ? (
-            <div className="flex items-center gap-3">
-              <Link
-                href="/you"
-                aria-label={copy.you.signedInAs(who?.name || copy.nav.you)}
-                data-testid="account-initial"
-                className="grid size-9 place-items-center rounded-full border border-line text-[13px] font-semibold text-ink"
-              >
-                {who?.initial ?? copy.nav.you.slice(0, 1)}
-              </Link>
-              <button
-                type="button"
-                onClick={() => void signOut().then(() => router.push("/"))}
-                className="min-h-9 text-[13px] font-medium text-ink-600 hover:text-ink"
-              >
-                {copy.nav.signOut}
-              </button>
-            </div>
+            <AccountMenu />
           ) : (
             <button
               type="button"
@@ -219,6 +211,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <main id="main" className={tabBar ? "pb-20 md:pb-0" : ""}>
         {children}
       </main>
+      <CompareTray />
 
       {tabBar ? (
         <nav

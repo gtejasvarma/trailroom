@@ -308,8 +308,8 @@ for (const size of SIZES) {
       await expect(page.getByTestId("pose-gallery")).toBeVisible();
 
       if (size.name === "desktop") {
-        await expect(page.getByTestId("account-initial")).toBeVisible();
-        await page.getByRole("button", { name: "Sign out" }).click();
+        await page.getByTestId("account-initial").click();
+        await page.getByRole("menuitem", { name: "Sign out" }).click();
       } else {
         await page.goto("/you");
         await page.getByRole("button", { name: "Sign out" }).click();

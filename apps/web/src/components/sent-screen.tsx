@@ -13,12 +13,14 @@ import { useLists } from "./lists-provider";
 import { useMe } from "./me-provider";
 import { PieceThumbs } from "./piece-thumbs";
 import { Button, ButtonLink } from "./ui/button";
+import { useBuy } from "./use-buy";
 import { useToast } from "./ui/toast";
 
 const POLL_MS = 8000;
 
 export function SentScreen({ askId }: { askId: string }) {
   const say = useToast();
+  const buy = useBuy();
   const { loaded: meLoaded, isGuest } = useMe();
   const { loaded, asks, refresh } = useLists();
   const ask = asks.find((a) => a.askId === askId);
@@ -164,7 +166,7 @@ export function SentScreen({ askId }: { askId: string }) {
       {winner ? (
         <Button
           size="lg"
-          onClick={() => say(copy.toasts.buySoon)}
+          onClick={() => buy(winner.id)}
           className="mt-2 w-full"
         >
           {copy.sent.buy(winner.name)}

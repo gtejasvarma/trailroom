@@ -8,28 +8,24 @@ import { TryOnButton } from "./tryon-button";
 import { BrandRow } from "./ui/brand-row";
 import { Button } from "./ui/button";
 import { HeartIcon } from "./ui/icons";
-import { useAccount } from "./account-provider";
+import { useBuy } from "./use-buy";
+import { useCompare } from "./compare-provider";
 import { useLists } from "./lists-provider";
 import { useSaveToList } from "./save-to-list";
 import { useMe } from "./me-provider";
 import { ButtonLink } from "./ui/button";
-import { useToast } from "./ui/toast";
 import { paths } from "../lib/flow";
 
 export function ProductView({ item }: { item: CatalogItem }) {
-  const say = useToast();
   const label = getLabel(item.labelSlug)!;
   const price = copy.item.price(item.priceUsd);
   const more = itemsByLabel(item.labelSlug)
     .filter((i) => i.id !== item.id)
     .slice(0, 4);
-  const openAccount = useAccount();
   const { isGuest, tryOns } = useMe();
   const mine = isGuest ? undefined : tryOns.find((t) => t.itemId === item.id);
-  const buy = () =>
-    isGuest
-      ? openAccount("buy", { itemId: item.id })
-      : say(copy.toasts.buySoon);
+  const buy = useBuy();
+  const compare = useCompare();
   const saveToList = useSaveToList();
   const { isSaved } = useLists();
   const saved = !isGuest && isSaved(item.id);
@@ -95,6 +91,20 @@ export function ProductView({ item }: { item: CatalogItem }) {
           ) : (
             <TryOnButton itemId={item.id} name={item.name} />
           )}
+          {mine && compare.enabled ? (
+            <Button
+              variant="outline"
+              size="md"
+              aria-pressed={compare.has(mine.poseSetId)}
+              data-testid="compare-toggle"
+              onClick={() => compare.toggle(mine.poseSetId)}
+              className="mt-2.5 w-full"
+            >
+              {compare.has(mine.poseSetId)
+                ? copy.compare.inCompare
+                : copy.compare.add}
+            </Button>
+          ) : null}
           <p className="mt-2.5 hidden text-[13px] leading-[18px] text-ink-600 md:block">
             {copy.item.notePhoto}
           </p>
@@ -102,7 +112,8 @@ export function ProductView({ item }: { item: CatalogItem }) {
             <Button
               variant="outline"
               size="md"
-              onClick={buy}
+              onClick={() => buy(item.id)}
+              data-testid="buy"
               className="min-h-[46px] flex-1"
             >
               {copy.card.buy(price)}

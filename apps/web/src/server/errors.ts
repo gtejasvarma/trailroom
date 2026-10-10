@@ -135,6 +135,15 @@ export const ERRORS = {
     message:
       "Those two sessions could not be combined, so sign in again and retry.",
   },
+  already_answered: {
+    status: 409,
+    message: "That was already answered, so there is nothing more to do.",
+  },
+  tryon_rendering: {
+    status: 409,
+    message:
+      "That try-on is still rendering, so wait for it to finish before removing it.",
+  },
   internal: {
     status: 500,
     message: "Something went wrong on our side, so try again shortly.",

@@ -11,7 +11,7 @@ import { TryOnButton } from "./tryon-button";
 import { useLists } from "./lists-provider";
 import { useSaveToList } from "./save-to-list";
 import { useMe } from "./me-provider";
-import { useToast } from "./ui/toast";
+import { useBuy } from "./use-buy";
 
 /**
  * The Discover card: brand row, swipeable label photographs, name, price, stock line, and the
@@ -20,7 +20,7 @@ import { useToast } from "./ui/toast";
  * A guest only ever sees the label's photographs here.
  */
 export function ProductCard({ item }: { item: CatalogItem }) {
-  const say = useToast();
+  const buy = useBuy();
   const save = useSaveToList();
   const { isSaved } = useLists();
   const { isGuest, tryOns } = useMe();
@@ -87,7 +87,8 @@ export function ProductCard({ item }: { item: CatalogItem }) {
           {onYou ? (
             <Button
               size="md"
-              onClick={() => say(copy.toasts.buySoon)}
+              onClick={() => buy(item.id)}
+              data-testid="buy"
               className="flex-1"
             >
               {copy.card.buy(price)}

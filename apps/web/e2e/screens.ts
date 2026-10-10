@@ -208,6 +208,9 @@ export const SCREENS: Screen[] = [
     name: "you with photos managed",
     go: async (page) => {
       await uploadFirst(page);
+      // Manage is the phone layout; from 768px the same photos are always shown (Studio).
+      if ((page.viewportSize()?.width ?? 0) >= 768)
+        await page.setViewportSize({ width: 390, height: 844 });
       await page.goto("/you");
       await page.getByRole("button", { name: "Manage" }).click();
       await expect(page.getByTestId("manage-photo")).toHaveCount(1);

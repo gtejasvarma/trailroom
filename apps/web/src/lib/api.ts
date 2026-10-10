@@ -4,6 +4,7 @@ import type { AskSummary } from "../server/asks";
 import type { InboxDetail, InboxSummary } from "../server/inbox";
 import type { ListBody } from "../server/lists";
 import type { MeBody } from "../server/me";
+import type { PurchaseBody } from "../server/purchases";
 import type { TryOnSummary } from "../server/try-ons";
 import { CONSENT_VERSION } from "./consent";
 import { ensureUser } from "./firebase";
@@ -84,6 +85,28 @@ const patch = (body: unknown): RequestInit => ({
 export const api = {
   me: () => apiFetch<MeBody>("/api/me"),
   tryOns: () => apiFetch<{ tryOns: TryOnSummary[] }>("/api/try-ons"),
+  /** The visible discard: the pose set, its renders and its job. */
+  removeTryOn: (poseSetId: string) =>
+    apiFetch<{ removed: true }>(`/api/try-ons/${poseSetId}`, {
+      method: "DELETE",
+    }),
+  /** The person's own finished sets for these ids; 404 if any is not theirs. */
+  compare: (ids: string[]) =>
+    apiFetch<{ pieces: TryOnSummary[] }>(
+      `/api/compare?ids=${ids.map(encodeURIComponent).join(",")}`,
+    ),
+  purchases: () => apiFetch<{ purchases: PurchaseBody[] }>("/api/purchases"),
+  /** Records "went to the label" once; a repeat returns the first record. */
+  recordPurchase: (itemId: string) =>
+    apiFetch<{ purchase: PurchaseBody; created: boolean }>(
+      "/api/purchases",
+      json({ itemId }),
+    ),
+  answerArrived: (itemId: string, arrived: boolean) =>
+    apiFetch<{ purchase: PurchaseBody }>(
+      `/api/purchases/${itemId}/arrived`,
+      json({ arrived }),
+    ),
   /** The consent version rides along with every upload; the server records it, then stores. */
   uploadPhoto: (file: Blob, filename = "photo.jpg") => {
     const form = new FormData();

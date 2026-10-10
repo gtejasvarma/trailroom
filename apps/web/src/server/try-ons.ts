@@ -1,6 +1,6 @@
-import { listPoseSetsForUser } from "@trailroom/db";
+import { listPoseSetsForUser, removeTryOn } from "@trailroom/db";
 import { POSES } from "@trailroom/render";
-import { ok, type Result } from "./http";
+import { err, ok, type Result } from "./http";
 import type { User } from "./auth";
 
 export interface TryOnSummary {
@@ -37,4 +37,16 @@ export async function listTryOns(
         createdAt: s.poseSet.createdAt.toDate().toISOString(),
       })),
   });
+}
+
+/** DELETE /api/try-ons/{poseSetId}: the visible discard. Only the caller's own finished try-on. */
+export async function removeMyTryOn(
+  user: User,
+  poseSetId: string,
+): Promise<Result<{ removed: true }>> {
+  if (user.isGuest) return err("account_required");
+  const r = await removeTryOn(user.uid, poseSetId);
+  if (r === "not_found") return err("not_found");
+  if (r === "rendering") return err("tryon_rendering");
+  return ok({ removed: true as const });
 }

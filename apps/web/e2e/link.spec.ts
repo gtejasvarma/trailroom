@@ -32,7 +32,8 @@ test("Continue with Google links the guest and opens the result in place, no re-
   await expect(dialog).toBeHidden();
   await expect(page.getByTestId("toast")).toContainText("Signed in");
 
-  // Add to a list opens the list sheet; Buy and Build the outfit say plainly that they arrive soon.
+  // Add to a list opens the list sheet, Buy opens the buy sheet, and Build the outfit says plainly
+  // that outfits arrive soon (Phase F).
   await page.getByRole("button", { name: "Add to a list" }).click();
   await expect(
     page.getByRole("dialog", { name: "Save to a list" }),
@@ -42,7 +43,10 @@ test("Continue with Google links the guest and opens the result in place, no re-
     page.getByRole("dialog", { name: "Save to a list" }),
   ).toBeHidden();
   await page.getByRole("button", { name: /^Buy \$/ }).click();
-  await expect(page.getByTestId("toast")).toHaveText("Buying arrives soon.");
+  const buy = page.getByRole("dialog", { name: /^Knit button vest, \$\d+$/ });
+  await expect(buy).toBeVisible();
+  await buy.getByRole("button", { name: "Keep looking" }).click();
+  await expect(buy).toBeHidden();
   await page.getByRole("button", { name: "Build the outfit" }).click();
   await expect(page.getByTestId("toast")).toHaveText("Outfits arrive soon.");
 });

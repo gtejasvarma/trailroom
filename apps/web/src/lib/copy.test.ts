@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { CATALOG, findFitLanguage } from "@trailroom/catalog";
 import { ERRORS } from "../server/errors";
@@ -222,5 +225,70 @@ describe("phase D copy: lists, asks and the vote page", () => {
     expect(copy.vote.renderAlt("Coat", "Marchand")).toContain(
       "AI-generated preview",
     );
+  });
+});
+
+describe("phase E copy: You, Studio, Compare and Buy", () => {
+  it("the compare tray hint follows the count, as the prototype", () => {
+    expect(copy.compare.tray.hintOne).toBe(
+      "Pick one more to compare side by side",
+    );
+    expect(copy.compare.tray.hintMany).toBe(
+      "Same photo, same light — only the piece changes",
+    );
+    expect(copy.compare.tray.go(3)).toBe("Compare 3");
+    expect(copy.compare.tray.selected(2)).toBe("2 selected");
+  });
+  it("a missing pose is said plainly", () => {
+    expect(copy.compare.notRendered).toBe("Not rendered in this pose");
+    expect(copy.compare.alt("Coat", "Marchand", "Front")).toContain(
+      "AI-generated preview",
+    );
+  });
+  it("the buy sheet names the label and the outcome; nothing says buying arrives soon", () => {
+    expect(copy.buy.go("ANSEL WARD")).toBe("Go to ANSEL WARD");
+    expect(copy.buy.kicker("ANSEL WARD")).toBe("Checking out with ANSEL WARD");
+    expect(copy.buy.yes).toBe("Yes, it’s mine");
+    expect(copy.buy.no).toBe("Didn’t buy it");
+    for (const [path, text] of all) {
+      if (path.includes("outfitSoon")) continue;
+      expect(/arrives? soon/i.test(text), `${path}: "${text}"`).toBe(false);
+    }
+  });
+  it("the demo page says there is nothing to buy, and what the real product would do", () => {
+    expect(copy.demo.body).toMatch(/demo/i);
+    expect(copy.demo.body).toMatch(/invented labels/i);
+    expect(copy.demo.real("MARCHAND")).toContain("own site");
+  });
+  it("the arrived question is asked once, and promises nothing the app does not do", () => {
+    expect(copy.buy.arrivedTitle("Wool car coat")).toBe(
+      "Did the wool car coat arrive?",
+    );
+    expect(copy.buy.arrivedBody).not.toMatch(/goes with|outfit/i);
+  });
+  it("Studio and You carry no email, fit or Face and Hand copy", () => {
+    for (const [path, text] of all) {
+      if (!/^copy\.(you|compare|buy|demo)\b/.test(path)) continue;
+      expect(
+        /e-?mail|your fit|height|\bface\b|\bhand\b|stay in the loop/i.test(
+          text,
+        ),
+        `${path}: "${text}"`,
+      ).toBe(false);
+    }
+  });
+  it("the You and Studio sources have no email section either", () => {
+    for (const f of [
+      "you-screen.tsx",
+      "you-parts.tsx",
+      "you-photos.tsx",
+      "account-menu.tsx",
+    ]) {
+      const src = readFileSync(
+        join(fileURLToPath(import.meta.url), "../../components", f),
+        "utf8",
+      );
+      expect(/e-?mail|stay in the loop|run a label/i.test(src), f).toBe(false);
+    }
   });
 });

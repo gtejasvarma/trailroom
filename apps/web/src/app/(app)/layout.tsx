@@ -1,3 +1,5 @@
+import { BuyProvider } from "../../components/buy-provider";
+import { CompareProvider } from "../../components/compare-provider";
 import { AccountProvider } from "../../components/account-provider";
 import { JobProvider } from "../../components/job-provider";
 import { ListsProvider } from "../../components/lists-provider";
@@ -11,9 +13,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <MeProvider>
         <ListsProvider>
           <JobProvider>
-            <AccountProvider>
-              <Shell>{children}</Shell>
-            </AccountProvider>
+            <BuyProvider>
+              <AccountProvider>
+                <CompareProvider>
+                  <Shell>{children}</Shell>
+                </CompareProvider>
+              </AccountProvider>
+            </BuyProvider>
           </JobProvider>
         </ListsProvider>
       </MeProvider>

@@ -484,12 +484,9 @@ describe("me, delete and attach", () => {
 
     const del = await photoDELETE(req("DELETE", "/api/photo", { token: a }));
     expect(await del.json()).toEqual({ deleted: true });
-    me = await (await meGET(req("GET", "/api/me", { token: a }))).json();
-    expect(me).toMatchObject({
-      consented: false,
-      photoCount: 0,
-      defaultPhotoId: null,
-    });
+    // The sign-in is deleted with the data, so the old token is refused: the person is a new
+    // visitor. Their data is read straight from the stores.
+    expect((await meGET(req("GET", "/api/me", { token: a }))).status).toBe(401);
     expect(await listPhotos(uidOf(a))).toEqual([]);
     expect(await listObjects(`photos/${uidOf(a)}/`)).toEqual([]);
     expect(await getConsent(uidOf(a))).toBeNull();
