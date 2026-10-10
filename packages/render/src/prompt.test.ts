@@ -173,7 +173,7 @@ describe("renderConfigFromEnv", () => {
     });
   });
 
-  it("reads the ceiling for unrequested renders and never lets it pass the daily cap", () => {
+  it("reads the ceiling for unrequested renders and never lets it pass half the daily cap", () => {
     expect(
       renderConfigFromEnv({ ARRIVALS_DAILY_USD: "0.5" }).unrequestedDailyUsd,
     ).toBe(0.5);
@@ -183,7 +183,14 @@ describe("renderConfigFromEnv", () => {
     expect(
       renderConfigFromEnv({ DAILY_CAP_USD: "2", ARRIVALS_DAILY_USD: "9" })
         .unrequestedDailyUsd,
-    ).toBe(2);
+    ).toBe(1);
+    expect(
+      renderConfigFromEnv({ DAILY_CAP_USD: "1" }).unrequestedDailyUsd,
+    ).toBe(0.5);
+    expect(
+      renderConfigFromEnv({ DAILY_CAP_USD: "10", ARRIVALS_DAILY_USD: "5" })
+        .unrequestedDailyUsd,
+    ).toBe(5);
     expect(() => renderConfigFromEnv({ ARRIVALS_DAILY_USD: "-1" })).toThrow();
     expect(() => renderConfigFromEnv({ ARRIVALS_DAILY_USD: "abc" })).toThrow();
   });

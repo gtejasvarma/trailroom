@@ -67,6 +67,67 @@ describe("checkPublishedPiece", () => {
     ).toBeNull();
   });
 
+  it.each([
+    ["name", "Linen\nshirt"],
+    ["name", "Linen\rshirt"],
+    ["name", "Linen\u0000shirt"],
+    ["name", "Linen\tshirt"],
+    ["name", "Linen\u202Eshirt"],
+    ["shelf", "New\u2028in"],
+    ["description", "Washed linen.\nA second line."],
+    ["promptDescription", "linen\u200Fshirt"],
+    ["description", "Washed linen\u0085with a camp collar."],
+  ])(
+    "refuses control characters, line breaks and bidi controls (%s: %j)",
+    (field, text) => {
+      const r = checkPublishedPiece({ ...valid(), [field]: text });
+      expect(r.item).toBeNull();
+      expect(r.problems.join(" ")).toMatch(/control character/);
+    },
+  );
+
+  it("refuses them in the nested text fields too", () => {
+    const v = valid();
+    for (const bad of [
+      { stock: { line: "In\nstock", low: false } },
+      { readinessReasons: ["Clear.\r\nBcc: x"] },
+      { photos: [{ ...v.photos[0]!, label: "Fr\u202Eont" }] },
+      { pairsWith: ["coat\n"] },
+    ]) {
+      expect(
+        checkPublishedPiece({ ...v, ...bad }).item,
+        JSON.stringify(bad),
+      ).toBeNull();
+    }
+    // Emoji joiners stay allowed.
+    expect(
+      checkPublishedPiece({
+        ...v,
+        name: "Linen shirt \u{1F9F5}\u200D\u{1F9F5}",
+      }).problems,
+    ).toEqual([]);
+  });
+
+  it("reports a file name with .. as a problem instead of passing it on", () => {
+    for (const file of ["a..b.jpg", "x..jpg", "..a.jpg", "a...png"]) {
+      const r = checkPublishedPiece({
+        ...valid(),
+        photos: [{ file, label: "Front", focus: "50% 26%" }],
+      });
+      expect(r.item, file).toBeNull();
+      expect(r.problems.join(" ")).toMatch(/photos must be/);
+    }
+    const r = checkPublishedPiece({ ...valid(), renderImage: "a..b.jpg" });
+    expect(r.item).toBeNull();
+    expect(r.problems.join(" ")).toMatch(/renderImage/);
+    expect(
+      checkPublishedPiece({
+        ...valid(),
+        photos: [{ file: "a.b-c.jpg", label: "Front", focus: "50% 26%" }],
+      }).problems,
+    ).toEqual([]);
+  });
+
   it("refuses a bad id, an unknown label, a mismatched label name, a bad price and a bad photo", () => {
     for (const bad of [
       { id: "../etc" },

@@ -175,6 +175,20 @@ export const getVote = async (
   return snap.exists ? (snap.data() as VoteDoc) : null;
 };
 
+// Every vote on an ask writes the ask document, so a burst of votes contends on it and can
+// exhaust Firestore's retries. Votes for one ask from this process run one at a time (the same
+// idea as the ledger); other instances are left to the transaction's own retries.
+const voteTails = new Map<string, Promise<unknown>>();
+function oneAtATime<T>(askId: string, fn: () => Promise<T>): Promise<T> {
+  const run = (voteTails.get(askId) ?? Promise.resolve()).then(fn);
+  const tail = run.catch(() => undefined);
+  voteTails.set(askId, tail);
+  void tail.then(() => {
+    if (voteTails.get(askId) === tail) voteTails.delete(askId);
+  });
+  return run;
+}
+
 export type VoteResult =
   | { ok: true; counts: Record<string, number>; changed: boolean }
   | { ok: false; error: "closed" | "bad_item" | "full" };
@@ -192,51 +206,55 @@ export async function castVote(
 ): Promise<VoteResult> {
   const askRef = asks().doc(assertSegment("askId", askId));
   const voteRef = votesOf(askId).doc(assertSegment("voterKey", voterKey));
-  return firestore().runTransaction(
-    async (tx) => {
-      const [askSnap, voteSnap] = await Promise.all([
-        tx.get(askRef),
-        tx.get(voteRef),
-      ]);
-      const ask = askSnap.exists ? (askSnap.data() as AskDoc) : null;
-      if (!ask || !isAskLive(ask, now))
-        return { ok: false as const, error: "closed" as const };
-      if (!ask.itemIds.includes(itemId))
-        return { ok: false as const, error: "bad_item" as const };
-      const prev = voteSnap.exists ? (voteSnap.data() as VoteDoc) : null;
-      const counts = { ...ask.counts };
-      if (prev?.itemId === itemId)
-        return { ok: true as const, counts, changed: false };
-      // Asks from before the counter existed hold as many votes as their counts add up to.
-      const held =
-        ask.voteCount ?? Object.values(ask.counts).reduce((a, b) => a + b, 0);
-      if (!prev && held >= MAX_VOTES_PER_ASK)
-        return { ok: false as const, error: "full" as const };
-      if (!prev) tx.update(askRef, { voteCount: held + 1 });
-      if (prev) {
-        counts[prev.itemId] = Math.max(0, (counts[prev.itemId] ?? 0) - 1);
+  return oneAtATime(askId, () => voteTransaction());
+
+  function voteTransaction(): Promise<VoteResult> {
+    return firestore().runTransaction(
+      async (tx) => {
+        const [askSnap, voteSnap] = await Promise.all([
+          tx.get(askRef),
+          tx.get(voteRef),
+        ]);
+        const ask = askSnap.exists ? (askSnap.data() as AskDoc) : null;
+        if (!ask || !isAskLive(ask, now))
+          return { ok: false as const, error: "closed" as const };
+        if (!ask.itemIds.includes(itemId))
+          return { ok: false as const, error: "bad_item" as const };
+        const prev = voteSnap.exists ? (voteSnap.data() as VoteDoc) : null;
+        const counts = { ...ask.counts };
+        if (prev?.itemId === itemId)
+          return { ok: true as const, counts, changed: false };
+        // Asks from before the counter existed hold as many votes as their counts add up to.
+        const held =
+          ask.voteCount ?? Object.values(ask.counts).reduce((a, b) => a + b, 0);
+        if (!prev && held >= MAX_VOTES_PER_ASK)
+          return { ok: false as const, error: "full" as const };
+        if (!prev) tx.update(askRef, { voteCount: held + 1 });
+        if (prev) {
+          counts[prev.itemId] = Math.max(0, (counts[prev.itemId] ?? 0) - 1);
+          tx.update(
+            askRef,
+            new FieldPath("counts", prev.itemId),
+            FieldValue.increment(-1),
+          );
+        }
+        counts[itemId] = (counts[itemId] ?? 0) + 1;
         tx.update(
           askRef,
-          new FieldPath("counts", prev.itemId),
-          FieldValue.increment(-1),
+          new FieldPath("counts", itemId),
+          FieldValue.increment(1),
         );
-      }
-      counts[itemId] = (counts[itemId] ?? 0) + 1;
-      tx.update(
-        askRef,
-        new FieldPath("counts", itemId),
-        FieldValue.increment(1),
-      );
-      const vote: VoteDoc = {
-        itemId,
-        createdAt: Timestamp.fromDate(now),
-        voterUid,
-      };
-      tx.set(voteRef, vote);
-      return { ok: true as const, counts, changed: true };
-    },
-    { maxAttempts: 30 },
-  );
+        const vote: VoteDoc = {
+          itemId,
+          createdAt: Timestamp.fromDate(now),
+          voterUid,
+        };
+        tx.set(voteRef, vote);
+        return { ok: true as const, counts, changed: true };
+      },
+      { maxAttempts: 30 },
+    );
+  }
 }
 
 /** Removes the inbox entry each person who opened the ask holds for it. */

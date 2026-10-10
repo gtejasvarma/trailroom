@@ -57,7 +57,9 @@ function wrap(
 <p style="font-size:12px;line-height:18px;color:dimgray;margin:0">${esc(copy.email.why)} <a href="${esc(unsubscribeUrl)}" style="color:dimgray">${esc(copy.email.unsubscribe)}</a></p>
 <p style="font-size:12px;line-height:18px;color:dimgray;margin:8px 0 0">${esc(copy.email.footer)}</p>
 </body></html>`;
-  return { to, subject, text, html, unsubscribeUrl };
+  // A subject is one line: a line break in it would let text add headers to the message.
+  const oneLine = subject.replace(/[\r\n\u2028\u2029]+/g, " ").trim();
+  return { to, subject: oneLine, text, html, unsubscribeUrl };
 }
 
 /** At most this many pieces are listed; the rest are counted. */

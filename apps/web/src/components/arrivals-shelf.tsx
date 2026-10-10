@@ -5,7 +5,7 @@
 // photo; it carries the "On you" chip, the AI caption beside it, and its own "Try it on" asks for
 // the full set like any requested try-on. A render that failed is simply not here.
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   catalogUrl,
   registerPublishedItems,
@@ -123,14 +123,80 @@ export function ArrivalsShelf({ data }: { data: ArrivalsBody | null }) {
   const unseen = cards.filter((c) => !c.seen).map((c) => c.itemId);
   const unseenKey = unseen.join(",");
 
-  // The cards were on screen: mark them seen, which is what lets the next batch start.
+  // A card counts as seen only once it has really been looked at: its tile at least half in view
+  // for a second, with the tab showing and the picture drawn. That is what lets the next batch
+  // start, so a page that loads in a background tab, or is scrolled past, marks nothing.
+  const listRef = useRef<HTMLUListElement>(null);
+  const hasList = pieces.length > 0;
   useEffect(() => {
-    if (!unseenKey) return;
-    const t = setTimeout(() => {
-      api.arrivalsSeen(unseenKey.split(",")).catch(() => undefined);
-    }, 1500);
-    return () => clearTimeout(t);
-  }, [unseenKey]);
+    if (!unseenKey || !hasList || typeof IntersectionObserver === "undefined")
+      return;
+    const want = new Set(unseenKey.split(","));
+    const visible = new Set<Element>();
+    const timers = new Map<Element, ReturnType<typeof setTimeout>>();
+    const sent = new Set<string>();
+    let batch: string[] = [];
+    let flush: ReturnType<typeof setTimeout> | undefined;
+    const idOf = (el: Element) => (el as HTMLElement).dataset.item ?? "";
+    const stop = (el: Element) => {
+      clearTimeout(timers.get(el));
+      timers.delete(el);
+    };
+    const start = (el: Element) => {
+      if (timers.has(el) || document.visibilityState !== "visible") return;
+      timers.set(
+        el,
+        setTimeout(() => {
+          timers.delete(el);
+          const id = idOf(el);
+          if (!visible.has(el) || document.visibilityState !== "visible")
+            return;
+          // The tile may still be showing the label's photo: wait for the render to be drawn.
+          if ((el as HTMLElement).dataset.onYou !== "true") return start(el);
+          if (sent.has(id)) return;
+          sent.add(id);
+          batch.push(id);
+          clearTimeout(flush);
+          flush = setTimeout(() => {
+            const ids = batch;
+            batch = [];
+            api.arrivalsSeen(ids).catch(() => undefined);
+          }, 0);
+        }, 1000),
+      );
+    };
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            visible.add(e.target);
+            start(e.target);
+          } else {
+            visible.delete(e.target);
+            stop(e.target);
+          }
+        }
+      },
+      { threshold: 0.5 },
+    );
+    const tiles = [
+      ...(listRef.current?.querySelectorAll("[data-item]") ?? []),
+    ].filter((el) => want.has(idOf(el)));
+    for (const el of tiles) io.observe(el);
+    const onVisibility = () => {
+      for (const el of visible) {
+        if (document.visibilityState === "visible") start(el);
+        else stop(el);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      io.disconnect();
+      for (const t of timers.values()) clearTimeout(t);
+      clearTimeout(flush);
+    };
+  }, [unseenKey, hasList]);
 
   if (pieces.length === 0) return null;
   const withCard = new Map(cards.map((c) => [c.itemId, c.poseSetId]));
@@ -157,7 +223,10 @@ export function ArrivalsShelf({ data }: { data: ArrivalsBody | null }) {
           {arrives ? copy.arrivals.onYouNote : copy.arrivals.note}
         </p>
       </div>
-      <ul className="no-scrollbar m-0 flex list-none gap-3 overflow-x-auto px-4">
+      <ul
+        ref={listRef}
+        className="no-scrollbar m-0 flex list-none gap-3 overflow-x-auto px-4"
+      >
         {ordered.map((item) => (
           <Tile
             key={item.id}

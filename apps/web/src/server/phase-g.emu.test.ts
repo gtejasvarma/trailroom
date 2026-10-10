@@ -7,8 +7,10 @@ import { getItem } from "@trailroom/catalog";
 import {
   auth,
   bucket,
+  deletePhotoObject,
   firestore,
   getArrivals,
+  getDefaultPhotoId,
   getJob,
   getPoseSet,
   getUsage,
@@ -33,6 +35,7 @@ import { GET as prefsGET, PUT as prefsPUT } from "../app/api/email-prefs/route";
 import { GET as meGET } from "../app/api/me/route";
 import { POST as tryOnPOST } from "../app/api/try-on/route";
 import { DELETE as photoDELETE } from "../app/api/photo/route";
+import { DELETE as photoIdDELETE } from "../app/api/photos/[photoId]/route";
 import { POST as unsubPOST } from "../app/api/unsubscribe/[token]/route";
 import { GET as catalogGET } from "../app/catalog/[file]/route";
 import { GET as jobGET } from "../app/api/jobs/[jobId]/route";
@@ -450,11 +453,12 @@ describe("arrives on you (ARRIVALS_BUFFER=on)", () => {
     );
   });
 
-  it("stops at the daily cap too: an unrequested render cannot pass it", async () => {
+  it("stops at the daily cap too: an unrequested render cannot pass it, and never more than half of it", async () => {
     buffer(true);
     const est = estimateCostMicros("nano-banana-2.1", 2);
-    process.env.DAILY_CAP_USD = String((est * 1.5) / 1e6);
-    process.env.ARRIVALS_DAILY_USD = "100"; // clamped to the cap
+    // The cap is 3 renders; ARRIVALS_DAILY_USD is clamped to half of it, so 1.5 renders fit.
+    process.env.DAILY_CAP_USD = String((est * 3) / 1e6);
+    process.env.ARRIVALS_DAILY_USD = "100";
     for (let i = 0; i < 3; i++) await publish();
     await account();
     expect((await runArrivals(new Date())).started).toBe(1);
@@ -463,6 +467,9 @@ describe("arrives on you (ARRIVALS_BUFFER=on)", () => {
       await firestore().collection("spend").get()
     ).docs[0]!.data() as SpendDayDoc;
     expect(day.committedMicros + day.pendingMicros).toBeLessThanOrEqual(
+      Math.floor(est * 1.5),
+    );
+    expect(day.unrequestedCommittedMicros).toBeLessThanOrEqual(
       Math.floor(est * 1.5),
     );
   });
@@ -525,6 +532,271 @@ describe("arrives on you (ARRIVALS_BUFFER=on)", () => {
     );
     expect(res.status).toBe(202);
     await awaitInlineRuns();
+  });
+});
+
+describe("the shelf endpoints are limited per person", () => {
+  it("answers 429 too_many_attempts after 120 calls in the window, to the caller alone", async () => {
+    const a = await account({ follow: [] });
+    const b = await account({ follow: [] });
+    let last = 0;
+    for (let i = 0; i < 120; i++) {
+      last = (await arrivalsGET(req("GET", "/api/arrivals", { token: a.t })))
+        .status;
+    }
+    expect(last).toBe(200);
+    const over = await arrivalsGET(req("GET", "/api/arrivals", { token: a.t }));
+    expect(over.status).toBe(429);
+    expect((await over.json()).error).toBe("too_many_attempts");
+    // Someone else is not affected, nor is the other endpoint's own count.
+    expect(
+      (await arrivalsGET(req("GET", "/api/arrivals", { token: b.t }))).status,
+    ).toBe(200);
+    expect((await seen(a.t, [])).status).toBe(200);
+    for (let i = 0; i < 119; i++) await seen(b.t, []);
+    expect((await seen(b.t, [])).status).toBe(200);
+    const seenOver = await seen(b.t, []);
+    expect(seenOver.status).toBe(429);
+    expect((await seenOver.json()).error).toBe("too_many_attempts");
+  });
+});
+
+describe("buffer renders and the person's photo", () => {
+  const stray = async () => ({
+    jobs: (await jobs()).length,
+    sets: (await firestore().collection("poseSets").get()).size,
+    renders: await listObjects("renders/"),
+    staging: await listObjects("staging/"),
+  });
+
+  it("an arrival still rendering does not hold the photo: removing it deletes the arrival and leaves nothing behind", async () => {
+    buffer(true);
+    await publish();
+    const { t, uid } = await account();
+    const second = await uploadOk(t, 900, 1200);
+    const first = (await getDefaultPhotoId(uid))!;
+    setFakeScript([{ outcome: "ok", delayMs: 600 }]);
+    expect(await refillArrivalsFor(uid, new Date(), { left: 5 })).toBe(1);
+    const res = await photoIdDELETE(
+      req("DELETE", `/api/photos/${first}`, { token: t }),
+      params({ photoId: first }),
+    );
+    expect(res.status).toBe(200);
+    await awaitInlineRuns(); // the render that was in flight finishes into nothing
+    expect(await stray()).toEqual({
+      jobs: 0,
+      sets: 0,
+      renders: [],
+      staging: [],
+    });
+    expect((await getArrivals(uid))!.cards).toEqual([]);
+    expect((await view(t)).cards).toEqual([]);
+    // The other photo is untouched, and the piece may be offered again on it.
+    expect(await getPhotoDocIds(uid)).toEqual([second]);
+    expect(await refillArrivalsFor(uid, new Date(), { left: 5 })).toBe(1);
+    await awaitInlineRuns();
+    expect((await view(t)).cards).toHaveLength(1);
+  });
+
+  it("a finished arrival goes with its photo: set, job, render and card", async () => {
+    buffer(true);
+    await publish();
+    const { t, uid } = await account();
+    await uploadOk(t, 900, 1200);
+    const first = (await getDefaultPhotoId(uid))!;
+    await runArrivals(new Date());
+    await awaitInlineRuns();
+    expect((await view(t)).cards).toHaveLength(1);
+    expect((await stray()).renders.length).toBeGreaterThan(0);
+    const res = await photoIdDELETE(
+      req("DELETE", `/api/photos/${first}`, { token: t }),
+      params({ photoId: first }),
+    );
+    expect(res.status).toBe(200);
+    expect(await stray()).toEqual({
+      jobs: 0,
+      sets: 0,
+      renders: [],
+      staging: [],
+    });
+    expect((await view(t)).cards).toEqual([]);
+  });
+
+  it("a requested try-on still holds its photo", async () => {
+    buffer(true);
+    const { t, uid } = await account();
+    const first = (await getDefaultPhotoId(uid))!;
+    setFakeScript([{ outcome: "ok", delayMs: 600 }]);
+    const r = await tryOnPOST(
+      req("POST", "/api/try-on", { token: t, json: { itemId: "coat" } }),
+    );
+    expect(r.status).toBe(202);
+    const res = await photoIdDELETE(
+      req("DELETE", `/api/photos/${first}`, { token: t }),
+      params({ photoId: first }),
+    );
+    expect(res.status).toBe(409);
+    await awaitInlineRuns();
+  });
+
+  it("an arrival whose photo is already gone fails quietly: no job, set, staging, render or card", async () => {
+    buffer(true);
+    await publish();
+    const { uid } = await account();
+    // The photo document is there when the batch starts; the image is not when the node asks.
+    await deletePhotoObject(uid, (await getDefaultPhotoId(uid))!);
+    expect(await refillArrivalsFor(uid, new Date(), { left: 5 })).toBe(1);
+    await awaitInlineRuns();
+    expect(await stray()).toEqual({
+      jobs: 0,
+      sets: 0,
+      renders: [],
+      staging: [],
+    });
+    expect((await getArrivals(uid))!.cards).toEqual([]);
+    expect(getFakeCalls()).toHaveLength(0);
+  });
+});
+
+describe("seen-marking", () => {
+  it("marks only cards that are ready: not pending ones, nor ids that are not the caller's cards", async () => {
+    buffer(true);
+    const id = await publish();
+    const a = await account();
+    const b = await account();
+    setFakeScript([{ outcome: "ok", delayMs: 500 }]);
+    expect(await refillArrivalsFor(a.uid, new Date(), { left: 5 })).toBe(1);
+    // Still rendering: the card was never on screen.
+    await seen(a.t, [id]);
+    expect((await getArrivals(a.uid))!.cards[0]!.seenAt).toBeNull();
+    await awaitInlineRuns();
+    // Someone else's id changes nothing; so does an id that is no card.
+    await seen(b.t, [id, "no-such-piece"]);
+    expect((await getArrivals(a.uid))!.cards[0]!.seenAt).toBeNull();
+    expect((await seen(a.t, ["no-such-piece"])).status).toBe(200);
+    expect((await getArrivals(a.uid))!.cards[0]!.seenAt).toBeNull();
+    await seen(a.t, [id]);
+    expect((await getArrivals(a.uid))!.cards[0]!.seenAt).not.toBeNull();
+  });
+
+  it("does not mark a failed card", async () => {
+    buffer(true);
+    const id = await publish();
+    const { t, uid } = await account();
+    setFakeScript([{ pose: "front", outcome: "blocked" }]);
+    await runArrivals(new Date());
+    await awaitInlineRuns();
+    await seen(t, [id]);
+    expect((await getArrivals(uid))!.cards[0]!.seenAt).toBeNull();
+  });
+});
+
+describe("a card the shelf no longer shows does not hold the buffer shut", () => {
+  const counts = async () => ({
+    sets: (await firestore().collection("poseSets").get()).size,
+    jobs: (await jobs()).length,
+  });
+
+  it("an unfollowed label's unseen card is done: the next batch starts and the old one is deleted", async () => {
+    buffer(true);
+    const old = await publish();
+    const a = await account({ follow: ["loam-studio", "marchand"] });
+    await runArrivals(new Date());
+    await awaitInlineRuns();
+    expect((await view(a.t)).cards).toHaveLength(1);
+    await setFollow(a.uid, "loam-studio", false);
+    const next = await publish("marchand");
+    // Unseen, hidden by the shelf: before the fix this blocked forever.
+    expect((await runArrivals(new Date())).started).toBe(1);
+    await awaitInlineRuns();
+    const doc = (await getArrivals(a.uid))!;
+    expect(doc.cards.map((c) => c.itemId)).toEqual([next]);
+    expect(doc.attempted).toEqual(expect.arrayContaining([old, next]));
+    expect(await counts()).toEqual({ sets: 1, jobs: 1 });
+    expect(
+      (await view(a.t)).cards.map((c: { itemId: string }) => c.itemId),
+    ).toEqual([next]);
+  });
+
+  it("a piece removed from the catalogue: the view drops its card, set, job and render", async () => {
+    buffer(true);
+    const id = await publish();
+    const { t, uid } = await account();
+    await runArrivals(new Date());
+    await awaitInlineRuns();
+    expect((await view(t)).cards).toHaveLength(1);
+    await firestore().collection("publishedPieces").doc(id).delete();
+    await loadPublishedCatalog({ force: true });
+    expect((await view(t)).cards).toEqual([]);
+    expect((await getArrivals(uid))!.cards).toEqual([]);
+    expect(await counts()).toEqual({ sets: 0, jobs: 0 });
+    expect(await listObjects(`renders/${uid}/`)).toEqual([]);
+  });
+});
+
+describe("a deletion racing the buffer", () => {
+  it("stops the batch when the photo goes away between cards, and gives the unstarted cards back", async () => {
+    buffer(true);
+    for (let i = 0; i < 3; i++) await publish();
+    const { uid } = await account();
+    const photoId = (await getDefaultPhotoId(uid))!;
+    const n = await refillArrivalsFor(
+      uid,
+      new Date(),
+      { left: 5 },
+      process.env,
+      {
+        beforeCard: async (i) => {
+          if (i === 1) {
+            await firestore()
+              .collection("photos")
+              .doc(uid)
+              .collection("items")
+              .doc(photoId)
+              .delete();
+          }
+        },
+      },
+    );
+    await awaitInlineRuns();
+    expect(n).toBe(1);
+    const doc = (await getArrivals(uid))!;
+    expect(doc.cards).toHaveLength(1);
+    expect(doc.attempted).toHaveLength(1);
+  });
+
+  it("stops the batch when consent goes away between cards", async () => {
+    buffer(true);
+    for (let i = 0; i < 3; i++) await publish();
+    const { uid } = await account();
+    const n = await refillArrivalsFor(
+      uid,
+      new Date(),
+      { left: 5 },
+      process.env,
+      {
+        beforeCard: async (i) => {
+          if (i === 2)
+            await firestore().collection("consents").doc(uid).delete();
+        },
+      },
+    );
+    await awaitInlineRuns();
+    expect(n).toBe(2);
+    expect((await getArrivals(uid))!.cards).toHaveLength(2);
+  });
+
+  it("removes a buffer recreated for an account that no longer exists", async () => {
+    buffer(true);
+    await publish();
+    const { uid } = await account();
+    await auth().deleteUser(uid); // the follows document is still there, as in the race
+    await firestore()
+      .collection("arrivals")
+      .doc(uid)
+      .set({ cards: [], attempted: [], updatedAt: new Date() });
+    expect((await runArrivals(new Date())).started).toBe(0);
+    expect(await getArrivals(uid)).toBeNull();
   });
 });
 
@@ -661,6 +933,68 @@ describe("email", () => {
     expect((await firestore().collection("emailSent").get()).size).toBe(0);
     spy.mockRestore();
     expect((await runEmail(later(3), ORIGIN)).news).toBe(1);
+  });
+
+  it("one person's failure is logged and skipped: the others still get their email", async () => {
+    enable();
+    const a = await account();
+    const b = await account();
+    await prefs(a.t, { news: true });
+    await prefs(b.t, { news: true });
+    // A preferences document whose id is not a valid uid: reading this person's follows throws.
+    await firestore()
+      .collection("emailPrefs")
+      .doc("bad id")
+      .set({ news: true, price: false });
+    await publish();
+    const r = await runEmail(later(1), ORIGIN);
+    expect(r.news).toBe(2);
+    expect(sentEmails()).toHaveLength(2);
+  });
+
+  it("does not email a disabled account, and claims nothing for it", async () => {
+    enable();
+    const a = await account();
+    await prefs(a.t, { news: true });
+    await publish();
+    await auth().updateUser(a.uid, { disabled: true });
+    expect((await runEmail(later(1), ORIGIN)).news).toBe(0);
+    expect(sentEmails()).toHaveLength(0);
+    expect((await firestore().collection("emailSent").get()).size).toBe(0);
+    await auth().updateUser(a.uid, { disabled: false });
+    expect((await runEmail(later(2), ORIGIN)).news).toBe(1);
+  });
+
+  it("marks the day before the message goes out, and puts the mark back if it does not go", async () => {
+    enable();
+    const a = await account();
+    await prefs(a.t, { news: true });
+    await publish();
+    const lastNewsAt = async () =>
+      (await firestore().collection("emailPrefs").doc(a.uid).get()).get(
+        "lastNewsAt",
+      );
+    const t = await import("./email/transport");
+    let markWhenSending: unknown = "not called";
+    const spy = vi.spyOn(t, "emailTransport").mockReturnValue({
+      name: "log",
+      canSend: true,
+      send: async () => {
+        markWhenSending = await lastNewsAt();
+        throw new Error("provider down");
+      },
+    });
+    expect((await runEmail(later(1), ORIGIN)).news).toBe(0);
+    // The mark was already written when the transport was asked to send...
+    expect(markWhenSending).toBeTruthy();
+    // ...and is back to what it was now that nothing went out.
+    expect(await lastNewsAt()).toBeNull();
+    spy.mockRestore();
+    // A message that does go out leaves the mark, so a second one the same day waits.
+    expect((await runEmail(later(2), ORIGIN)).news).toBe(1);
+    expect(await lastNewsAt()).toBeTruthy();
+    await publish();
+    expect((await runEmail(later(3), ORIGIN)).news).toBe(0);
   });
 
   it("sends a price-change email once for a piece in the person's lists, and not for one that is not", async () => {
@@ -813,3 +1147,12 @@ describe("deleting everything", () => {
     ).toBe(true);
   });
 });
+
+async function getPhotoDocIds(uid: string): Promise<string[]> {
+  const snap = await firestore()
+    .collection("photos")
+    .doc(uid)
+    .collection("items")
+    .get();
+  return snap.docs.map((d) => d.id);
+}

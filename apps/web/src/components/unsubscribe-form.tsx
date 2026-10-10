@@ -8,7 +8,14 @@ import { Button } from "./ui/button";
 
 type State = "idle" | "working" | "done" | "failed" | "limited";
 
-export function UnsubscribeForm({ token }: { token: string }) {
+export function UnsubscribeForm({
+  token,
+  canSwitchBack,
+}: {
+  token: string;
+  /** The server can send email, so the You screen has a switch to point at. Same for every token. */
+  canSwitchBack: boolean;
+}) {
   const [state, setState] = useState<State>("idle");
 
   async function stop() {
@@ -44,7 +51,9 @@ export function UnsubscribeForm({ token }: { token: string }) {
         ) : (
           <>
             <p className="mb-5 text-[15px] leading-[22px] text-ink-700">
-              {copy.unsubscribe.body}
+              {canSwitchBack
+                ? copy.unsubscribe.body
+                : copy.unsubscribe.bodyPlain}
             </p>
             <Button
               size="lg"

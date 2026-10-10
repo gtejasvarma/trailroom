@@ -837,6 +837,8 @@ export const copy = {
   unsubscribe: {
     title: "Stop these emails?",
     body: "One tap and Trailroom stops sending you email. You can switch it back on in You.",
+    /** When the server cannot send email at all there is no switch in You to point at. */
+    bodyPlain: "One tap and Trailroom stops sending you email.",
     button: "Stop emails",
     working: "Working on it",
     done: "If that link was one of ours, those emails have stopped.",

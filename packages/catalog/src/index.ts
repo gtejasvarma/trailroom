@@ -5,6 +5,7 @@ export * from "./items";
 export * from "./published";
 export * from "./labels";
 export * from "./copy-rules";
+export * from "./unsafe-text";
 
 /** Items below this readiness are refused up front (the honest-failure path). */
 export const READINESS_THRESHOLD = 70;

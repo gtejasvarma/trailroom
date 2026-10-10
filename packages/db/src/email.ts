@@ -77,19 +77,18 @@ export async function listUidsWith(
   return snap.docs.map((d) => d.id);
 }
 
+/** Sets the "one a day" mark for a kind; `null` clears it (to put back what was there before). */
 export async function recordEmailSent(
   uid: string,
   kind: EmailKind,
-  now: Date = new Date(),
+  now: Date | null = new Date(),
 ): Promise<void> {
+  const at = now === null ? null : Timestamp.fromDate(now);
   await prefs()
     .doc(assertSegment("uid", uid))
-    .set(
-      kind === "news"
-        ? { lastNewsAt: Timestamp.fromDate(now) }
-        : { lastPriceAt: Timestamp.fromDate(now) },
-      { merge: true },
-    );
+    .set(kind === "news" ? { lastNewsAt: at } : { lastPriceAt: at }, {
+      merge: true,
+    });
 }
 
 const sentId = (uid: string, eventId: string) =>

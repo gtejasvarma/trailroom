@@ -210,6 +210,37 @@ describe("email copy only appears behind the server's capability", () => {
     }
   });
 
+  it("the public unsubscribe page says nothing about a switch unless the server can send email", () => {
+    const dir = join(fileURLToPath(import.meta.url), "../..");
+    // With no transport there is no switch in You: the plain body must not point at one.
+    expect(copy.unsubscribe.bodyPlain).not.toMatch(/switch|turn|back on/i);
+    expect(copy.unsubscribe.bodyPlain).not.toMatch(/\bYou\b/);
+    expect(copy.unsubscribe.body).toMatch(/switch it back on/i);
+    // The page decides on the server's capability, never on the token, and the form picks the plain body.
+    const page = readFileSync(
+      join(dir, "app/unsubscribe/[token]/page.tsx"),
+      "utf8",
+    );
+    expect(page).toMatch(/canSwitchBack=\{emailEnabled\(\)\}/);
+    const form = readFileSync(
+      join(dir, "components/unsubscribe-form.tsx"),
+      "utf8",
+    );
+    expect(form).toMatch(
+      /canSwitchBack\s*\?\s*copy\.unsubscribe\.body\s*:\s*copy\.unsubscribe\.bodyPlain/,
+    );
+    // Nothing else in the unsubscribe strings mentions a switch either (the POST body carries no text).
+    for (const k of [
+      "done",
+      "failed",
+      "tooMany",
+      "working",
+      "button",
+    ] as const) {
+      expect(copy.unsubscribe[k]).not.toMatch(/switch/i);
+    }
+  });
+
   it("only components behind the capability use copy.email", () => {
     const dir = join(fileURLToPath(import.meta.url), "../../components");
     const users = readdirSync(dir).filter(

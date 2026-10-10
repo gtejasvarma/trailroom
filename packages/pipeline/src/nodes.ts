@@ -4,6 +4,9 @@
 import { getItem } from "@trailroom/catalog";
 import {
   addPoseToSet,
+  deleteJob,
+  deletePoseSet,
+  dropArrivalCards,
   deleteRender,
   deleteRendersForPoseSet,
   deleteStagingForJob,
@@ -64,6 +67,36 @@ import type {
 const TERMINAL = ["complete", "complete_partial", "failed"] as const;
 const isTerminal = (s: JobDoc["status"]) =>
   (TERMINAL as readonly string[]).includes(s);
+
+/**
+ * Removes an arrival render and everything it made: its published renders, staging, pose set and
+ * job. The job goes first, so a node still running for it sees the job gone and stops. Safe to
+ * call twice, and for a set that is half-gone.
+ */
+export async function discardArrivalSet(input: {
+  uid: string;
+  poseSetId: string;
+  jobId: string;
+}): Promise<void> {
+  await deletePoseSet(input.poseSetId);
+  await deleteJob(input.jobId);
+  await deleteStagingForJob(input.jobId);
+  await deleteRendersForPoseSet(input.uid, input.poseSetId);
+}
+
+/**
+ * The person's photo is gone under an arrival nobody asked for (they removed it while it was
+ * rendering). It ends quietly and leaves nothing: no job, pose set, staging, render or card.
+ */
+async function arrivalPhotoGone(job: JobDoc, jobId: string): Promise<never> {
+  await discardArrivalSet({
+    uid: job.uid,
+    poseSetId: job.poseSetId,
+    jobId,
+  });
+  await dropArrivalCards(job.uid, [job.itemId]).catch(() => undefined);
+  throw new JobTerminalError("the photo was removed; the arrival is gone");
+}
 
 async function mustJob(jobId: string): Promise<JobDoc> {
   const job = await getJob(jobId);
@@ -235,7 +268,10 @@ export async function renderPose(
     }
 
     const person = await getPhotoBytes(job.uid, job.photoId);
-    if (!person) throw new Error(`no photo stored for ${job.uid}`);
+    if (!person) {
+      if (kindOf(job) === "arrival") return arrivalPhotoGone(job, jobId);
+      throw new Error(`no photo stored for ${job.uid}`);
+    }
     // Garments first, in the order the prompt names them, then the person last.
     const { garments, prompt } = await garmentsAndPrompt(job, pose as Pose);
     const personImage = { mimeType: person.contentType, data: person.data };
@@ -281,7 +317,16 @@ export async function renderPose(
       await deleteStagingForJob(jobId);
       throw new JobTerminalError("job was deleted during the render");
     }
-    return record("rendered");
+    try {
+      return await record("rendered");
+    } catch (e) {
+      // The job vanished between the check above and the write: leave no staged image behind.
+      if (!(await getJob(jobId))) {
+        await deleteStagingForJob(jobId);
+        throw new JobTerminalError("job was deleted during the render");
+      }
+      throw e;
+    }
   };
 
   return renderPoseOnce();
@@ -325,6 +370,9 @@ export async function qaPose(input: PoseAttemptInput): Promise<QaPoseOutput> {
   } else {
     const staged = await getStaging(jobId, pose, attempt);
     const person = await getPhotoBytes(job.uid, job.photoId);
+    if (!person && kindOf(job) === "arrival") {
+      return arrivalPhotoGone(job, jobId);
+    }
     if (!staged || !person) {
       throw new Error(`missing staged render or photo for ${pose} #${attempt}`);
     }

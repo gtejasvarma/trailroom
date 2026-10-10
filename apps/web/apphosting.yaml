@@ -102,7 +102,8 @@ env:
     value: "off"
     availability:
       - RUNTIME
-  # The most the buffer may spend in a UTC day (default 1; never above DAILY_CAP_USD). It is
+  # The most the buffer may spend in a UTC day (default 1; clamped to half of DAILY_CAP_USD, so
+  # requested try-ons always keep at least half the day). It is
   # checked in the same transaction as the daily cap, so requested try-ons keep the rest.
   # - variable: ARRIVALS_DAILY_USD
   #   value: "1"

@@ -3,6 +3,7 @@
 import type { Metadata } from "next";
 import { UnsubscribeForm } from "../../../components/unsubscribe-form";
 import { copy } from "../../../lib/copy";
+import { emailEnabled } from "../../../server/email/transport";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -17,5 +18,5 @@ export default async function UnsubscribeRoute({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  return <UnsubscribeForm token={token} />;
+  return <UnsubscribeForm token={token} canSwitchBack={emailEnabled()} />;
 }

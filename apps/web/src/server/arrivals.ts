@@ -21,7 +21,9 @@ import {
   claimPoseSet,
   createJob,
   deleteJob,
+  deleteArrivals,
   deletePoseSetIfFailed,
+  dropArrivalCards,
   deleteRendersForPoseSet,
   deleteStagingForJob,
   FirestoreDailyLedger,
@@ -37,13 +39,16 @@ import {
   listPoseSetsForUser,
   markArrivalsSeen,
   startArrivalBatch,
+  type ArrivalCard,
   type ArrivalsDoc,
   type PoseSetDoc,
 } from "@trailroom/db";
 import {
+  discardArrivalSet,
   failJob,
   listRecentPublished,
   loadPublishedCatalog,
+  publishedCatalogLoaded,
 } from "@trailroom/pipeline";
 import {
   PROMPT_VERSION,
@@ -53,6 +58,7 @@ import {
   usdToMicrosCeil,
 } from "@trailroom/render";
 import { CONSENT_VERSION } from "../lib/consent";
+import { createAttemptLimiter } from "../lib/gate-limit";
 import {
   ARRIVALS_MAX_PER_RUN,
   ARRIVALS_WINDOW_DAYS,
@@ -105,6 +111,68 @@ async function cardStates(
   return out;
 }
 
+/**
+ * Per person, in memory and per instance (like the other limiters; Cloud Armor is the real
+ * control): 120 calls in 10 minutes to each of the two endpoints. Generous, since the shelf
+ * loads on every Discover visit; it only stops a loop.
+ */
+const viewLimiter = createAttemptLimiter(120, 10 * 60 * 1000);
+const seenLimiter = createAttemptLimiter(120, 10 * 60 * 1000);
+
+/** True when this person is over the limit for the endpoint; counts the call otherwise. */
+export function arrivalsLimited(
+  endpoint: "view" | "seen",
+  uid: string,
+): boolean {
+  const limiter = endpoint === "view" ? viewLimiter : seenLimiter;
+  if (limiter.blocked(uid)) return true;
+  limiter.record(uid);
+  return false;
+}
+
+/**
+ * A ready card whose piece the shelf no longer shows (older than the window, its label
+ * unfollowed, the piece removed) is hidden but would still count as unseen, so the buffer
+ * would never refill. It is done: its pose set, job and render go, and so does the card (the
+ * piece stays in `attempted`). Only once the catalogue has been read at least once, so a read
+ * that failed cannot look like "everything was removed". Returns the item ids it retired.
+ */
+async function retireStaleCards(
+  uid: string,
+  doc: ArrivalsDoc | null,
+  states: Map<string, CardState>,
+  liveItemIds: ReadonlySet<string>,
+): Promise<Set<string>> {
+  const retired = new Set<string>();
+  if (!doc || !publishedCatalogLoaded()) return retired;
+  const stale: ArrivalCard[] = doc.cards.filter(
+    (c) => states.get(c.itemId) === "ready" && !liveItemIds.has(c.itemId),
+  );
+  if (stale.length === 0) return retired;
+  try {
+    for (const c of stale) {
+      const set = await getPoseSet(c.poseSetId).catch(() => null);
+      if (set) {
+        await discardArrivalSet({
+          uid,
+          poseSetId: c.poseSetId,
+          jobId: set.jobId,
+        });
+      } else {
+        await deleteRendersForPoseSet(uid, c.poseSetId);
+      }
+    }
+    await dropArrivalCards(
+      uid,
+      stale.map((c) => c.itemId),
+    );
+    for (const c of stale) retired.add(c.itemId);
+  } catch (e) {
+    logError("arrivals: stale card not removed", e);
+  }
+  return retired;
+}
+
 /** GET /api/arrivals. Never an error for something the person did not ask for. */
 export async function getArrivalsView(
   user: User,
@@ -122,8 +190,19 @@ export async function getArrivalsView(
   if (!user.isGuest && arrivalsBufferOn()) {
     const doc = await getArrivals(user.uid);
     const states = await cardStates(doc, now);
+    const retired = await retireStaleCards(
+      user.uid,
+      doc,
+      states,
+      new Set(recent.map((i) => i.id)),
+    );
     cards = (doc?.cards ?? [])
-      .filter((c) => states.get(c.itemId) === "ready" && getItem(c.itemId))
+      .filter(
+        (c) =>
+          states.get(c.itemId) === "ready" &&
+          !retired.has(c.itemId) &&
+          getItem(c.itemId),
+      )
       .map((c) => ({
         itemId: c.itemId,
         poseSetId: c.poseSetId,
@@ -147,7 +226,13 @@ export async function markSeen(
     return err("invalid_request");
   }
   if (user.isGuest) return err("account_required");
-  await markArrivalsSeen(user.uid, ids as string[]);
+  // Only a card that is on screen can have been looked at: a ready one. Pending and failed ones
+  // are never shown, and an id that is not a card of the caller changes nothing.
+  const doc = await getArrivals(user.uid);
+  if (!doc) return ok({ seen: true as const });
+  const states = await cardStates(doc, new Date());
+  const ready = (ids as string[]).filter((i) => states.get(i) === "ready");
+  if (ready.length > 0) await markArrivalsSeen(user.uid, ready);
   return ok({ seen: true as const });
 }
 
@@ -158,12 +243,24 @@ export interface Budget {
   left: number;
 }
 
-async function isAccount(uid: string): Promise<boolean> {
+/** "gone": Auth has no such user any more (an account deleted); "no": a guest or a read that failed. */
+async function accountStatus(uid: string): Promise<"account" | "gone" | "no"> {
   try {
-    return (await auth().getUser(uid)).providerData.length > 0;
-  } catch {
-    return false;
+    return (await auth().getUser(uid)).providerData.length > 0
+      ? "account"
+      : "no";
+  } catch (e) {
+    return (e as { code?: string }).code === "auth/user-not-found"
+      ? "gone"
+      : "no";
   }
+}
+
+export interface RefillDeps {
+  /** Published pieces in the window, newest first; a run loads them once and passes them to every person. */
+  recent?: { item: CatalogItem; publishedAt: Date }[];
+  /** Test seam: runs before each card is started. */
+  beforeCard?: (index: number) => Promise<void>;
 }
 
 /**
@@ -176,9 +273,17 @@ export async function refillArrivalsFor(
   now: Date,
   budget: Budget,
   env: Record<string, string | undefined> = process.env,
+  deps: RefillDeps = {},
 ): Promise<number> {
   if (!arrivalsBufferOn(env) || budget.left <= 0) return 0;
-  if (!(await isAccount(uid))) return 0; // never a guest
+  const status = await accountStatus(uid);
+  if (status === "gone") {
+    // The account was deleted while a refill for it was running and recreated its buffer: it has
+    // no owner, so it goes (deleteAllForUser had already removed everything else).
+    await deleteArrivals(uid);
+    return 0;
+  }
+  if (status !== "account") return 0; // never a guest
   if (!(await isConsentCurrent(uid, CONSENT_VERSION))) return 0;
   const photoId = await getDefaultPhotoId(uid);
   if (!photoId) return 0;
@@ -187,8 +292,22 @@ export async function refillArrivalsFor(
   const follows = new Set(await getFollows(uid));
   if (follows.size === 0) return 0;
 
-  const doc = await getArrivals(uid);
-  const states = await cardStates(doc, now);
+  const recent =
+    deps.recent ?? (await listRecentPublished(now, ARRIVALS_WINDOW_DAYS));
+  const fetched = await getArrivals(uid);
+  const states = await cardStates(fetched, now);
+  // A ready card the shelf no longer shows is done, so it cannot hold the buffer shut.
+  const retired = await retireStaleCards(
+    uid,
+    fetched,
+    states,
+    new Set(
+      recent.filter((r) => follows.has(r.item.labelSlug)).map((r) => r.item.id),
+    ),
+  );
+  const doc: ArrivalsDoc | null = fetched
+    ? { ...fetched, cards: fetched.cards.filter((c) => !retired.has(c.itemId)) }
+    : null;
   // Not yet seen and still alive: wait. This is the rule "refilled only after the last were seen".
   const blocking = (doc?.cards ?? []).some((c) => {
     const s = states.get(c.itemId);
@@ -220,7 +339,7 @@ export async function refillArrivalsFor(
 
   const cfg = renderConfigFromEnv(env);
   const room = Math.min(budget.left, MAX_ARRIVAL_CARDS);
-  const candidates = (await listRecentPublished(now, ARRIVALS_WINDOW_DAYS))
+  const candidates = recent
     .map((r) => r.item)
     .filter(
       (i) =>
@@ -247,8 +366,19 @@ export async function refillArrivalsFor(
   if (!(await startArrivalBatch(uid, cards, done, forget, now))) return 0;
 
   let started = 0;
-  for (const card of cards) {
+  for (const [index, card] of cards.entries()) {
     try {
+      await deps.beforeCard?.(index);
+      // The person may have deleted their data, or the photo, since the batch was recorded: stop
+      // the batch (and give the cards not yet started back) rather than render from nothing.
+      if (
+        !(await isConsentCurrent(uid, CONSENT_VERSION)) ||
+        !(await getPhoto(uid, card.photoId).catch(() => null))
+      ) {
+        const rest = cards.slice(index).map((c) => c.itemId);
+        await dropArrivalCards(uid, rest, rest).catch(() => undefined);
+        break;
+      }
       // A stale failed set under this id (a piece offered again after a ceiling) goes first.
       const removed = await deletePoseSetIfFailed(card.poseSetId);
       if (removed) {
@@ -326,19 +456,17 @@ export async function runArrivals(
   if (budget.left <= 0) return result;
 
   await loadPublishedCatalog({ force: true });
-  const labels = [
-    ...new Set(
-      (await listRecentPublished(now, ARRIVALS_WINDOW_DAYS)).map(
-        (r) => r.item.labelSlug,
-      ),
-    ),
-  ];
+  // Once per run, not once per person.
+  const recent = await listRecentPublished(now, ARRIVALS_WINDOW_DAYS);
+  const labels = [...new Set(recent.map((r) => r.item.labelSlug))];
   const uids = new Set<string>();
   for (const l of labels) for (const u of await listFollowersOf(l)) uids.add(u);
   for (const uid of uids) {
     if (budget.left <= 0) break;
     try {
-      const n = await refillArrivalsFor(uid, now, budget, env);
+      const n = await refillArrivalsFor(uid, now, budget, env, {
+        recent,
+      });
       if (n > 0) {
         result.started += n;
         result.people++;

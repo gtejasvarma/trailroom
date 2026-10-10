@@ -49,6 +49,9 @@ export function publishViaScript(
     env: { ...process.env },
     stdio: "pipe",
   });
+  // The script publishes from another process; the app reads the published pieces through a
+  // 5-second cache (the shelf no longer reads Firestore on every call), so wait it out.
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5_500);
   return { id, name };
 }
 

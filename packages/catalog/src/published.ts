@@ -4,6 +4,7 @@
 // twice (separate bundles) and must still agree on what is published.
 import { findFitLanguage } from "./copy-rules";
 import { getLabel } from "./labels";
+import { hasUnsafeText } from "./unsafe-text";
 import { ITEMS, type CatalogItem, type Category, type Photo } from "./items";
 
 type Holder = { __trailroomPublished?: Map<string, CatalogItem> };
@@ -35,6 +36,9 @@ export const allItems = (): readonly CatalogItem[] =>
 
 const ID = /^[a-z0-9][a-z0-9-]{1,39}$/;
 const FILE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}\.(jpg|jpeg|png|webp)$/;
+/** A file name that is safe as one path segment: the pattern, and no ".." anywhere in it. */
+const fileOk = (f: unknown): f is string =>
+  typeof f === "string" && FILE.test(f) && !f.includes("..");
 const FOCUS = /^\d{1,3}% \d{1,3}%$/;
 const CATEGORIES: readonly (Category | null)[] = [
   "top",
@@ -122,8 +126,7 @@ export function checkPublishedPiece(
     !photos.every(
       (x) =>
         isObj(x) &&
-        typeof x.file === "string" &&
-        FILE.test(x.file) &&
+        fileOk(x.file) &&
         str(x.label, 40) &&
         typeof x.focus === "string" &&
         FOCUS.test(x.focus),
@@ -132,7 +135,7 @@ export function checkPublishedPiece(
     problems.push(
       'photos must be 1 to 4 of { file (.jpg/.png/.webp), label, focus: "50% 30%" }',
     );
-  if (typeof p.renderImage === "string" && !FILE.test(p.renderImage))
+  if (typeof p.renderImage === "string" && !fileOk(p.renderImage))
     problems.push("renderImage is not a valid file name");
 
   // The copy rule, over every sentence a shopper can read.
@@ -146,7 +149,16 @@ export function checkPublishedPiece(
       p.promptDescription,
       ...(p.readinessReasons as string[]),
       ...(photos as Photo[]).map((x) => x.label),
+      ...(p.pairsWith as string[]),
     ] as string[];
+    for (const t of texts) {
+      if (hasUnsafeText(t)) {
+        problems.push(
+          "a text field has a control character, line break or invisible formatting character",
+        );
+        break;
+      }
+    }
     for (const t of texts) {
       const hit = findFitLanguage(t);
       if (hit) problems.push(`fit or size language ("${hit.trim()}") in: ${t}`);

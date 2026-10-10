@@ -4,7 +4,7 @@ import { POSES, type Pose } from "./prompt";
 export interface RenderConfig {
   model: ModelKey;
   dailyCapUsd: number;
-  /** The day's ceiling for renders nobody asked for (ARRIVALS_DAILY_USD); never above dailyCapUsd. */
+  /** The day's ceiling for renders nobody asked for (ARRIVALS_DAILY_USD); never above half of dailyCapUsd, so requested try-ons always keep headroom. */
   unrequestedDailyUsd: number;
   aspectRatio: "3:4";
   poses: Pose[];
@@ -50,7 +50,7 @@ export function renderConfigFromEnv(
       );
     }
   }
-  unrequestedDailyUsd = Math.min(unrequestedDailyUsd, dailyCapUsd);
+  unrequestedDailyUsd = Math.min(unrequestedDailyUsd, dailyCapUsd / 2);
 
   const allPoses = Object.keys(POSES) as Pose[];
   let poses = allPoses;

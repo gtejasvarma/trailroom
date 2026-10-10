@@ -115,3 +115,23 @@ describe("the messages", () => {
     expect(m.text).toContain("and 3 more");
   });
 });
+
+describe("the subject line", () => {
+  it("is one line whatever a piece or label is called", () => {
+    const m = newArrivalsEmail(
+      "a@b.test",
+      [{ id: "x", name: "Coat", label: "LOAM\r\nBcc: x@y.test", priceUsd: 1 }],
+      "https://trailroom.test",
+      "https://trailroom.test/unsubscribe/t",
+    );
+    expect(m.subject).not.toMatch(/[\r\n\u2028\u2029]/);
+    expect(m.subject).toContain("LOAM Bcc: x@y.test");
+    const p = priceChangeEmail(
+      "a@b.test",
+      [{ id: "x", name: "Co\nat", oldPriceUsd: 2, newPriceUsd: 1 }],
+      "https://trailroom.test",
+      "https://trailroom.test/unsubscribe/t",
+    );
+    expect(p.subject).not.toMatch(/[\r\n]/);
+  });
+});

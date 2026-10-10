@@ -4,12 +4,16 @@ import sharp from "sharp";
 import {
   deletePhoto,
   deletePhotoObject,
+  dropArrivalCards,
+  getArrivals,
   getDefaultPhotoId,
   getPhotoBytes,
+  kindOf,
   listPhotos,
   listPoseSetsForUser,
   setDefaultPhoto,
 } from "@trailroom/db";
+import { discardArrivalSet } from "@trailroom/pipeline";
 import { err, ok, type Result } from "./http";
 import type { User } from "./auth";
 
@@ -76,7 +80,12 @@ export async function makeDefault(
   return ok({ defaultPhotoId: photoId });
 }
 
-/** A photo an in-flight job is rendering from cannot be removed; the rest can. */
+/**
+ * A photo an in-flight try-on is rendering from cannot be removed; the rest can. A buffer render
+ * ("arrives on you") is not in that count: the person did not ask for it, so it never holds a
+ * photo. Removing the photo deletes the arrival renders made from it (sets, jobs, renders) and
+ * their cards; one still in flight finds its job gone and leaves nothing behind.
+ */
 export async function removePhoto(
   user: User,
   photoId: string,
@@ -86,12 +95,28 @@ export async function removePhoto(
     if (
       sets.some(
         (s) =>
-          s.poseSet.photoId === photoId && s.poseSet.status === "rendering",
+          s.poseSet.photoId === photoId &&
+          s.poseSet.status === "rendering" &&
+          kindOf(s.poseSet) !== "arrival",
       )
     ) {
       return err("photo_in_use");
     }
     if (!(await deletePhoto(user.uid, photoId))) return err("not_found");
+    for (const s of sets) {
+      if (s.poseSet.photoId === photoId && kindOf(s.poseSet) === "arrival") {
+        await discardArrivalSet({
+          uid: user.uid,
+          poseSetId: s.id,
+          jobId: s.poseSet.jobId,
+        });
+      }
+    }
+    const cards = ((await getArrivals(user.uid))?.cards ?? [])
+      .filter((c) => c.photoId === photoId)
+      .map((c) => c.itemId);
+    // Forgotten as well as dropped: the piece may be offered again on another photo.
+    if (cards.length > 0) await dropArrivalCards(user.uid, cards, cards);
     await deletePhotoObject(user.uid, photoId);
   } catch {
     return err("not_found");
