@@ -15,6 +15,7 @@ import {
   revokeAskFor,
   type AskWithId,
 } from "@trailroom/db";
+import { stripUnsafe } from "./text-clean";
 import { err, ok, type Result } from "./http";
 import type { User } from "./auth";
 
@@ -57,10 +58,9 @@ const summary = (a: AskWithId): AskSummary => ({
 
 /** First word of the display name, trimmed to something a header can hold. */
 export function firstNameOf(displayName: string | undefined | null): string {
-  // eslint-disable-next-line no-control-regex
   const first =
-    (displayName ?? "")
-      .replace(/[\u0000-\u001f\u007f<>]/g, "")
+    stripUnsafe(displayName ?? "")
+      .replace(/[<>]/g, "")
       .trim()
       .split(/\s+/)[0] ?? "";
   return first.slice(0, 30) || "A friend";
@@ -69,17 +69,21 @@ export function firstNameOf(displayName: string | undefined | null): string {
 export function cleanQuestion(raw: unknown): string | null | undefined {
   if (raw === undefined || raw === null) return null;
   if (typeof raw !== "string") return undefined;
-  // eslint-disable-next-line no-control-regex
-  const q = raw
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const q = stripUnsafe(raw, " ").replace(/\s+/g, " ").trim();
   if (q.length > MAX_QUESTION_LENGTH) return undefined;
   return q.length === 0 ? null : q;
 }
 
-/** The absolute origin the browser used, honouring the proxy's forwarded headers. */
-export function originOf(request: Request): string {
+/**
+ * The absolute origin the browser used, honouring the proxy's forwarded headers only for hosts we
+ * serve: INTERNAL_AUDIENCE plus the comma-separated PUBLIC_ORIGINS. Any other forwarded host
+ * (a client can send its own) gives INTERNAL_AUDIENCE. With no INTERNAL_AUDIENCE (local dev,
+ * tests) the forwarded headers are used as they come.
+ */
+export function originOf(
+  request: Request,
+  env: Record<string, string | undefined> = process.env,
+): string {
   const url = new URL(request.url);
   const host =
     request.headers.get("x-forwarded-host") ??
@@ -88,7 +92,22 @@ export function originOf(request: Request): string {
   const proto =
     request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ??
     url.protocol.replace(":", "");
-  return `${proto}://${host}`;
+  const own = env.INTERNAL_AUDIENCE?.trim().replace(/\/+$/, "");
+  if (!own) return `${proto}://${host}`;
+  const allowed = [own, ...(env.PUBLIC_ORIGINS ?? "").split(",")]
+    .map((o) => o.trim().replace(/\/+$/, ""))
+    .filter(Boolean)
+    .flatMap((o) => {
+      try {
+        return [new URL(o)];
+      } catch {
+        return [];
+      }
+    });
+  const forwarded = allowed.find(
+    (o) => o.host === host && o.protocol === `${proto}:`,
+  );
+  return forwarded ? forwarded.origin : new URL(own).origin;
 }
 
 export async function createAsk(
@@ -120,17 +139,19 @@ export async function createAsk(
   // Freeze the asker's finished try-on for each piece: the newest complete set with a Front.
   const sets = (await listPoseSetsForUser(user.uid)).reverse();
   const poseSetIds: Record<string, string | null> = {};
+  const poseSetJobIds: Record<string, string | null> = {};
   for (const id of ids) {
-    poseSetIds[id] =
-      sets.find(
-        (s) =>
-          s.poseSet.uid === user.uid &&
-          kindOf(s.poseSet) === "tryon" &&
-          s.poseSet.itemId === id &&
-          (s.poseSet.status === "complete" ||
-            s.poseSet.status === "complete_partial") &&
-          s.poseSet.poses.includes("front"),
-      )?.id ?? null;
+    const found = sets.find(
+      (s) =>
+        s.poseSet.uid === user.uid &&
+        kindOf(s.poseSet) === "tryon" &&
+        s.poseSet.itemId === id &&
+        (s.poseSet.status === "complete" ||
+          s.poseSet.status === "complete_partial") &&
+        s.poseSet.poses.includes("front"),
+    );
+    poseSetIds[id] = found?.id ?? null;
+    poseSetJobIds[id] = found?.poseSet.jobId ?? null;
   }
 
   let displayName: string | undefined;
@@ -151,6 +172,7 @@ export async function createAsk(
     question: q,
     itemIds: ids,
     poseSetIds,
+    poseSetJobIds,
   });
   if (!r.ok) return err("ask_limit");
   return ok({ askId: r.id, url: `${originOf(request)}/ask/${r.token}` }, 201);

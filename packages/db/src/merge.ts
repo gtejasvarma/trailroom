@@ -26,6 +26,12 @@ export interface MergeResult {
   photos: number;
   tryOns: { jobId: string; poseSetId: string; itemId: string }[];
   follows: number;
+  /**
+   * What stayed with the guest: photos over the account's cap, and try-ons still rendering (or
+   * whose photo stayed). When either is above zero the guest sign-in is kept, so the 48-hour
+   * purge removes it with what it holds.
+   */
+  stayed: { photos: number; tryOns: number };
 }
 
 const isCode = (e: unknown, ...codes: (number | string)[]) =>
@@ -55,7 +61,12 @@ export async function mergeGuestInto(
   if (guestUid === accountUid)
     throw new Error("cannot merge a user into itself");
   const db = firestore();
-  const result: MergeResult = { photos: 0, tryOns: [], follows: 0 };
+  const result: MergeResult = {
+    photos: 0,
+    tryOns: [],
+    follows: 0,
+    stayed: { photos: 0, tryOns: 0 },
+  };
 
   const guestItems = db.collection("photos").doc(guestUid).collection("items");
   const acctParent = db.collection("photos").doc(accountUid);
@@ -273,6 +284,16 @@ export async function mergeGuestInto(
   }
   if (labels.length > 0) await db.collection("follows").doc(guestUid).delete();
 
+  // Only a guest with nothing left behind loses its sign-in; otherwise the purge removes it.
+  result.stayed = {
+    photos: left.data().count,
+    tryOns: staying.filter(
+      (s) =>
+        s.doc.status === "rendering" ||
+        (FINISHED.includes(s.doc.status) && !movedPhotoIds.has(s.doc.photoId)),
+    ).length,
+  };
+  if (result.stayed.photos > 0 || result.stayed.tryOns > 0) return result;
   try {
     await auth().deleteUser(guestUid);
   } catch (e) {

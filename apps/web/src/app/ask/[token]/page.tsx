@@ -2,10 +2,15 @@
 // An unknown, revoked or expired link is a plain 404 "no longer active" page: the lookup below is
 // by the token's hash, and a token of the wrong shape never reaches Firestore.
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getAskByToken, isAskLive } from "@trailroom/db";
 import { VotePage } from "../../../components/vote-page";
 import { copy } from "../../../lib/copy";
+import {
+  publicReadLimited,
+  recordPublicMiss,
+} from "../../../server/ask-public";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -20,7 +25,11 @@ export default async function AskRoute({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const h = await headers();
+  if (publicReadLimited(token, h))
+    return <p className="p-6 text-[15px] leading-6">{copy.vote.tooMany}</p>;
   const found = await getAskByToken(token);
+  if (!found) recordPublicMiss(h);
   if (!found || !isAskLive(found.ask)) notFound();
   return <VotePage token={token} />;
 }

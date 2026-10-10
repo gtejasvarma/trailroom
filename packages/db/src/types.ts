@@ -116,6 +116,8 @@ export const MAX_LIST_ITEMS = 12;
 /** An ask carries 1 to this many pieces, and at most this many asks are live per person. */
 export const MAX_ASK_ITEMS = 4;
 export const MAX_LIVE_ASKS = 20;
+/** Vote documents one ask may hold; more are refused, so a link cannot grow without bound. */
+export const MAX_VOTES_PER_ASK = 500;
 export const MAX_QUESTION_LENGTH = 120;
 export const MAX_LIST_NAME_LENGTH = 60;
 /** An ask link works for 7 days; the purge deletes it 30 days after that. */
@@ -145,11 +147,21 @@ export interface AskDoc {
   itemIds: string[];
   /** Frozen at creation: the asker's finished try-on for each piece, if any. */
   poseSetIds: Record<string, string | null>;
+  /**
+   * Frozen with `poseSetIds`: the job id each of those sets had. Pose-set ids are deterministic,
+   * so a removed and re-rendered try-on reuses the id; the job id tells them apart. Missing on
+   * asks made before this field existed, which show the label photograph.
+   */
+  poseSetJobIds?: Record<string, string | null>;
   tokenHash: string;
   createdAt: Timestamp;
   expiresAt: Timestamp;
   revokedAt: Timestamp | null;
   counts: Record<string, number>;
+  /** How many vote documents the ask holds (capped at MAX_VOTES_PER_ASK). Never sent to a viewer. */
+  voteCount?: number;
+  /** Uids of signed-in people whose inbox holds this ask, so deleting the ask can clear them. Private. */
+  openedBy?: string[];
 }
 
 /** asks/{askId}/votes/{voterKey}: one vote per voter. `voterUid` is null for cookie voters. */

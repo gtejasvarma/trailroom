@@ -12,6 +12,7 @@ import {
   type ListWithId,
 } from "@trailroom/db";
 import { err, ok, type Result } from "./http";
+import { hasControl, stripUnsafe } from "./text-clean";
 import type { User } from "./auth";
 
 export interface ListBody {
@@ -33,14 +34,10 @@ export const listBody = (l: ListWithId): ListBody => ({
 /** A trimmed name of 1 to 60 characters with no control characters, or null. */
 export function cleanName(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
-  const name = raw.replace(/\s+/g, " ").trim();
-  // eslint-disable-next-line no-control-regex
-  if (
-    name.length === 0 ||
-    name.length > MAX_LIST_NAME_LENGTH ||
-    /[\u0000-\u001f\u007f]/.test(name)
-  )
-    return null;
+  // Control characters refuse the name; bidi controls and the like are dropped from it.
+  if (hasControl(raw.replace(/\s+/g, " "))) return null;
+  const name = stripUnsafe(raw).replace(/\s+/g, " ").trim();
+  if (name.length === 0 || name.length > MAX_LIST_NAME_LENGTH) return null;
   return name;
 }
 

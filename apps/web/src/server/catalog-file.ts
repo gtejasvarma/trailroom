@@ -21,7 +21,7 @@ export async function serveCatalogFile(rawName: string): Promise<Response> {
       status: 200,
       headers: {
         "Content-Type": catalogContentType(file),
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": "private, max-age=3600",
       },
     });
   } catch (e) {

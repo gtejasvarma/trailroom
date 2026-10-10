@@ -327,6 +327,7 @@ export const copy = {
     renderAlt: (name: string, label: string) =>
       `AI-generated preview of ${name} by ${label}`,
     failed: "We could not record that, so try again.",
+    full: "This ask has all the votes it can hold, so it is closed to more.",
     tooMany:
       "Too many attempts from your network, so wait a few minutes and try again.",
     loading: "Loading",

@@ -289,6 +289,13 @@ export async function seedAsk(opts: {
               ),
             },
           },
+          poseSetJobIds: {
+            mapValue: {
+              fields: Object.fromEntries(
+                opts.itemIds.map((i) => [i, { nullValue: null }]),
+              ),
+            },
+          },
           tokenHash: str(createHash("sha256").update(opts.token).digest("hex")),
           createdAt: ts(new Date(opts.expiresAt.getTime() - 7 * 86_400_000)),
           expiresAt: ts(opts.expiresAt),

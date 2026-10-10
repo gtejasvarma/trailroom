@@ -3,6 +3,7 @@
 // no images.
 import {
   castVote,
+  deleteInboxAsk,
   getAskById,
   getInboxAsk,
   isAskLive,
@@ -33,10 +34,15 @@ export async function getInbox(
   const g = guard(user);
   if (g) return g;
   const entries = await listInbox(user.uid);
-  const asks: InboxSummary[] = await Promise.all(
+  const rows = await Promise.all(
     entries.map(async ({ askId, entry }) => {
       const found = await getAskById(askId);
-      const closed = !found || !isAskLive(found.ask);
+      // The ask was deleted (its owner removed everything): nothing of it should remain here.
+      if (!found) {
+        await deleteInboxAsk(user.uid, askId).catch(() => undefined);
+        return null;
+      }
+      const closed = !isAskLive(found.ask);
       return {
         askId,
         askerFirstName: entry.askerFirstName,
@@ -48,6 +54,7 @@ export async function getInbox(
       };
     }),
   );
+  const asks = rows.filter((a): a is InboxSummary => a !== null);
   return ok({ asks, unread: asks.filter((a) => a.unread).length });
 }
 
@@ -63,7 +70,11 @@ export async function getInboxDetail(
   const entry = await getInboxAsk(user.uid, askId);
   if (!entry) return err("not_found");
   const found = await getAskById(askId);
-  if (!found || !isAskLive(found.ask))
+  if (!found) {
+    await deleteInboxAsk(user.uid, askId).catch(() => undefined);
+    return err("not_found");
+  }
+  if (!isAskLive(found.ask))
     return ok({
       closed: true as const,
       askerFirstName: entry.askerFirstName,
@@ -94,7 +105,13 @@ export async function voteInbox(
   if (!isAskLive(found.ask)) return err("ask_closed");
   const cast = await castVote(askId, user.uid, user.uid, itemId);
   if (!cast.ok)
-    return err(cast.error === "closed" ? "ask_closed" : "invalid_request");
+    return err(
+      cast.error === "closed"
+        ? "ask_closed"
+        : cast.error === "full"
+          ? "ask_full"
+          : "invalid_request",
+    );
   await setInboxVote(user.uid, askId, itemId);
   return ok(
     await buildAskView(

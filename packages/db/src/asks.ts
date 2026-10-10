@@ -14,6 +14,7 @@ import {
   ASK_RETENTION_MS,
   ASK_TTL_MS,
   MAX_LIVE_ASKS,
+  MAX_VOTES_PER_ASK,
   type AskDoc,
   type InboxAskDoc,
   type VoteDoc,
@@ -40,6 +41,8 @@ export interface CreateAskInput {
   question: string | null;
   itemIds: string[];
   poseSetIds: Record<string, string | null>;
+  /** The job id of each frozen pose set; omitted means no render is shown for any piece. */
+  poseSetJobIds?: Record<string, string | null>;
 }
 
 /** Creates the ask and returns the raw token: the only time it exists outside the link. */
@@ -61,11 +64,14 @@ export async function createAskFor(
     question: input.question,
     itemIds: input.itemIds,
     poseSetIds: input.poseSetIds,
+    poseSetJobIds: input.poseSetJobIds ?? {},
     tokenHash: hash,
     createdAt: Timestamp.fromDate(now),
     expiresAt: Timestamp.fromMillis(now.getTime() + ASK_TTL_MS),
     revokedAt: null,
     counts: Object.fromEntries(input.itemIds.map((i) => [i, 0])),
+    voteCount: 0,
+    openedBy: [],
   };
   return firestore().runTransaction(async (tx) => {
     const mine = await tx.get(asks().where("uid", "==", input.uid));
@@ -171,7 +177,7 @@ export const getVote = async (
 
 export type VoteResult =
   | { ok: true; counts: Record<string, number>; changed: boolean }
-  | { ok: false; error: "closed" | "bad_item" };
+  | { ok: false; error: "closed" | "bad_item" | "full" };
 
 /**
  * One vote per voter. A new vote adds to the piece's count; changing it moves the count from the
@@ -201,6 +207,12 @@ export async function castVote(
       const counts = { ...ask.counts };
       if (prev?.itemId === itemId)
         return { ok: true as const, counts, changed: false };
+      // Asks from before the counter existed hold as many votes as their counts add up to.
+      const held =
+        ask.voteCount ?? Object.values(ask.counts).reduce((a, b) => a + b, 0);
+      if (!prev && held >= MAX_VOTES_PER_ASK)
+        return { ok: false as const, error: "full" as const };
+      if (!prev) tx.update(askRef, { voteCount: held + 1 });
       if (prev) {
         counts[prev.itemId] = Math.max(0, (counts[prev.itemId] ?? 0) - 1);
         tx.update(
@@ -227,11 +239,30 @@ export async function castVote(
   );
 }
 
-/** Deletes every ask the person made, with its votes. */
+/** Removes the inbox entry each person who opened the ask holds for it. */
+async function clearInboxEntries(askId: string, ask: AskDoc): Promise<void> {
+  for (const friend of ask.openedBy ?? []) {
+    try {
+      await inboxOf(friend).doc(askId).delete();
+    } catch {
+      // A malformed uid in the list must not stop the rest.
+    }
+  }
+}
+
+/** Deletes every ask the person made, with its votes and the inbox entries it left in friends' inboxes. */
 export async function deleteAsksForUser(uid: string): Promise<void> {
   const mine = await listAsksForUser(uid);
   const db = firestore();
-  for (const a of mine) await db.recursiveDelete(asks().doc(a.id));
+  for (const a of mine) {
+    await clearInboxEntries(a.id, a.ask);
+    await db.recursiveDelete(asks().doc(a.id));
+  }
+}
+
+/** Deletes one inbox entry (its ask is gone). */
+export async function deleteInboxAsk(uid: string, askId: string) {
+  await inboxOf(uid).doc(assertSegment("askId", askId)).delete();
 }
 
 /**
@@ -263,7 +294,10 @@ export async function deleteExpiredAsks(
   const cutoff = Timestamp.fromMillis(now.getTime() - ASK_RETENTION_MS);
   const snap = await asks().where("expiresAt", "<=", cutoff).limit(limit).get();
   const db = firestore();
-  for (const d of snap.docs) await db.recursiveDelete(d.ref);
+  for (const d of snap.docs) {
+    await clearInboxEntries(d.id, d.data() as AskDoc);
+    await db.recursiveDelete(d.ref);
+  }
   return snap.size;
 }
 
@@ -271,7 +305,13 @@ export async function deleteExpiredAsks(
 
 export type InboxWithId = { askId: string; entry: InboxAskDoc };
 
-/** First open creates the entry (unread); later opens leave it alone. */
+/** The most people an ask remembers as having opened it; past that no inbox entry is made. */
+const MAX_OPENED_BY = 500;
+
+/**
+ * First open creates the entry (unread); later opens leave it alone. The ask remembers the uid
+ * (`openedBy`) so that deleting the ask can clear the entry; an ask that is gone makes none.
+ */
 export async function openInboxAsk(
   uid: string,
   askId: string,
@@ -280,8 +320,14 @@ export async function openInboxAsk(
   now: Date = new Date(),
 ): Promise<void> {
   const ref = inboxOf(uid).doc(assertSegment("askId", askId));
+  const askRef = asks().doc(askId);
   await firestore().runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
+    const [snap, askSnap] = await Promise.all([tx.get(ref), tx.get(askRef)]);
+    if (!askSnap.exists) return;
+    const opened = (askSnap.data() as AskDoc).openedBy ?? [];
+    const tracked = opened.includes(uid);
+    if (!tracked && opened.length >= MAX_OPENED_BY) return;
+    if (!tracked) tx.update(askRef, { openedBy: FieldValue.arrayUnion(uid) });
     if (snap.exists) return;
     const entry: InboxAskDoc = {
       askerFirstName: ask.askerFirstName,

@@ -17,7 +17,7 @@ describe("/catalog/[file]", () => {
     const res = await get("p19299199.jpg");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("image/jpeg");
-    expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(res.headers.get("cache-control")).toBe("private, max-age=3600");
     const bytes = Buffer.from(await res.arrayBuffer());
     expect(bytes.equals(readCatalogAsset("p19299199.jpg"))).toBe(true);
   });

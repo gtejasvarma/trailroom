@@ -23,6 +23,16 @@ const config: NextConfig = {
   // Its API sets the same headers itself.
   async headers() {
     return [
+      // Every path: no framing (clickjacking) and no content sniffing. The Google sign-in popup
+      // is a separate window, not a frame, so it is unaffected.
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
       {
         source: "/ask/:token",
         headers: [

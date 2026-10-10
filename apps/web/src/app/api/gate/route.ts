@@ -5,12 +5,16 @@ import {
   constantTimeEqual,
   readGateConfig,
   signGateCookie,
-} from "@/lib/gate";
-import { clientKey, createAttemptLimiter } from "@/lib/gate-limit";
-import { copy } from "@/lib/copy";
+} from "../../../lib/gate";
+import { clientKey, createAttemptLimiter } from "../../../lib/gate-limit";
+import { copy } from "../../../lib/copy";
 
 // Per instance only (see gate-limit.ts): Cloud Armor is the real rate limit.
 const limiter = createAttemptLimiter();
+// Independent of any key: bounds guessing even if the per-client key is wrong (a proxy count
+// that is too high makes the key spoofable).
+const globalLimiter = createAttemptLimiter(100, 10 * 60 * 1000);
+const GLOBAL_KEY = "all";
 
 // A relative Location, resolved by the browser against the page it posted from. Behind App
 // Hosting's proxy a route handler's own URL is the container's (https://0.0.0.0:8080), so an
@@ -24,7 +28,7 @@ function back(path: string, search = "") {
 
 export async function POST(request: NextRequest) {
   const key = clientKey(request.headers);
-  if (limiter.blocked(key)) {
+  if (limiter.blocked(key) || globalLimiter.blocked(GLOBAL_KEY)) {
     return new Response(copy.gate.tooMany, {
       status: 429,
       headers: {
@@ -42,7 +46,8 @@ export async function POST(request: NextRequest) {
     typeof attempt !== "string" ||
     !(await constantTimeEqual(attempt, config.password))
   ) {
-    limiter.recordFailure(key);
+    limiter.record(key);
+    globalLimiter.record(GLOBAL_KEY);
     return back("/gate", "?error=1");
   }
 

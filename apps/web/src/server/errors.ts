@@ -113,6 +113,10 @@ export const ERRORS = {
     status: 410,
     message: "This link is no longer active.",
   },
+  ask_full: {
+    status: 409,
+    message: "This ask has all the votes it can hold, so it is closed to more.",
+  },
   own_ask: {
     status: 403,
     message: "This is your own ask, so only your friends can vote on it.",

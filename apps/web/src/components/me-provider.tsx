@@ -14,6 +14,7 @@ import {
 } from "react";
 import { getLabel } from "@trailroom/catalog";
 import { onAuthStateChanged } from "firebase/auth";
+import { noteSignedInAccount } from "../lib/ask-links";
 import { ApiError, api, apiFetch } from "../lib/api";
 import { signOutNow } from "../lib/account";
 import { copy } from "../lib/copy";
@@ -142,7 +143,8 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
   // Sign-in and sign-out change who the server sees: re-read at once.
   useEffect(() => {
     let first = true;
-    return onAuthStateChanged(getFirebaseAuth(), () => {
+    return onAuthStateChanged(getFirebaseAuth(), (user) => {
+      noteSignedInAccount(user?.uid ?? null, user?.isAnonymous ?? true);
       if (first) {
         first = false;
         return;

@@ -76,3 +76,18 @@ env:
     value: render-pose-set
     availability:
       - RUNTIME
+
+  # How many proxies in front of the app append to x-forwarded-for; the client key is the entry
+  # that many places from the RIGHT. Verify after deploy: 11 wrong passwords, each with a
+  # different made-up first hop in x-forwarded-for, must end in a 429. Too low a number only
+  # makes clients share a bucket; too high a number makes the limit spoofable.
+  - variable: TRUSTED_PROXY_HOPS
+    value: "1"
+    availability:
+      - RUNTIME
+  # Extra origins the app may build links with, besides INTERNAL_AUDIENCE (comma-separated), e.g.
+  # a custom domain. Left unset, links use INTERNAL_AUDIENCE alone.
+  # - variable: PUBLIC_ORIGINS
+  #   value: https://trailroom.ai
+  #   availability:
+  #     - RUNTIME

@@ -14,6 +14,7 @@ import {
 import { createAttemptLimiter, clientKey } from "../lib/gate-limit";
 import { readVoterKey, voterCookie } from "../lib/voter-cookie";
 import { askImage } from "./ask-image";
+import { readCapped } from "./body";
 import { buildAskView, type AskView } from "./ask-view";
 import { err, ok, type Result } from "./http";
 import { optionalUser, type User } from "./auth";
@@ -24,6 +25,24 @@ import { optionalUser, type User } from "./auth";
  */
 const voteLimiter = createAttemptLimiter(30, 10 * 60 * 1000);
 const MAX_VOTE_BODY_BYTES = 512;
+/** Public reads (page data and images) per client and token: a page shows up to 4 images. */
+const readLimiter = createAttemptLimiter(240, 10 * 60 * 1000);
+/** Requests whose token is not found, per client: slows random-token probing. */
+const missLimiter = createAttemptLimiter(30, 10 * 60 * 1000);
+
+/** True when this request is over a public limit; counts it against the read limit if not. */
+export function publicReadLimited(token: string, headers: Headers): boolean {
+  const client = clientKey(headers);
+  const key = `${token.slice(0, 16)}|${client}`;
+  if (missLimiter.blocked(client) || readLimiter.blocked(key)) return true;
+  readLimiter.record(key);
+  return false;
+}
+
+/** Counts a request for a token that was not found. */
+export function recordPublicMiss(headers: Headers): void {
+  missLimiter.record(clientKey(headers));
+}
 
 /** Headers on every public ask response (page data, votes and images). */
 export const PUBLIC_ASK_HEADERS = {
@@ -37,9 +56,12 @@ const accountOf = (u: User | null): User | null => (u && !u.isGuest ? u : null);
 
 type Found = { found: AskWithId } | { error: Result<never> };
 
-async function liveAsk(token: string): Promise<Found> {
+async function liveAsk(token: string, headers: Headers): Promise<Found> {
   const found = await getAskByToken(token);
-  if (!found) return { error: err("not_found") };
+  if (!found) {
+    recordPublicMiss(headers);
+    return { error: err("not_found") };
+  }
   if (!isAskLive(found.ask)) return { error: err("ask_closed") };
   return { found };
 }
@@ -49,7 +71,9 @@ export async function getPublicAsk(
   token: string,
   request: Request,
 ): Promise<Result<AskView>> {
-  const r = await liveAsk(token);
+  if (publicReadLimited(token, request.headers))
+    return err("too_many_attempts");
+  const r = await liveAsk(token, request.headers);
   if ("error" in r) return r.error as Result<AskView>;
   const { id, ask } = r.found;
   const viewer = accountOf(await optionalUser(request));
@@ -77,23 +101,38 @@ export async function voteOnAsk(
   const bad = (code: Parameters<typeof err>[0]) => ({
     result: err(code) as Result<AskView>,
   });
+  // Only our own page may post a vote: JSON (which a plain cross-site form cannot send) and not
+  // from another site's page. A missing Sec-Fetch-Site is allowed, for non-browser clients.
+  if (
+    !(request.headers.get("content-type") ?? "")
+      .toLowerCase()
+      .startsWith("application/json") ||
+    request.headers.get("sec-fetch-site") === "cross-site"
+  )
+    return bad("invalid_request");
   const limitKey = `${token.slice(0, 16)}|${clientKey(request.headers)}`;
-  if (voteLimiter.blocked(limitKey)) return bad("too_many_attempts");
+  if (
+    voteLimiter.blocked(limitKey) ||
+    missLimiter.blocked(clientKey(request.headers))
+  )
+    return bad("too_many_attempts");
   voteLimiter.recordFailure(limitKey);
 
   const declared = Number(request.headers.get("content-length") ?? "0");
   if (declared > MAX_VOTE_BODY_BYTES) return bad("body_too_large");
-  const text = await request.text().catch(() => "");
-  if (text.length > MAX_VOTE_BODY_BYTES) return bad("body_too_large");
+  const raw = await readCapped(request.body, MAX_VOTE_BODY_BYTES).catch(() =>
+    Buffer.alloc(0),
+  );
+  if (raw === null) return bad("body_too_large");
   let itemId: unknown;
   try {
-    itemId = (JSON.parse(text) as { itemId?: unknown }).itemId;
+    itemId = (JSON.parse(raw.toString("utf8")) as { itemId?: unknown }).itemId;
   } catch {
     return bad("invalid_request");
   }
   if (typeof itemId !== "string") return bad("invalid_request");
 
-  const r = await liveAsk(token);
+  const r = await liveAsk(token, request.headers);
   if ("error" in r) return { result: r.error as Result<AskView> };
   const { id, ask } = r.found;
   if (!ask.itemIds.includes(itemId)) return bad("invalid_request");
@@ -107,7 +146,13 @@ export async function voteOnAsk(
 
   const cast = await castVote(id, key, viewer?.uid ?? null, itemId);
   if (!cast.ok)
-    return bad(cast.error === "closed" ? "ask_closed" : "invalid_request");
+    return bad(
+      cast.error === "closed"
+        ? "ask_closed"
+        : cast.error === "full"
+          ? "ask_full"
+          : "invalid_request",
+    );
   if (viewer) {
     await openInboxAsk(viewer.uid, id, ask, itemId);
     await setInboxVote(viewer.uid, id, itemId);
@@ -126,10 +171,12 @@ export async function voteOnAsk(
 export async function getPublicAskImage(
   token: string,
   itemId: string,
+  headers: Headers = new Headers(),
 ): Promise<
   Result<{ bytes: Buffer; contentType: string; source: "render" | "label" }>
 > {
-  const r = await liveAsk(token);
+  if (publicReadLimited(token, headers)) return err("too_many_attempts");
+  const r = await liveAsk(token, headers);
   // A closed link serves no image at all, and does not say why: 404, like an unknown one.
   if ("error" in r) return err("not_found");
   return askImage(r.found.ask, itemId);

@@ -21,6 +21,7 @@ import {
   MAX_LONG_SIDE,
   MAX_UPLOAD_BYTES,
 } from "../lib/photo-check";
+import { readCapped } from "./body";
 import { err, ok, type Result } from "./http";
 import type { User } from "./auth";
 
@@ -63,31 +64,6 @@ export async function uploadPhoto(
   if (parts.bytes.length > MAX_UPLOAD_BYTES) return err("too_large");
   if ((await countPhotos(user.uid)) >= MAX_PHOTOS) return err("photo_limit");
   return processPhoto(user, parts.bytes);
-}
-
-/**
- * Reads the body as a stream and stops as soon as more than `max` bytes have arrived, so a
- * chunked upload with no Content-Length cannot buffer without bound. Null when over the limit.
- */
-export async function readCapped(
-  body: ReadableStream<Uint8Array> | null,
-  max: number,
-): Promise<Buffer | null> {
-  if (!body) return Buffer.alloc(0);
-  const reader = body.getReader();
-  const chunks: Buffer[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > max) {
-      await reader.cancel().catch(() => undefined);
-      return null;
-    }
-    chunks.push(Buffer.from(value));
-  }
-  return Buffer.concat(chunks);
 }
 
 async function readParts(

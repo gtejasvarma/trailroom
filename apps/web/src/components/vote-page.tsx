@@ -84,6 +84,7 @@ export function VotePage({ token }: { token: string }) {
       });
       if (res.status === 404 || res.status === 410) return setState("closed");
       if (res.status === 429) return setError(copy.vote.tooMany);
+      if (res.status === 409) return setError(copy.vote.full);
       if (!res.ok) return setError(copy.vote.failed);
       setView((await res.json()) as AskView);
     } catch {

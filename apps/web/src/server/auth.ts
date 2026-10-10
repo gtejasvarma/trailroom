@@ -14,7 +14,8 @@ export async function requireUser(request: Request): Promise<User | Response> {
   const match = header ? /^Bearer ([^\s]+)$/i.exec(header.trim()) : null;
   if (!match) return errorResponse("unauthorized");
   try {
-    const token = await auth().verifyIdToken(match[1]!);
+    // checkRevoked: a deleted or revoked user's still-unexpired token is refused.
+    const token = await auth().verifyIdToken(match[1]!, true);
     return {
       uid: token.uid,
       isGuest: token.firebase?.sign_in_provider === "anonymous",
@@ -30,7 +31,7 @@ export async function requireUser(request: Request): Promise<User | Response> {
  */
 export async function verifyGuestToken(token: string): Promise<string | null> {
   try {
-    const t = await auth().verifyIdToken(token);
+    const t = await auth().verifyIdToken(token, true);
     return t.firebase?.sign_in_provider === "anonymous" ? t.uid : null;
   } catch {
     return null;

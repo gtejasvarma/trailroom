@@ -4,11 +4,11 @@ import {
 } from "../../../../../../server/ask-public";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string; itemId: string }> },
 ) {
   const { token, itemId } = await params;
-  const r = await getPublicAskImage(token, itemId);
+  const r = await getPublicAskImage(token, itemId, request.headers);
   if (!r.ok)
     return Response.json(r.body, {
       status: r.status,

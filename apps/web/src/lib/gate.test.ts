@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { clientKey, createAttemptLimiter } from "./gate-limit";
+import {
+  clientKeyFrom,
+  createAttemptLimiter,
+  trustedProxyHops,
+} from "./gate-limit";
 import {
   GATE_MAX_AGE_SECONDS,
   constantTimeEqual,
@@ -141,10 +145,30 @@ describe("attempt limiter", () => {
     expect(l.blocked("1.1.1.1")).toBe(false);
   });
 
-  it("keys on the first x-forwarded-for hop, with a constant fallback", () => {
-    expect(
-      clientKey(new Headers({ "x-forwarded-for": "9.9.9.9, 10.0.0.1" })),
-    ).toBe("9.9.9.9");
-    expect(clientKey(new Headers())).toBe("unknown");
+  it("keys on the hop counted from the right, so a spoofed prefix changes nothing", () => {
+    const h = (v: string) => new Headers({ "x-forwarded-for": v });
+    expect(clientKeyFrom(h("9.9.9.9"), 1)).toBe("9.9.9.9");
+    expect(clientKeyFrom(h("1.2.3.4, 7.7.7.7"), 1)).toBe("7.7.7.7");
+    expect(clientKeyFrom(h("5.5.5.5, 1.2.3.4, 7.7.7.7"), 1)).toBe("7.7.7.7");
+    expect(clientKeyFrom(h("1.2.3.4, 7.7.7.7, 10.0.0.1"), 2)).toBe("7.7.7.7");
+    // Fewer entries than hops: the leftmost one present.
+    expect(clientKeyFrom(h("7.7.7.7"), 3)).toBe("7.7.7.7");
+    // A bad hop count is treated as 1.
+    expect(clientKeyFrom(h("1.2.3.4, 7.7.7.7"), 0)).toBe("7.7.7.7");
+    expect(clientKeyFrom(new Headers(), 1)).toBe("unknown");
+    expect(trustedProxyHops({})).toBe(1);
+    expect(trustedProxyHops({ TRUSTED_PROXY_HOPS: "2" })).toBe(2);
+    expect(trustedProxyHops({ TRUSTED_PROXY_HOPS: "0" })).toBe(1);
+    expect(trustedProxyHops({ TRUSTED_PROXY_HOPS: "x" })).toBe(1);
+  });
+
+  it("evicts the oldest keys under a flood instead of resetting everyone", () => {
+    const l = createAttemptLimiter(1, 600_000, () => 0);
+    l.record("victim");
+    for (let i = 0; i < 10_000; i++) l.record(`k${i}`);
+    // The victim was the oldest and is evicted; recent keys are kept.
+    expect(l.blocked("victim")).toBe(false);
+    expect(l.blocked("k9999")).toBe(true);
+    expect(l.blocked("k5000")).toBe(true);
   });
 });

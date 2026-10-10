@@ -56,11 +56,13 @@ export async function deleteAllForUser(uid: string): Promise<void> {
   await deleteObjects();
   // The social side: their votes on other people's asks keep their count but lose the link to
   // them; their own asks go with their votes; so do their lists and their inbox.
-  await anonymiseVotesBy(uid);
+  // The collection-group query in anonymiseVotesBy is the likeliest to fail (it needs an index),
+  // so it runs last: a failure there cannot leave asks or lists live, and the call can be retried.
   await deleteAsksForUser(uid);
   await deleteInboxForUser(uid);
   await deleteListsForUser(uid);
   await deletePurchasesForUser(uid);
+  await anonymiseVotesBy(uid);
 }
 
 /**

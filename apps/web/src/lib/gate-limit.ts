@@ -3,10 +3,15 @@
 // real control. Pure and clock-injectable so it can be tested.
 
 export interface AttemptLimiter {
-  /** True when this client has used up its failed attempts in the window. */
+  /** True when this client has used up its attempts in the window. */
   blocked(key: string): boolean;
+  /** Counts one attempt against the key (the gate counts only its failures). */
+  record(key: string): void;
+  /** The gate's name for the same thing. */
   recordFailure(key: string): void;
 }
+
+const MAX_KEYS = 10_000;
 
 export function createAttemptLimiter(
   max = 10,
@@ -21,23 +26,48 @@ export function createAttemptLimiter(
     else failures.delete(key);
     return kept;
   };
+  const record = (key: string) => {
+    const kept = live(key);
+    kept.push(now());
+    // Delete first so a re-recorded key moves to the back of the insertion order.
+    failures.delete(key);
+    failures.set(key, kept);
+    // Bound memory by evicting the oldest keys, so a flood of distinct keys cannot reset
+    // anyone else's counter.
+    while (failures.size > MAX_KEYS) {
+      const oldest = failures.keys().next().value;
+      if (oldest === undefined) break;
+      failures.delete(oldest);
+    }
+  };
   return {
     blocked: (key) => live(key).length >= max,
-    recordFailure: (key) => {
-      const kept = live(key);
-      kept.push(now());
-      failures.set(key, kept);
-      // Bound memory: drop everything if a flood of distinct keys piles up.
-      if (failures.size > 10_000) {
-        failures.clear();
-        failures.set(key, kept);
-      }
-    },
+    record,
+    recordFailure: record,
   };
 }
 
-/** The client IP is the first hop of x-forwarded-for; one shared bucket if there is none. */
+/**
+ * The client IP, counted from the RIGHT of x-forwarded-for: the proxies in front of us append
+ * the address they saw, so only the entries nearest the end are ours; everything to their left
+ * is whatever the client claimed. `hops` is how many trusted proxies there are (1 = the
+ * rightmost entry). A shorter list falls back to its leftmost entry; no header is one shared key.
+ */
+export function clientKeyFrom(headers: Headers, hops: number): string {
+  const parts = (headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return "unknown";
+  const n = Number.isInteger(hops) && hops >= 1 ? hops : 1;
+  return parts[Math.max(0, parts.length - n)]!;
+}
+
+export function trustedProxyHops(env: Record<string, string | undefined>) {
+  const n = Number(env.TRUSTED_PROXY_HOPS);
+  return Number.isInteger(n) && n >= 1 ? n : 1;
+}
+
 export function clientKey(headers: Headers): string {
-  const first = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return first || "unknown";
+  return clientKeyFrom(headers, trustedProxyHops(process.env));
 }

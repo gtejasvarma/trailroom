@@ -47,7 +47,31 @@ export function forgetAskLink(askId: string): void {
 export function clearAskLinks(): void {
   try {
     window.localStorage.removeItem(KEY);
+    window.localStorage.removeItem("trailroom_ask_links_uid");
   } catch {
     // Nothing to clear.
+  }
+}
+
+const UID_KEY = "trailroom_ask_links_uid";
+
+/**
+ * Called on every auth-state change. Links belong to the real account that made them, so they are
+ * cleared when a different real account signs in on this browser. A guest session never clears
+ * them, and a guest becoming an account keeps its uid, so the upgrade paths keep their links.
+ */
+export function noteSignedInAccount(
+  uid: string | null,
+  isAnonymous: boolean,
+): void {
+  if (!uid || isAnonymous) return;
+  try {
+    const previous = window.localStorage.getItem(UID_KEY);
+    if (previous !== uid) {
+      if (previous !== null) clearAskLinks();
+      window.localStorage.setItem(UID_KEY, uid);
+    }
+  } catch {
+    // Storage blocked: the links are blocked too.
   }
 }

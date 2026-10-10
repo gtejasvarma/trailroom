@@ -7,6 +7,8 @@ import {
   ASK_RETENTION_MS,
   MAX_LIVE_ASKS,
   createAskFor,
+  castVote,
+  newAskToken,
   deletePoseSet,
   firestore,
   getAskByToken,
@@ -442,7 +444,7 @@ describe("votes", () => {
     const junk = await votePOST(
       req("POST", `/api/ask/${token}/vote`, {
         body: "not json",
-        headers: fresh(),
+        headers: { ...fresh(), "content-type": "application/json" },
       }),
       p({ token }),
     );
@@ -450,7 +452,7 @@ describe("votes", () => {
     const big = await votePOST(
       req("POST", `/api/ask/${token}/vote`, {
         body: JSON.stringify({ itemId: "coat", pad: "x".repeat(2000) }),
-        headers: fresh(),
+        headers: { ...fresh(), "content-type": "application/json" },
       }),
       p({ token }),
     );
@@ -944,5 +946,258 @@ describe("housekeeping", () => {
       ).size,
     ).toBe(0);
     expect((await view(askA.token)).status).toBe(404);
+  });
+});
+
+describe("the public routes do bounded work", () => {
+  const voteReq = (token: string, init: RequestInit & { headers: object }) =>
+    votePOST(
+      new Request(`http://localhost/api/ask/${token}/vote`, {
+        method: "POST",
+        ...init,
+        // @ts-expect-error duplex is needed for a streamed body
+        duplex: "half",
+      }),
+      p({ token }),
+    );
+  const json = { "content-type": "application/json" };
+
+  it("reads the vote body with a hard byte cap, without buffering the rest", async () => {
+    const a = await person();
+    const { token } = await ask(a, await makeList(a, ["coat"]), ["coat"]);
+    let pulled = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(c) {
+        pulled++;
+        c.enqueue(new Uint8Array(100));
+        if (pulled > 1000) c.close();
+      },
+    });
+    const res = await voteReq(token, {
+      body,
+      headers: { ...json, ...fresh() },
+    });
+    expect([res.status, (await res.json()).error]).toEqual([
+      413,
+      "body_too_large",
+    ]);
+    expect(pulled).toBeLessThan(20);
+  });
+
+  it("only takes JSON, and never from another site's page", async () => {
+    const a = await person();
+    const { token } = await ask(a, await makeList(a, ["coat"]), ["coat"]);
+    const send = (headers: Record<string, string>) =>
+      voteReq(token, {
+        body: JSON.stringify({ itemId: "coat" }),
+        headers: { ...fresh(), ...headers },
+      });
+    expect((await send({ "content-type": "text/plain" })).status).toBe(400);
+    expect((await send({})).status).toBe(400);
+    expect(
+      (await send({ ...json, "sec-fetch-site": "cross-site" })).status,
+    ).toBe(400);
+    expect(
+      (await send({ ...json, "sec-fetch-site": "same-origin" })).status,
+    ).toBe(200);
+    expect((await send(json)).status).toBe(200);
+    expect((await myAsks(a))[0]!.total).toBe(2);
+  });
+
+  it("limits public reads per client and token, and probing for tokens that do not exist", async () => {
+    const a = await person();
+    const { token } = await ask(a, await makeList(a, ["coat"]), ["coat"]);
+    const get = (client: string, t = token) =>
+      askGET(
+        req("GET", `/api/ask/${t}`, { headers: { "x-forwarded-for": client } }),
+        p({ token: t }),
+      );
+    const statuses: number[] = [];
+    for (let i = 0; i < 241; i++)
+      statuses.push((await get("10.77.0.1")).status);
+    expect(statuses.slice(0, 240).every((x) => x === 200)).toBe(true);
+    const over = await get("10.77.0.1");
+    expect([over.status, (await over.json()).error]).toEqual([
+      429,
+      "too_many_attempts",
+    ]);
+    expect((await get("10.77.0.2")).status).toBe(200);
+
+    const misses: number[] = [];
+    for (let i = 0; i < 31; i++)
+      misses.push((await get("10.77.0.3", newAskToken().token)).status);
+    expect(misses.slice(0, 30).every((x) => x === 404)).toBe(true);
+    expect(misses[30]).toBe(429);
+    expect((await get("10.77.0.3")).status).toBe(429);
+  });
+});
+
+describe("served images and frozen renders", () => {
+  it("checks liveness on every request, even when the bytes are cached", async () => {
+    const a = await withPhoto();
+    await tryOn(a.token, "blouse");
+    const { token, body } = await ask(a, await makeList(a, ["blouse"]), [
+      "blouse",
+    ]);
+    const first = await image(token, "blouse");
+    expect(first.status).toBe(200);
+    expect(first.headers.get("cache-control")).toBe("private, no-store");
+    const again = await image(token, "blouse");
+    expect((await bytes(again)).equals(await bytes(first))).toBe(true);
+    await revokePOST(
+      req("POST", `/api/asks/${body.askId}/revoke`, { token: a.token }),
+      p({ id: body.askId }),
+    );
+    expect((await image(token, "blouse")).status).toBe(404);
+  });
+
+  it("a removed try-on re-rendered on the same photo does not reappear on the old link", async () => {
+    const a = await withPhoto();
+    const first = await tryOn(a.token, "blouse");
+    const { token } = await ask(a, await makeList(a, ["blouse"]), ["blouse"]);
+    const label = await labelBytes("blouse");
+    const rendered = await bytes(await image(token, "blouse"));
+    expect(rendered.equals(label)).toBe(false);
+
+    await deletePoseSet(first.poseSetId);
+    expect((await bytes(await image(token, "blouse"))).equals(label)).toBe(
+      true,
+    );
+    const second = await tryOn(a.token, "blouse");
+    expect(second.poseSetId).toBe(first.poseSetId);
+    expect(second.jobId).not.toBe(first.jobId);
+    expect((await bytes(await image(token, "blouse"))).equals(label)).toBe(
+      true,
+    );
+    expect((await (await view(token)).json()).pieces[0].rendered).toBe(false);
+    // A new ask freezes the new render.
+    const fresh2 = await ask(a, await makeList(a, ["blouse"], "Again"), [
+      "blouse",
+    ]);
+    expect((await (await view(fresh2.token)).json()).pieces[0].rendered).toBe(
+      true,
+    );
+  });
+
+  it("an ask made before the job id was frozen shows the label photograph", async () => {
+    const a = await withPhoto();
+    const { poseSetId } = await tryOn(a.token, "blouse");
+    const made = await createAskFor({
+      uid: a.uid,
+      askerFirstName: "Maya",
+      listId: "x",
+      listName: "x",
+      question: null,
+      itemIds: ["blouse"],
+      poseSetIds: { blouse: poseSetId },
+    });
+    if (!made.ok) throw new Error("setup");
+    expect((await (await view(made.token)).json()).pieces[0].rendered).toBe(
+      false,
+    );
+  });
+});
+
+describe("vote cap, openers and the public view", () => {
+  it("holds at most 500 vote documents per ask; changing a vote does not count again", async () => {
+    const a = await person();
+    const { token, body } = await ask(a, await makeList(a, ["coat", "slip"]), [
+      "coat",
+      "slip",
+    ]);
+    const first = await vote(token, "coat");
+    const cookie = `trailroom_voter=${cookieOf(first)}`;
+    const doc = () => firestore().collection("asks").doc(body.askId);
+    expect((await doc().get()).get("voteCount")).toBe(1);
+    await doc().update({ voteCount: 500 });
+    const full = await vote(token, "slip");
+    expect([full.status, (await full.json()).error]).toEqual([409, "ask_full"]);
+    const moved = await vote(token, "slip", { cookie });
+    expect(moved.status).toBe(200);
+    expect((await doc().get()).get("voteCount")).toBe(500);
+    expect((await myAsks(a))[0]!.counts).toEqual({ coat: 0, slip: 1 });
+    // Directly, too.
+    const r = await castVote(body.askId, "f".repeat(32), null, "coat");
+    expect(r).toEqual({ ok: false, error: "full" });
+  });
+
+  it("never puts the private fields in a view", async () => {
+    const a = await withPhoto();
+    const b = await person();
+    await tryOn(a.token, "blouse");
+    const { token, body } = await ask(a, await makeList(a, ["blouse"]), [
+      "blouse",
+    ]);
+    const res = await view(token, { bearer: b.token });
+    const text = JSON.stringify(await res.json());
+    for (const field of ["openedBy", "voteCount", "poseSetJobIds", "tokenHash"])
+      expect(text).not.toContain(field);
+    expect(text).not.toContain(b.uid);
+    expect(text).not.toContain(a.uid);
+    const doc = (
+      await firestore().collection("asks").doc(body.askId).get()
+    ).data()!;
+    expect(doc.openedBy).toEqual([b.uid]);
+  });
+
+  it("Delete everything clears the ask from friends' inboxes; a revoked ask stays, closed", async () => {
+    const a = await withPhoto();
+    const b = await person();
+    const c = await person();
+    const list = await makeList(a, ["coat", "slip"]);
+    const live = await ask(a, list, ["coat"], "Which one for Saturday?");
+    const other = await ask(a, list, ["slip"], "And this?");
+    await view(live.token, { bearer: b.token });
+    await view(other.token, { bearer: c.token });
+    await revokePOST(
+      req("POST", `/api/asks/${other.body.askId}/revoke`, { token: a.token }),
+      p({ id: other.body.askId }),
+    );
+    const inbox = async (t: Person) =>
+      (
+        await (
+          await inboxGET(req("GET", "/api/inbox", { token: t.token }))
+        ).json()
+      ).asks as { askId: string; closed: boolean }[];
+    expect(await inbox(b)).toHaveLength(1);
+    expect((await inbox(c))[0]).toMatchObject({ closed: true });
+
+    expect(
+      (await accountDELETE(req("DELETE", "/api/photo", { token: a.token })))
+        .status,
+    ).toBe(200);
+    for (const t of [b, c])
+      expect(
+        (
+          await firestore()
+            .collection("inbox")
+            .doc(t.uid)
+            .collection("asks")
+            .get()
+        ).size,
+      ).toBe(0);
+    expect(await inbox(b)).toEqual([]);
+  });
+
+  it("getInbox drops and deletes an entry whose ask no longer exists", async () => {
+    const b = await person();
+    const ref = firestore()
+      .collection("inbox")
+      .doc(b.uid)
+      .collection("asks")
+      .doc("gone-ask");
+    await ref.set({
+      askerFirstName: "Maya",
+      question: "Which?",
+      itemIds: ["coat"],
+      firstOpenedAt: new Date(),
+      votedItemId: null,
+      unread: true,
+    });
+    const box = await (
+      await inboxGET(req("GET", "/api/inbox", { token: b.token }))
+    ).json();
+    expect(box).toEqual({ asks: [], unread: 0 });
+    expect((await ref.get()).exists).toBe(false);
   });
 });

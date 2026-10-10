@@ -354,6 +354,15 @@ Phases D to F (run after step 8, signed in with a fresh photo and try-on if step
     shows the AI caption beside it, **Buy the outfit** and **Add outfit to a list**, and **Try it on**
     for a piece you have not tried. The outfit appears in Your try-ons with a tag. Real cost is about
     $0.039 per outfit (three local runs on 2026-10-10 with `scripts/outfit-smoke.ts`).
+19. **The attempt limit cannot be dodged.** From one machine, post 11 wrong passwords to `/api/gate`,
+    each with a different made-up first hop in `X-Forwarded-For`. The 11th must answer 429. If it does
+    not, `TRUSTED_PROXY_HOPS` in `apps/web/apphosting.yaml` is too high. If people on different
+    networks block each other, it is too low: raise it by one, roll out, and repeat this step. Wait ten
+    minutes afterwards, or the gate refuses the right password too. Until this is checked the limits
+    (gate, votes, public reads) may be shared by every visitor.
+20. **Sign in with Google still works** on the hosted site (the 2026-10-10 change added framing
+    headers and checks on every request that the account still exists; the tests cover this only
+    against the Auth emulator).
 
 ## If the first build fails
 

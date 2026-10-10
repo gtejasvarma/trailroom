@@ -652,7 +652,7 @@ Tests: the buffer never renders for someone who has not viewed the last five; ne
 
 #### Phase H — Hardening (M)
 
-Three read-only reviews (privacy, cost, conformance to the prototypes and §22), fixes, accessibility and performance passes on both layouts, a live run of every render path, the runbook brought up to date, and the list of what is owed before the password gate comes off restated in one place. _Not started. A security review of the Phase D to F surfaces was run on 2026-10-10 and its fixes are being applied in a separate change._
+Three read-only reviews (privacy, cost, conformance to the prototypes and §22), fixes, accessibility and performance passes on both layouts, a live run of every render path, the runbook brought up to date, and the list of what is owed before the password gate comes off restated in one place. _Not started. A security review of the Phase D to F surfaces was run on 2026-10-10 and its twelve fixes are built and tested (attempt limits keyed on the trusted proxy hop with an overall cap, limits and a cache on the public reads, a 500-vote cap and no cross-site votes, deleted accounts' tokens refused, friends' inbox entries removed with the ask, an ask tied to the exact render it shared, framing headers). Still owed: the proxy-hop check on the hosted site (`docs/DEPLOY.md` smoke test step 19). Accepted and not fixed: the limits are in memory and per instance, vote links appear in platform request logs, and a determined person can still vote more than once, so counts are advisory._
 
 ### 12.4 Beside the phases: M1
 

@@ -87,6 +87,7 @@ describe("mergeGuestInto", () => {
       photos: 1,
       tryOns: [{ jobId, poseSetId: newId, itemId: "item-a" }],
       follows: 1,
+      stayed: { photos: 0, tryOns: 0 },
     });
 
     expect(
@@ -129,7 +130,12 @@ describe("mergeGuestInto", () => {
     await guestTryOn(pid, "item-a");
     await mergeGuestInto(G, A);
     const again = await mergeGuestInto(G, A);
-    expect(again).toEqual({ photos: 0, tryOns: [], follows: 0 });
+    expect(again).toEqual({
+      photos: 0,
+      tryOns: [],
+      follows: 0,
+      stayed: { photos: 0, tryOns: 0 },
+    });
     expect(await listPhotos(A)).toHaveLength(1);
     expect(await getPoseSet(poseSetId(A, pid, "item-a"))).not.toBeNull();
   });
@@ -158,6 +164,9 @@ describe("mergeGuestInto", () => {
     expect(await getPoseSet(id)).not.toBeNull();
     expect(await getPhotoBytes(G, pid)).not.toBeNull();
     expect(await getPoseSet(poseSetId(A, pid, "item-a"))).toBeNull();
+    // Something stayed, so the guest keeps its sign-in and the result says what stayed.
+    expect(r.stayed).toEqual({ photos: 1, tryOns: 1 });
+    await expect(auth().getUser(G)).resolves.toMatchObject({ uid: G });
   });
 
   it("respects the photo cap, try-on photos first; keeps the account's default", async () => {
@@ -184,6 +193,8 @@ describe("mergeGuestInto", () => {
     expect(await getDefaultPhotoId(A)).toBe("own0");
     // The excess stays with the guest for the purge.
     expect(await getPhotoBytes(G, "ph1")).not.toBeNull();
+    expect(r.stayed).toEqual({ photos: 1, tryOns: 0 });
+    await expect(auth().getUser(G)).resolves.toMatchObject({ uid: G });
   });
 
   it("keeps the account's own finished set for the same photo and piece", async () => {
@@ -205,7 +216,7 @@ describe("mergeGuestInto", () => {
     await expect(mergeGuestInto(G, "a/b")).rejects.toThrow();
   });
 
-  it("purge still runs on what is left, with the guest's Auth user gone", async () => {
+  it("purge still runs on what is left, with the guest's Auth user kept until then", async () => {
     const pid = await guestPhoto(1);
     await guestTryOn(pid, "item-a", "rendering");
     await mergeGuestInto(G, A);
