@@ -6,8 +6,12 @@ Walking, Seated) — before you buy.
 
 **Where it stands (2026-10-10).** The demonstration on Friday 9 October has passed. V0 (Phases A, B
 and C) is built and live behind a password at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`,
-and real try-ons have been generated there. Phases D, E and F are built, tested and on `main`; D is
-deployed, and E and F wait on a manual rules deploy and rollout. Phases G and H are not started.
+and real try-ons have been generated there. Phases A to G are built, tested and on `main`; A to D are
+deployed, and E, F, G and the fixes of a security review wait on one manual rules deploy and one manual rollout.
+Phase G (the follow loop) ships with two switches, both off because they are undecided: email (nothing is sent
+or shown) and the "arrives on you" buffer (nothing is rendered that a person did not ask for). Its checkpoint
+is not met: nothing has been published on the hosted site, the buffer has never run with the real image model,
+and no real email has been sent. Phase H (hardening) is partly done; the rest is not started.
 
 What a visitor can do today (behind the password): browse Discover with the proof slider, product and
 label pages with Follow; add several photos, by upload or the in-page camera, with a consent line under
@@ -15,13 +19,14 @@ the upload controls; start a try-on and keep browsing while it renders (a chip o
 ready toast); open a four-pose result with the AI caption by signing in with Google (a guest sees
 tile-sized images only; a guest who signs in with an existing Google account has their photos, finished
 try-ons and follows merged into it); keep lists, ask friends from a list through a link that shows only
-the pieces in the ask (the vote page needs no account and no password), and read the votes in the app;
+the pieces in the ask (the vote page needs no account and no password; nor does the unsubscribe page), and read the votes in the app;
 use You (phone) and Studio (desktop) with real counts and "Delete everything"; compare up to four tried
 pieces on a wide screen; "Buy", which opens a demonstration checkout that takes no payment; and "Wear it
 with", which renders two pieces together as one outfit image (the Front view) (in the current catalogue only the coat
-pairs with anything). **No email is sent or promised.** Jewellery and accessories cannot be tried on yet.
+pairs with anything); see a "New from labels you follow" section at the top of Discover when a followed label has published a piece (none has on the hosted site yet; pieces are published by a script, `scripts/publish-piece.ts`). **No email is sent or promised.** Jewellery and accessories cannot be tried on yet.
 **Not done:** the quality checks of the eval (M1), so the gate is structural only. **Next:** the manual
-rollout of E and F, then the follow loop with real email (Phase G) and hardening (Phase H)
+rules deploy and rollout of E, F and G; the owner's two decisions (whether to send email, and whether to switch the
+buffer on) and, for email, a provider key and sending address; then the rest of hardening (Phase H)
 (`docs/BUILD_PLAN.md` §12).
 
 ## Running it locally
@@ -43,7 +48,7 @@ The last command previews the app at `http://localhost:3000`; the gate password 
 |---|---|
 | `docs/PRD.md` | **The PRD** (v0.7), one consistent document. §22 holds the decisions and their reasoning; §19 is the register of the original mock-vs-PRD audit. |
 | `docs/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Derive every value from §11 and do not invent tokens. |
-| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H; V0 = A to C and D are live, E and F are built and await rollout). |
+| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H; V0 = A to C and D are live, E, F and G are built and await rollout). |
 | `docs/DEPLOY.md` | The manual deploy runbook (Tejas runs it; agents do not deploy). |
 | `docs/decisions/` | ADRs — one file per irreversible call (infra, vendor, architecture, scope). |
 | `specs/` | Units of work — one spec file per increment being built. |

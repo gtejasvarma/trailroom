@@ -4,19 +4,35 @@
 > directory `apps/web`, live branch `main`, project `virtual-tryon-tejas`, behind the password gate, at
 > `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`. **Phases A, B and C (V0) and Phase D
 > are what is live** (commits `a5b7918`, `f3ab209`, `2f11325`, `328725a`), and real try-ons have been
-> generated on the hosted site. **Phases E and F are built and on `main` but not rolled out**
-> (`0ef59a4`, `1c52f77`). Pushes to `main` have not been triggering rollouts, so each one is started by
-> hand:
+> generated on the hosted site. **Phases E, F and G and the fixes of the security review are built and
+> on `main` but not rolled out** (`0ef59a4`, `1c52f77`, `4ea213f`, `a05f1ce`). Pushes to `main` have not
+> been triggering rollouts, so each one is started by hand:
 >
 > ```bash
 > firebase apphosting:rollouts:create trailroom --git-branch main --project virtual-tryon-tejas --force
 > ```
 >
-> **To put Phases E and F live, in this order.** First the rules, because Phase E adds the server-only
-> `purchases` collection and the running app reads it (`firebase deploy --only firestore:rules
---project virtual-tryon-tejas`); then the rollout above. Phase F changes no rules, indexes or workflow.
-> Phase D needed the rules and the indexes (`--only firestore:rules,firestore:indexes`; the indexes file
-> gained a field override on `votes.voterUid`), and that is done.
+> **To put Phases E, F and G live, in this order.** First the rules, because Phase E adds the server-only
+> `purchases` collection and Phase G adds six more (`publishedPieces`, `publishEvents`, `arrivals`,
+> `emailPrefs`, `emailSent`, `emailTokens`), and the running app reads them:
+>
+> ```bash
+> firebase deploy --only firestore:rules --project virtual-tryon-tejas
+> ```
+>
+> Then the rollout above. This one rules deploy covers both phases. Phases F and G change no indexes
+> and no workflow, and add no Scheduler job: the follow loop runs inside the existing 15-minute
+> housekeeping call (step 10). One query (`publishEvents`: equality on `type` with a range on
+> `createdAt`) may need a composite index in production, and the emulator cannot tell. If the logs show
+> an index error after the rollout, create the index from the link in the error.
+>
+> **Phase G ships with two switches, both off:** `EMAIL_TRANSPORT` (default `none`: nothing is sent and
+> the product shows no email controls) and `ARRIVALS_BUFFER` (default `off`: nothing is rendered that a
+> person did not ask for). Both are in `apps/web/apphosting.yaml`; leave them as they are for this
+> rollout. Nothing has been published on the hosted site, the buffer has never run with the real image
+> model, and no real email has been sent. Phase D needed the rules and the indexes (`--only
+> firestore:rules,firestore:indexes`; the indexes file gained a field override on `votes.voterUid`), and
+> that is done.
 >
 > **Done for this project:** steps 0 to 11 (2026-10-07 and 2026-10-08), the Phase A rules redeploy for the
 > follows collection, the Phase D rules and indexes, and the catalogue images in `gs://<bucket>/catalog/`
@@ -144,13 +160,13 @@ JSON
 gcloud storage buckets update gs://$BUCKET --lifecycle-file /tmp/trailroom-lifecycle.json --project $PROJECT
 ```
 
-## 4. Rules and indexes (done through Phase D; the Phase E rules are still to deploy)
+## 4. Rules and indexes (done through Phase D; the Phase E and Phase G rules are still to deploy)
 
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes,storage --project $PROJECT
 ```
 
-Phases D and E added explicit denies in `firestore.rules` for `lists`, `asks` (with `votes`), `inbox` and `purchases`, and Phase D added a field override on `votes.voterUid` in `firestore.indexes.json`. Rules for `purchases` are the one piece not yet deployed.
+Phases D and E added explicit denies in `firestore.rules` for `lists`, `asks` (with `votes`), `inbox` and `purchases`, and Phase D added a field override on `votes.voterUid` in `firestore.indexes.json`. Phase G added explicit denies for `publishedPieces`, `publishEvents`, `arrivals`, `emailPrefs`, `emailSent` and `emailTokens`. The rules for `purchases` and for those six are not yet deployed; one `firebase deploy --only firestore:rules --project virtual-tryon-tejas` covers all of them.
 
 The four composite indexes (`jobs` and `photos` on `isGuest` + `expiresAt`, `jobs` on `status` +
 `updatedAt`, `spendLog` on `state` + `createdAt`) take a few minutes to build. The housekeeping
@@ -267,7 +283,9 @@ gcloud workflows deploy render-pose-set \
 
 One endpoint, called every 15 minutes, does the housekeeping the product's promises depend on: it deletes
 guests' photos and renders about 48 hours after capture if no account was created, fails jobs
-that have been stuck rendering, and releases spend reservations that never settled. **The deletion
+that have been stuck rendering, and releases spend reservations that never settled. Since Phase G it
+also runs the follow loop (the "arrives on you" buffer and the email step); each part does nothing unless
+its switch is on, and the Scheduler job and the workflow did not change. **The deletion
 promise in the Details sheet is only true while this job is running.**
 
 ```bash
@@ -288,9 +306,9 @@ Firebase console → Authentication → Settings → Authorised domains: add the
 
 ## 12. Smoke test, in this order
 
-For the product as it is now (Phases A to F, once E and F are rolled out). Steps 1 to 4 do not need the image
+For the product as it is now (Phases A to G, once E, F and G are rolled out, with the defaults of both switches). Steps 1 to 4 do not need the image
 model; steps 5 and 6 are the first model calls. If a try-on fails, run `runs/diag.sh` before anything else.
-Steps 1 to 11 were written for V0; steps 12 to 18 cover Phases D to F and have not been run on the deployed site.
+Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the security fixes, steps 21 and 22 cover Phase G, and none of them has been run on the deployed site.
 
 1. Open `$APP_URL`. You should land on `/gate`. A wrong password is refused; the right one shows
    Discover **with images** (images prove the catalogue copy in step 3 and the bucket setting).
@@ -363,6 +381,15 @@ Phases D to F (run after step 8, signed in with a fresh photo and try-on if step
 20. **Sign in with Google still works** on the hosted site (the 2026-10-10 change added framing
     headers and checks on every request that the account still exists; the tests cover this only
     against the Auth emulator).
+21. **The follow loop does nothing unasked, with the defaults.** Signed in, open You: there is **no**
+    email section and no sentence about email. Open Discover: no "New from labels you follow" section
+    appears (nothing has been published), and no card appears that you did not ask for. In the logs the
+    housekeeping call answers 200 with `"arrivalsStarted":0` and `"emailsSent":0`. After a day, `spendLog`
+    has no lines marked `unrequested`.
+22. **The unsubscribe page answers without the password.** In a private window with no password cookie,
+    open `$APP_URL/unsubscribe/not-a-real-token`. It answers with the same plain page it gives any token,
+    without going to `/gate`. Any other path in the private window (for example `$APP_URL/lists`) still
+    goes to `/gate`.
 
 ## If the first build fails
 

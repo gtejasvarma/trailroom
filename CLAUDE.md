@@ -9,14 +9,21 @@ Seated), garments from labels the user follows.
 **The experience being built is the two aligned prototypes in `mocks/`** (`Trailroom Prototype.dc.html`,
 `Trailroom Desktop.dc.html`; ADR 0005). They win on flow, layout and copy, and the PRD (v0.7) agrees
 with them except where §22.1 says the build differs (no fit sentences, consent by a line under the upload controls, no live selfie
-claim, no email sent yet, an outfit does not also become two try-ons). The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
+claim, no email sent, an outfit does not also become two try-ons). The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
 **The demonstration was Friday 9 October 2026 and has passed. V0 (Phases A, B and C) is built and deployed**
 behind the password at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` (`a5b7918`, `f3ab209`,
 `2f11325`), and real try-ons have been generated on the hosted site.
-**Phases D, E and F are built, tested and pushed to `main`** (`328725a` lists, asks and the public vote
-page; `0ef59a4` You and Studio, Compare, Buy; `1c52f77` outfits). Phase D is deployed. E and F wait
-on a manual rules deploy and rollout by Tejas (`docs/DEPLOY.md`). **Phase G (the follow loop and real email)
-and Phase H (hardening) are not started.** No email is sent anywhere yet.
+**Phases A to G are built and on `main`** (`328725a` lists, asks and the public vote page; `0ef59a4` You and
+Studio, Compare, Buy; `1c52f77` outfits; `4ea213f` the fixes of the security review of D to F; `a05f1ce` the follow
+loop). A to D are deployed. E, F, G and the security fixes wait on one manual rules deploy and one manual rollout by
+Tejas (`docs/DEPLOY.md`). **Phase G ships with two switches, both off, because the owner has not decided either:**
+`EMAIL_TRANSPORT` (default `none`: nothing is sent, nothing is recorded, and the product shows no email controls or
+sentences; no real provider transport exists yet, so no email is sent anywhere) and `ARRIVALS_BUFFER` (default `off`:
+no code path renders anything a person did not ask for; on, it pre-renders up to five Front cards per signed-in
+account under the daily cap and a separate `ARRIVALS_DAILY_USD` ceiling, and needs a cost review before it is
+switched on). Phase G's checkpoint is **not met**: nothing has been published on the hosted site, the buffer has
+never run with the real image model, and no real email has been sent. Phase H (hardening) is partly done (the
+security review and its fixes); the rest is not started.
 
 Where things stand: M0 is done. M2 + M3 (the pipeline, the Cloud Workflow) are deployed and
 carry over; their original screens and catalogue were replaced in Phases A to C. **M1 (the eval) is unfinished**: the QA gate in `packages/pipeline` is structural
@@ -34,7 +41,9 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 - `runs/diag.sh` — local, git-ignored. **The first thing to run when a try-on fails on the deployed site:** it prints the latest job's per-pose reasons, the server-side error detail and the spend log.
 - `npm test` — unit tests. `npm run test:emu` — tests against the Firebase emulators. `npm run test:e2e` —
   Playwright against a dev server and the emulators. Prefix the last two with `caffeinate -i` on a Mac.
-  All tests use a fake render provider; nothing here calls the image model.
+  All tests use a fake render provider; nothing here calls the image model. `test:e2e` runs two Playwright
+  projects: the main one, and `g-buffer.spec.ts` against a second dev server on port 3102 with
+  `ARRIVALS_BUFFER=on` and `EMAIL_TRANSPORT=log` (its build directory is `.next-buffer`, set by `NEXT_DIST_DIR`).
 
 ## Document map
 
@@ -49,15 +58,15 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 | `mocks/support.js`, `mocks/Trailroom Desktop Designer.dc.html`, `mocks/Conversion Audit.dc.html` | The runtime that makes the `.dc.html` files run outside the Claude Design canvas. The Designer file is the reference for the deferred back office; the Audit is a 44-item conversion audit. `support.canvas.js` is the real Claude Design export — reference only, requires `window.React`, won't run standalone. |
 | `packages/render/` | The one chokepoint for image-model calls: model/price table, the prompts (`edit-v1` for one piece, `outfit-v1` for two pieces in one image), the spend ledger interface, and a fake provider for tests (refused in production). |
 | `packages/db/` | The one place that talks to Firestore and Cloud Storage: typed repositories and the Firestore-backed daily spend ledger. `merge.ts` moves a guest's things into an existing Google account at sign-in; `usage.ts` holds the daily try-on counts per uid, which removing a try-on never resets ("Delete everything" removes the sign-in, so the person returns under a new uid with a fresh count). |
-| `packages/pipeline/` | M3: the render graph's nodes, the QA gate, the routing policy, and the inline orchestrator used by local dev and tests. |
+| `packages/pipeline/` | M3: the render graph's nodes, the QA gate, the routing policy, and the inline orchestrator used by local dev and tests. `published-catalog.ts` publishes pieces to Firestore and Cloud Storage and changes their prices; `script-guard.ts` makes operational scripts refuse a real project unless given its exact id. |
 | `packages/catalog/` | The demo catalogue and the copy rules. `assets/` holds the garment images that get copied to Cloud Storage; `assets/prototype/` holds the prototype's images (cleared by Tejas, ADR 0005) for the Phase A catalogue. |
 | `workflows/render-pose-set.yaml` | M3: the Cloud Workflow that drives the graph in production by calling `/api/internal/pipeline/*`. |
-| `firestore.rules`, `storage.rules` | Clients read their own job, pose set and consent; they write nothing; Storage is closed to clients. Lists, asks (with votes), inbox entries and purchases are server-only, with explicit denies. |
+| `firestore.rules`, `storage.rules` | Clients read their own job, pose set and consent; they write nothing; Storage is closed to clients. Lists, asks (with votes), inbox entries, purchases, published pieces and their events, arrivals, and email preferences, sent-keys and unsubscribe tokens are server-only, with explicit denies. |
 | `docs/DEPLOY.md` | The manual deploy runbook. Read before changing anything deploy-related. |
 | `packages/render-eval/` | M1: the eval harness. `npm run eval:generate -- --dry-run` plans a run; drop `--dry-run` to generate into `runs/<run>/`. |
 | `fixtures/` | Eval inputs: `manifest.json` (committed), `CONSENT.md`, images (git-ignored; repo is public). See ADR 0002. |
-| `apps/web/` | The product: Next.js on Firebase App Hosting, behind the password (Phases A to D deployed; E and F built, awaiting rollout). `src/server/` holds the logic behind the route handlers; all UI strings live in `src/lib/copy.ts`. The only route outside the password gate is the public vote page `/ask/[token]` and the API under `/api/ask/[token]`. |
-| `scripts/` | `outfit-smoke.ts` renders real outfits against the image model (spends money); `seed-catalog.ts`; `live-smoke.ts` is broken (see above). |
+| `apps/web/` | The product: Next.js on Firebase App Hosting, behind the password (Phases A to D deployed; E, F and G built, awaiting rollout). `src/server/` holds the logic behind the route handlers (`arrivals.ts` the buffer and the new-arrivals shelf, `follow-config.ts` the two switches, `email/` the transports, templates and the email step); all UI strings live in `src/lib/copy.ts`. Outside the password gate, besides `/gate` and the OIDC-checked `/api/internal/*`: the public vote page `/ask/[token]` with the API under `/api/ask/[token]`, and the unsubscribe page `/unsubscribe/[token]` with `POST /api/unsubscribe/[token]` (`src/lib/gate-paths.ts`). |
+| `scripts/` | `outfit-smoke.ts` renders real outfits against the image model (spends money); `seed-catalog.ts`; `publish-piece.ts` publishes a piece to a label or changes a published piece's price (emulators by default; a real project only with `--allow-real-project <exact project id>`, and production runs are Tejas's to do by hand); `follow-loop-once.ts` runs the scheduled follow-loop step once against the emulators; `live-smoke.ts` is broken (see above). |
 | `tools/label.html` | Standalone contact-sheet labeler for eval error analysis (BUILD_PLAN §2.2c) — `j`/`k` to navigate, `1`/`0` to label, writes JSONL. Open directly in a browser. |
 | `archive/prototypes-2026-10-07/` | The verbatim extracted source of the two linked prototype artifacts. Provenance only; the aligned versions in `mocks/` are the spec. |
 | `archive/` (rest), `archive/mocks-v0.6/` | Superseded docs and the earlier v0.6-edited mocks. Provenance only, not current guidance. |

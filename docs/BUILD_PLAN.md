@@ -500,7 +500,9 @@ Nothing from M2 + M3 is thrown away below the screens. What carries over: the re
 
 V0 was a demonstration on Friday 9 October 2026, and it has passed. It is **Phases A, B and C**: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open, Google sign-in, the result, and honest failure. **All three are built and deployed** at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`, behind the password (Phase A `a5b7918`, Phase B `f3ab209`, Phase C `2f11325`), and real try-ons have been generated on the hosted site.
 
-**Status on 2026-10-10.** Phase D (`328725a`), Phase E (`0ef59a4`) and Phase F (`1c52f77`) are built, tested and pushed to `main`. Phase D is deployed. Phases E and F wait on a manual rules deploy (`@@FB@@ --only firestore:rules`) and a manual rollout by Tejas (`docs/DEPLOY.md`). **Phase G (the follow loop and real email) and Phase H (hardening) are not started**, and M1 (the eval) is still unfinished, so the QA gate is structural only. No email is sent anywhere (PRD §22.1 row 10): where the interface promises one, the build shows the result in the app or does not show the promise.
+**Status on 2026-10-10.** Phases A to G are built, tested and on `main`: Phase D (`328725a`), Phase E (`0ef59a4`), Phase F (`1c52f77`), the fixes of the security review of D to F (`4ea213f`) and Phase G (`a05f1ce`). Phases A to D are deployed. Phases E, F and G and the security fixes wait on one manual rules deploy (`firebase deploy --only firestore:rules --project virtual-tryon-tejas`, which now covers the denies of both Phase E and Phase G) and one manual rollout by Tejas (`docs/DEPLOY.md`). Phase H (hardening) is partly done (the security review and its fixes); the rest is not started. M1 (the eval) is still unfinished, so the QA gate is structural only.
+
+**Phase G ships with two switches, both off, because the owner has not decided either** (PRD §22.5 questions 9 and 10 stay open as decisions; the build is ready for either answer). `EMAIL_TRANSPORT` defaults to `none`: nothing is sent, nothing is recorded, and the product shows no email controls or sentences. No real provider transport exists yet. So no email is sent anywhere (PRD §22.1 row 10), and the rule against promising one still holds. `ARRIVALS_BUFFER` defaults to `off`: no code path renders anything a person did not ask for. **Phase G's checkpoint is not met.** Nothing has been published on the hosted site, the buffer has never run with the real image model, and no real email has been sent.
 
 **Known gaps, stated plainly:**
 
@@ -605,7 +607,9 @@ Tests: token entropy and expiry; revoke takes effect on the next request; a vote
 
 **Checkpoint:** send yourself an ask from one browser, vote in another, see the count on the list.
 
-#### Email — first after V0 (M)
+#### Email — first after V0 (M) — not built as its own step; Phase G built the follow-loop messages behind a switch that is off
+
+_The "a vote landed" email and the email-preferences onboarding step were not built. Phase G built the new-arrival and price-change messages behind `EMAIL_TRANSPORT`, which is `none`; the "better photos" request was not built (see Phase G)._
 
 Its own step, after Friday and before or alongside Phase E; the owner has a provider and DNS access. A provider and a verified `trailroom.ai` sending domain. The first real message is "a vote landed", one per list, not per vote. Every message has a one-tap unsubscribe and obeys the three toggles. The email-preferences step that V0 omitted is built here, before the first message. The "Email me if we get better photos" request returns to the honest-failure screen. PRD §12 is the program.
 
@@ -637,7 +641,20 @@ Tests: prompt snapshot; two garments in a fixed order in the request; the outfit
 
 **Checkpoint:** three outfits rendered on a real photo.
 
-#### Phase G — The follow loop (M to L)
+#### Phase G — The follow loop (M to L) — built with both switches off, commit `a05f1ce`, 2026-10-10; rules deploy and rollout pending
+
+_Built, with these differences from the text below. Nothing has been published on the hosted site, the buffer has never run with the real image model and no real email has been sent, so the checkpoint is not met._
+
+- **Two switches, both off.** `EMAIL_TRANSPORT` (default `none`) and `ARRIVALS_BUFFER` (default `off`), set in `apps/web/apphosting.yaml`. With the defaults the product shows no email controls or sentences (the interface gates on a capability the server reports) and renders nothing unasked. `EMAIL_TRANSPORT=log` is for local dev and tests and is refused in production; a real provider is one more transport in `apps/web/src/server/email/transport.ts`, and none exists yet.
+- **Publishing without a back office.** `scripts/publish-piece.ts` publishes a piece to a label, or changes a published piece's price. It refuses a real project unless given `--allow-real-project <exact project id>`; production runs are Tejas's to do by hand. Published pieces live in Firestore (`publishedPieces`, `publishEvents`) with their images under `catalog/` in Cloud Storage, merged behind the catalogue accessors; the copy rules (no fit or size language) are enforced on publish and again on load. Price changes apply to published pieces only.
+- **A "New from labels you follow" section** at the top of Discover, showing the label's own photo and the ordinary "Try it on". The prototypes have no such shelf; it was built in the "Start with these" idiom.
+- **Arrives on you, behind `ARRIVALS_BUFFER=on`.** Up to five pre-rendered Front cards per signed-in account that has a default photo and recorded consent, for new pieces from followed labels. Refilled only after the previous five were all seen. Rendered through `packages/render` and the same QA gate; a failed render is never shown. Held to the daily cap and also to a separate ceiling, `ARRIVALS_DAILY_USD` (default 1, never above the daily cap), checked in the same ledger transaction. Buffer renders do not count against the person's own daily try-on limit. It needs a cost review before it is switched on. New job and pose-set kind `arrival`.
+- **Email, once a transport exists.** Opt-in switches in You only; new-arrival and price-change messages, batched, at most one a day per person per kind, once per event per person. The address is read from the sign-in record at send time and not stored. No images and no links to renders. An unsubscribe link that works without signing in.
+- **Not built:** the better-photos email, because the honest-failure waitlist does not exist in the code; the onboarding "keep me posted" step; the "a vote landed" email.
+- **The follow loop runs inside the existing 15-minute Scheduler housekeeping call** (`purge-guests`): no new Scheduler job and no workflow change. New collections `publishedPieces`, `publishEvents`, `arrivals`, `emailPrefs`, `emailSent`, `emailTokens`, all server-only with explicit denies in `firestore.rules`. "Delete everything" removes a person's arrivals and email data.
+- **The unsubscribe page `/unsubscribe/<token>` and `POST /api/unsubscribe/<token>` sit outside the password gate**, alongside the public vote page. Every token gets the same answer, so the page cannot be used to test whether a token exists.
+
+What the original plan said, kept for the record:
 
 What makes "the labels you follow, on you" true.
 
@@ -646,13 +663,13 @@ What makes "the labels you follow, on you" true.
 - **Arrives on you.** The five-card buffer from PRD §10.2: Front pose only, refilled only after the previous five were seen, always under the daily cap. This is the first render the person did not ask for, so it gets a cost review of its own and a switch to turn it off.
 - **Price-change email** for pieces in your lists, and the **better-photos email** for the honest-failure waitlist. Both need the email step.
 
-Tests: the buffer never renders for someone who has not viewed the last five; never exceeds five; stops at the cap; emails fire once per event and respect the toggles.
+Tests: the buffer never renders for someone who has not viewed the last five; never exceeds five; stops at the cap; emails fire once per event and respect the toggles. Built: emulator tests in `apps/web/src/server/phase-g.emu.test.ts` and `packages/db/src/ledger.emu.test.ts`, unit tests for the switches, the transports, the script guard and the catalogue, and Playwright `phase-g.spec.ts` (the defaults) and `g-buffer.spec.ts`, which runs as a second project against a second dev server on port 3102 with the buffer on and the `log` transport (build directory `.next-buffer`, set by `NEXT_DIST_DIR`).
 
-**Checkpoint:** publish a piece with the script, watch it arrive on you and in your inbox.
+**Checkpoint:** publish a piece with the script, watch it arrive on you and in your inbox. _Not met: see the status above._ One query (`publishEvents`: equality on `type` with a range on `createdAt`) may need a composite index in production; the emulator cannot tell. If the logs show an index error after the rollout, create the index from the link in the error.
 
 #### Phase H — Hardening (M)
 
-Three read-only reviews (privacy, cost, conformance to the prototypes and §22), fixes, accessibility and performance passes on both layouts, a live run of every render path, the runbook brought up to date, and the list of what is owed before the password gate comes off restated in one place. _Not started. A security review of the Phase D to F surfaces was run on 2026-10-10 and its twelve fixes are built and tested (attempt limits keyed on the trusted proxy hop with an overall cap, limits and a cache on the public reads, a 500-vote cap and no cross-site votes, deleted accounts' tokens refused, friends' inbox entries removed with the ask, an ask tied to the exact render it shared, framing headers). Still owed: the proxy-hop check on the hosted site (`docs/DEPLOY.md` smoke test step 19). Accepted and not fixed: the limits are in memory and per instance, vote links appear in platform request logs, and a determined person can still vote more than once, so counts are advisory._
+Three read-only reviews (privacy, cost, conformance to the prototypes and §22), fixes, accessibility and performance passes on both layouts, a live run of every render path, the runbook brought up to date, and the list of what is owed before the password gate comes off restated in one place. _Partly done; the rest is not started. A security review of the Phase D to F surfaces was run on 2026-10-10 and its twelve fixes are built and tested (attempt limits keyed on the trusted proxy hop with an overall cap, limits and a cache on the public reads, a 500-vote cap and no cross-site votes, deleted accounts' tokens refused, friends' inbox entries removed with the ask, an ask tied to the exact render it shared, framing headers). Still owed: the proxy-hop check on the hosted site (`docs/DEPLOY.md` smoke test step 19). Accepted and not fixed: the limits are in memory and per instance, vote links appear in platform request logs, and a determined person can still vote more than once, so counts are advisory._
 
 ### 12.4 Beside the phases: M1
 
@@ -660,11 +677,12 @@ The eval is still owed and matters more now. Renders are kept indefinitely and s
 
 ### 12.5 Deferred, on purpose
 
-Sending email (first after V0, above). The designer back office. Jewellery and accessory try-on. The live selfie and face match. Sign in with Apple. A native app. Push. Fit in words (cut, not deferred). Each is listed in PRD §22.3 with its reason. Phases G and H are not started (§12.0a).
+Sending email: the follow loop's messages are built behind `EMAIL_TRANSPORT=none` and wait on the owner's decision and a provider transport (Phase G). The designer back office. Jewellery and accessory try-on. The live selfie and face match. Sign in with Apple. A native app. Push. Fit in words (cut, not deferred). Each is listed in PRD §22.3 with its reason. Phase G is built with its two switches off, and Phase H is partly done (§12.0a).
 
 ### 12.6 What Tejas needs to supply
 
 - **Before V0 (Friday 9 October):** nothing. The images are committed, and no email is sent. _(Done: V0 is live and real renders have been generated.)_
-- **To put Phases E and F live:** run `firebase deploy --only firestore:rules`, then start a rollout by hand (`docs/DEPLOY.md`).
-- **For the email step, after V0:** an account with an email provider, and access to `trailroom.ai`'s DNS to verify the sending domain. The owner has both.
+- **To put Phases E, F and G and the security fixes live:** run `firebase deploy --only firestore:rules --project virtual-tryon-tejas`, then start a rollout by hand (`docs/DEPLOY.md`). Then the proxy-hop check on the hosted site (smoke test step 19) and real Google sign-in (step 20).
+- **Two decisions (PRD §22.5 questions 9 and 10):** whether the product sends email, and whether the "arrives on you" buffer is switched on. Both are off, and the build is ready for either answer. The buffer needs a cost review before `ARRIVALS_BUFFER` is set to `on`.
+- **For email, if the answer is yes:** an account with an email provider and its key, a sending address on a verified `trailroom.ai` sending domain (DNS access; the owner has both), and one more transport in `apps/web/src/server/email/transport.ts` to use them. Until then `EMAIL_TRANSPORT` stays `none`.
 - **Before anyone outside the password:** everything on ADR 0004's list. The image-rights question is answered (ADR 0005).
