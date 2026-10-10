@@ -13,6 +13,7 @@ import {
 } from "react";
 import { copy } from "../lib/copy";
 import { paths } from "../lib/flow";
+import { ACCOUNT_CHANGED } from "../lib/use-job";
 import {
   AccountSheet,
   type AccountContext,
@@ -36,6 +37,29 @@ const OpenContext = createContext<
 /** `openAccount("reveal", { jobId, poseSetId, pose, poseCount })` */
 export const useAccount = () => useContext(OpenContext);
 
+const INTENT_KEY = "trailroom.account-intent";
+type Stored = { reason: AccountReason; jobId?: string; itemId?: string };
+
+// The intent also lives in sessionStorage, so a remount or reload around the sign-in popup
+// cannot drop where the person was going.
+function keepIntent(reason: AccountReason, intent: AccountIntent) {
+  try {
+    const v: Stored = { reason, jobId: intent.jobId, itemId: intent.itemId };
+    sessionStorage.setItem(INTENT_KEY, JSON.stringify(v));
+  } catch {
+    // storage unavailable: the in-memory intent is used
+  }
+}
+function takeIntent(): Stored | null {
+  try {
+    const raw = sessionStorage.getItem(INTENT_KEY);
+    sessionStorage.removeItem(INTENT_KEY);
+    return raw ? (JSON.parse(raw) as Stored) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -52,6 +76,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const openAccount = useCallback(
     (reason: AccountReason, intent: AccountIntent = {}) => {
       const next = { reason, intent };
+      keepIntent(reason, intent);
       setState(next);
       setShown(next);
       setOpen(true);
@@ -67,19 +92,25 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   }, [state]);
 
   const signedIn = useCallback(
-    async (result: "linked" | "existing") => {
-      const cur = state;
+    async (result: "linked" | "existing" | "unmoved") => {
+      const stored = takeIntent();
+      const cur =
+        state ??
+        (stored
+          ? { reason: stored.reason, intent: stored as AccountIntent }
+          : null);
       setOpen(false);
       setState(null);
       await refresh();
-      if (!cur) return;
-      const { reason, intent } = cur;
-      if (result === "existing") {
-        // Their own account, not the guest session: the guest's try-on stays where it is.
-        say(copy.toasts.existingAccount);
+      window.dispatchEvent(new Event(ACCOUNT_CHANGED));
+      if (result === "unmoved") {
+        // Signed in to their own account, but the guest's try-on did not come across.
+        say(copy.toasts.moveFailed);
         router.push(paths.catalogue);
         return;
       }
+      if (!cur) return;
+      const { reason, intent } = cur;
       if (reason === "reveal" && intent.jobId) {
         say(copy.toasts.signedIn);
         // Already on that screen: it re-renders as the result by itself.

@@ -11,3 +11,4 @@ export * from "./users";
 export * from "./jobInternals";
 export * from "./usage";
 export * from "./follows";
+export * from "./merge";

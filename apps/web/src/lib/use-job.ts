@@ -6,6 +6,8 @@ import { ensureUser, getFirebaseDb } from "./firebase";
 import { toJobView, type JobView } from "./job";
 
 const POLL_MS = 1500;
+/** Fired once a sign-in has finished (and any guest try-ons have moved): jobs are read again. */
+export const ACCOUNT_CHANGED = "trailroom:account-changed";
 
 /**
  * Live job state: a Firestore listener on jobs/{jobId}, with a 1.5 s poll of GET /api/jobs/[id]
@@ -17,6 +19,14 @@ export function useJob(jobId: string | null): {
 } {
   const [job, setJob] = useState<JobView | null>(null);
   const [missing, setMissing] = useState(false);
+  // A sign-in can change who owns the job (a guest try-on moved into an existing account), so the
+  // listener and the poll start over.
+  const [epoch, setEpoch] = useState(0);
+  useEffect(() => {
+    const bump = () => setEpoch((n) => n + 1);
+    window.addEventListener(ACCOUNT_CHANGED, bump);
+    return () => window.removeEventListener(ACCOUNT_CHANGED, bump);
+  }, []);
 
   useEffect(() => {
     if (!jobId) {
@@ -72,7 +82,7 @@ export function useJob(jobId: string | null): {
       unsubscribe?.();
       if (timer) clearTimeout(timer);
     };
-  }, [jobId]);
+  }, [jobId, epoch]);
 
   return { job, missing };
 }

@@ -369,33 +369,6 @@ for (const size of SIZES) {
       await expect(page.getByTestId("photo-count")).toHaveText("1 photo");
     });
 
-    test("a Google account that already has an account: signed into it, the guest try-on stays", async ({
-      page,
-      browser,
-    }) => {
-      // Make an account first, in another browser context.
-      const other = await browser.newContext();
-      const p2 = await other.newPage();
-      await p2.goto("/gate");
-      await p2.getByLabel("Password").fill("e2e-password");
-      await p2.getByRole("button", { name: "Open Trailroom" }).click();
-      await uploadFirstAsGuest(p2);
-      const email = await continueWithGoogle(p2);
-      await expect(p2).toHaveURL(/\/upload\/labels$/);
-      await other.close();
-
-      // This guest signs in with the same Google account.
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
-      await continueWithGoogle(page, { email, existing: true });
-      await expect(page.getByTestId("toast")).toContainText(
-        "You are signed in to your existing account. The guest try-on stays with the guest session.",
-      );
-      await expect(page).toHaveURL(/\/$/);
-      await page.goto("/you/try-ons");
-      await expect(page.getByTestId("tryons-empty")).toBeVisible();
-    });
-
     test("when we can't render it: each variant shows exactly its actions", async ({
       page,
     }) => {

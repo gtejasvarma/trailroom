@@ -104,5 +104,7 @@ export const api = {
       "/api/try-on",
       json({ itemId, photoId }),
     ),
+  merge: (guestToken: string) =>
+    apiFetch<unknown>("/api/account/merge", json({ guestToken })),
   attach: () => apiFetch<{ isGuest: false }>("/api/account/attach", json({})),
 };

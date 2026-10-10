@@ -23,3 +23,16 @@ export async function requireUser(request: Request): Promise<User | Response> {
     return errorResponse("unauthorized");
   }
 }
+
+/**
+ * The uid of a valid, unexpired ANONYMOUS ID token, or null. Used by the account merge, where
+ * presenting the guest's token alongside the account's is the proof both belong to one person.
+ */
+export async function verifyGuestToken(token: string): Promise<string | null> {
+  try {
+    const t = await auth().verifyIdToken(token);
+    return t.firebase?.sign_in_provider === "anonymous" ? t.uid : null;
+  } catch {
+    return null;
+  }
+}

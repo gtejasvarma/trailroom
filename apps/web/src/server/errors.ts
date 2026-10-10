@@ -98,6 +98,11 @@ export const ERRORS = {
     message:
       "Your session is still a guest session, so finish signing in with an account and retry.",
   },
+  merge_refused: {
+    status: 403,
+    message:
+      "Those two sessions could not be combined, so sign in again and retry.",
+  },
   internal: {
     status: 500,
     message: "Something went wrong on our side, so try again shortly.",

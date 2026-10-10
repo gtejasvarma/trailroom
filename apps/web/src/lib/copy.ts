@@ -66,8 +66,8 @@ export const copy = {
     signedIn: "Signed in. Your try-ons are saved.",
     signedInSoon: "Signed in. Lists and buying arrive soon.",
     signedOut: "Signed out.",
-    existingAccount:
-      "You are signed in to your existing account. The guest try-on stays with the guest session.",
+    moveFailed:
+      "You are signed in, but we could not move your try-on across, so try it on again.",
     jobFailed: "Your try-on could not be finished.",
     seeWhy: "See why",
     following: (label: string) => `Following ${label}.`,
