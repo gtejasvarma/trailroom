@@ -9,17 +9,20 @@ Seated), garments from labels the user follows.
 **The experience being built is the two aligned prototypes in `mocks/`** (`Trailroom Prototype.dc.html`,
 `Trailroom Desktop.dc.html`; ADR 0005). They win on flow, layout and copy, and the PRD (v0.7) agrees
 with them except where §22.1 says the build differs (no fit sentences, consent by a line under the upload controls, no live selfie
-claim, no email sent in V0). The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
-**V0 is a demonstration on Friday 9 October 2026: Phases A, B and C, built and live behind the password**
-at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` (`a5b7918`, `f3ab209`, `2f11325`).
-**Phase D (lists, asks, the vote page; no email) is in progress**; E to H and sending email come after
-Friday. No successful render has yet been observed on the deployed site (the first real run was refused
-by the image model with HTTP 402; the key was replaced); seeing one is the first item of the smoke test.
+claim, no email sent yet, an outfit does not also become two try-ons). The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
+**The demonstration was Friday 9 October 2026 and has passed. V0 (Phases A, B and C) is built and deployed**
+behind the password at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` (`a5b7918`, `f3ab209`,
+`2f11325`), and real try-ons have been generated on the hosted site.
+**Phases D, E and F are built, tested and pushed to `main`** (`328725a` lists, asks and the public vote
+page; `0ef59a4` You and Studio, Compare, Buy; `1c52f77` outfits). Phase D is deployed. E and F wait
+on a manual rules deploy and rollout by Tejas (`docs/DEPLOY.md`). **Phase G (the follow loop and real email)
+and Phase H (hardening) are not started.** No email is sent anywhere yet.
 
 Where things stand: M0 is done. M2 + M3 (the pipeline, the Cloud Workflow) are deployed and
 carry over; their original screens and catalogue were replaced in Phases A to C. **M1 (the eval) is unfinished**: the QA gate in `packages/pipeline` is structural
 only, and its identity, proportion, garment and cross-pose checks are empty slots until M1 supplies
-them (ADR 0004).
+them (ADR 0004). Known issue: `scripts/live-smoke.ts` imports `apps/web/src/server/consent`, which no
+longer exists, so it does not run; `scripts/outfit-smoke.ts` is the working live script.
 
 Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at this product — see
 `docs/decisions/0001-reuse-firebase-project.md`). This is production. See Hard rules below.
@@ -37,23 +40,24 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 
 | Path | What it is |
 |---|---|
-| `docs/PRD.md` | The PRD (v0.7) — source of truth for product behavior, one consistent document. §22 holds the decisions and their reasoning (§22.1 is the record). §6 data model, §13 unit economics, §16 architecture, §17 kill criteria. |
+| `docs/PRD.md` | The PRD (v0.7) — source of truth for product behavior, one consistent document. §22 holds the decisions and their reasoning (§22.1 is the record; §22.2 says which phase built each journey). §6 data model, §13 unit economics, §16 architecture, §17 kill criteria. |
 | `mocks/Trailroom Prototype.dc.html`, `mocks/Trailroom Desktop.dc.html` | **The visual specification.** The aligned, runnable prototypes (mobile, desktop): the target with the §22.1 decisions applied. Open directly in a browser; images in `mocks/assets/`, reference screenshots in `mocks/screens/`. Read the matching screens before writing any UI. |
 | `docs/Design.md` | Tokens, type and motion. Derive every value from §11, do not invent tokens. Layouts come from the prototypes, not from here. |
 | `docs/BUILD_PLAN.md` | §12 is the current plan (Phases A to H) and its three process rules. §1 to §11 are the earlier ladder and the reasoning behind M0 to M3. |
 | `docs/decisions/` | ADRs — one file per irreversible call. Write one when you make a call like this. |
 | `specs/` | One file per unit of work being built. |
 | `mocks/support.js`, `mocks/Trailroom Desktop Designer.dc.html`, `mocks/Conversion Audit.dc.html` | The runtime that makes the `.dc.html` files run outside the Claude Design canvas. The Designer file is the reference for the deferred back office; the Audit is a 44-item conversion audit. `support.canvas.js` is the real Claude Design export — reference only, requires `window.React`, won't run standalone. |
-| `packages/render/` | The one chokepoint for image-model calls: model/price table, the prompt, the spend ledger interface, and a fake provider for tests (refused in production). |
-| `packages/db/` | The one place that talks to Firestore and Cloud Storage: typed repositories and the Firestore-backed daily spend ledger. |
+| `packages/render/` | The one chokepoint for image-model calls: model/price table, the prompts (`edit-v1` for one piece, `outfit-v1` for two pieces in one image), the spend ledger interface, and a fake provider for tests (refused in production). |
+| `packages/db/` | The one place that talks to Firestore and Cloud Storage: typed repositories and the Firestore-backed daily spend ledger. `merge.ts` moves a guest's things into an existing Google account at sign-in; `usage.ts` holds the daily try-on counts per uid, which removing a try-on never resets ("Delete everything" removes the sign-in, so the person returns under a new uid with a fresh count). |
 | `packages/pipeline/` | M3: the render graph's nodes, the QA gate, the routing policy, and the inline orchestrator used by local dev and tests. |
 | `packages/catalog/` | The demo catalogue and the copy rules. `assets/` holds the garment images that get copied to Cloud Storage; `assets/prototype/` holds the prototype's images (cleared by Tejas, ADR 0005) for the Phase A catalogue. |
 | `workflows/render-pose-set.yaml` | M3: the Cloud Workflow that drives the graph in production by calling `/api/internal/pipeline/*`. |
-| `firestore.rules`, `storage.rules` | Clients read their own job, pose set and consent; they write nothing; Storage is closed to clients. |
+| `firestore.rules`, `storage.rules` | Clients read their own job, pose set and consent; they write nothing; Storage is closed to clients. Lists, asks (with votes), inbox entries and purchases are server-only, with explicit denies. |
 | `docs/DEPLOY.md` | The manual deploy runbook. Read before changing anything deploy-related. |
 | `packages/render-eval/` | M1: the eval harness. `npm run eval:generate -- --dry-run` plans a run; drop `--dry-run` to generate into `runs/<run>/`. |
 | `fixtures/` | Eval inputs: `manifest.json` (committed), `CONSENT.md`, images (git-ignored; repo is public). See ADR 0002. |
-| `apps/web/` | The product: Next.js on Firebase App Hosting, Phases A to C live behind the password. `src/server/` holds the logic behind the route handlers; all UI strings live in `src/lib/copy.ts`. |
+| `apps/web/` | The product: Next.js on Firebase App Hosting, behind the password (Phases A to D deployed; E and F built, awaiting rollout). `src/server/` holds the logic behind the route handlers; all UI strings live in `src/lib/copy.ts`. The only route outside the password gate is the public vote page `/ask/[token]` and the API under `/api/ask/[token]`. |
+| `scripts/` | `outfit-smoke.ts` renders real outfits against the image model (spends money); `seed-catalog.ts`; `live-smoke.ts` is broken (see above). |
 | `tools/label.html` | Standalone contact-sheet labeler for eval error analysis (BUILD_PLAN §2.2c) — `j`/`k` to navigate, `1`/`0` to label, writes JSONL. Open directly in a browser. |
 | `archive/prototypes-2026-10-07/` | The verbatim extracted source of the two linked prototype artifacts. Provenance only; the aligned versions in `mocks/` are the spec. |
 | `archive/` (rest), `archive/mocks-v0.6/` | Superseded docs and the earlier v0.6-edited mocks. Provenance only, not current guidance. |

@@ -1,6 +1,6 @@
 # Trailroom — Virtual Try-On Product Requirements
 
-**Owner:** Tejas · **Status:** Draft v0.7 · **Date:** Oct 9, 2026 · **Build:** V0 (Phases A, B and C) is live behind the password; Phase D (lists, asks, the vote page; no email) is in progress
+**Owner:** Tejas · **Status:** Draft v0.7 · **Date:** Oct 10, 2026 · **Build:** V0 (Phases A, B and C) and Phase D are live behind the password; Phases E and F are built and wait on a manual rollout; Phases G and H are not started
 **One line:** One photo of you, and every piece from the labels you follow comes back on your body — in four poses — before you buy.
 
 **v0.7 changes — the product is realigned to the two prototypes Tejas named as the target. Read §22 for the decisions and the reasoning.** The first slice built from this document (M2 + M3) was a correct reading of v0.6 and the wrong product: one plain journey where the prototypes show a whole experience. v0.7 makes the aligned prototypes (`mocks/Trailroom Prototype.dc.html`, `mocks/Trailroom Desktop.dc.html`) the specification for flow, layout and copy, and records in §22.1 the places where they do not win. Every section below has been rewritten in place to say the current decision, with a short "v0.7:" note where it replaced an earlier one. **V0 is for a demonstration on Friday 9 October 2026** and is BUILD_PLAN §12 Phases A, B and C (§22.2). *Update, 2026-10-09: V0 is built and deployed behind the password; §22.2 says which phase built each journey.*
@@ -155,7 +155,7 @@ This product **digitises you** — a consented, persistent, reusable model of yo
 - **Ask** — a shareable web object built from a List, with 1–4 items and a question. Recipients vote in one tap with **no account and no install**; the asker sees counts, never who voted for what. Expiring links (7-day default), revocation, and an AI caption beside every render.
 - **Asks Inbox** — asks *received* from other Trailroom users, with unread badges. New in the mocks; adopted. Note the second-order effect: this only works between users who know each other inside the product, which is a social graph the PRD did not previously have. See §19. *v0.7: there is no friend graph — an ask reaches your inbox when you open someone's link while signed in (§22.5 question 4).*
 - **Compare Tray** — up to 4 tried items held for side-by-side viewing at a synchronised pose (wide screens only).
-- **Outfit** — two or more items rendered together on one Pose Set ("Wear it with"). Each piece also persists as its own try-on.
+- **Outfit** — two or more items rendered together on one Pose Set ("Wear it with"). A piece becomes its own try-on only when the person tries it on (§22.1 row 26).
 - **Follow** — user → label; drives the pre-rendered buffer (Phase G), the new-arrival email (after V0), and ranking. Stored on the device for guests and moved to the account at sign-up.
 - **House Style** — a designer-selected lighting and crop treatment applied to renders of *their* pieces. New in the mocks. Conflicts with Base Look; see §8.
 
@@ -282,7 +282,7 @@ This is the strongest desktop-only journey and the clearest argument for buildin
 
 ### C8. Wear it with (outfit renders)
 *Phase F. The pair preview is a sheet, as in the prototype.*
-**Steps:** on a completed Pose Set, "Wear it with" suggests paired pieces → preview sheet showing the pair with combined price → "Add it — $568 together" → both pieces render together as one outfit Pose Set, *and* each persists as its own try-on → Buy the outfit.
+**Steps:** on a completed Pose Set, "Wear it with" suggests paired pieces → preview sheet showing the pair with combined price → "Add it — $568 together" → both pieces render together as one outfit (in the build, one Front image; §22.1 row 26). Neither piece becomes its own try-on unless the person asks for it → Buy the outfit.
 **Features:** P0 — curated pairings per item; pair preview sheet; outfit Pose Set; combined checkout hand-off (two affiliate links, sequenced). P1 — user-built outfits from any two tried pieces. P2 — pairing against the user's own wardrobe.
 **Metrics:** pair preview rate · pair → outfit render rate · outfit → multi-item click-out · AOV on outfit click-outs vs. single.
 
@@ -936,6 +936,10 @@ They are the design-project snapshot described in §20, the one taken **before**
 | 21 | **"On you" wording** | "ON YOU" chip, "Stop guessing how it looks on you", "Closest three we can put on you". | **Restored in the build as the prototype has it.** Row 1 bans fit sentences, not the phrase "on you". *Decided by Claude in the owner's absence, 2026-10-07; open to being overturned.* | The phrase says where the image came from; it makes no claim about fit. |
 | 22 | **Account to open, on desktop too** | The phone prototype asks for an account to open a result; the desktop prototype signs a person in automatically when a photo is accepted. | **One rule on both layouts:** an account is required to open a result, and the build asks for Google sign-in on desktop instead of signing the person in automatically. **Built in Phase C (2026-10-08) and enforced by the server on both layouts.** *Decided by Claude in the owner's absence, 2026-10-07; open to being overturned.* | Row 4 is the owner's rule; two layouts with different rules would be two products, and the server enforces one. |
 | 23 | **Tints and scrims behind imagery** | Tinted bands (the teal "Start with these" band) and gradient scrims over category tiles and cards. | **Not carried into the build.** Design.md Rule 1 (colourless surround) stands; the prototypes keep them as drawn. *Decided by Claude in the owner's absence, 2026-10-07; open to being overturned.* | Rule 1 is about colour fidelity of garments; the prototype breaks it in places. |
+| 24 | **Signing in with an existing Google account** | Not shown. | **The guest's things move into the account.** If the Google account already exists, the guest's photos (up to the account's cap), finished try-ons with their renders, consent and follows are merged into it, and the person lands on their result. A set still rendering, a failed set and the usage counters stay behind. The server needs both the account's and the guest's own token, so no one can name another person's guest. `packages/db/src/merge.ts`, `POST /api/account/merge`. _Decided by Claude in the owner's absence, 2026-10-10 (commit `8a201a3`), after the owner's own Google account, which had existed in the project since 2025, lost a guest's try-on; open to being overturned._ | Firebase cannot link a guest to an account that already exists. Leaving the guest's work behind contradicted the account sheet's "Yours to keep". |
+| 25 | **Buy** | A buy sheet that hands off to the label, then "Did it arrive?". | **A demonstration checkout.** "Go to LABEL" opens `/demo-checkout/<piece>`, a page that says plainly there is nothing to purchase and takes no payment, and records that the button was pressed (collection `purchases`, server-only). "Did it arrive?" is asked once per piece. _Decided by Claude in the owner's absence, 2026-10-10; open to being overturned._ | The labels are invented (§22.5 question 3). The record keeps the journey measurable without pretending a sale. |
+| 26 | **Outfits** | Both pieces render as one outfit and also stay as their own try-ons ("Both pieces stay in You as their own try-on, plus the outfit."). | **One render, and the pieces do not also become try-ons.** Two pieces render together as one image, the Front view only, through the render chokepoint with its own prompt version, `outfit-v1`; `edit-v1` is unchanged. Valid pairs: outerwear over a top, bottom or dress, or a top with a bottom. The outfit screen offers "Try it on" for a piece the person has not tried. Signed-in only; outfits are not offered to Compare. The phone prototype's line was changed to match. _Decided by Claude in the owner's absence, 2026-10-10 (commit `1c52f77`); open to being overturned._ | Making each piece its own try-on would spend a second four-pose render the person did not ask for. In the current twelve-piece catalogue only the coat pairs with anything. Three real outfits passed the gate on the first attempt at about $0.039 each. |
+| 27 | **Daily counts and deletion** | "Delete everything" is real and immediate. | **Removing a try-on does not reset the daily try-on count.** The `usage` documents are left in place and expire on their own after three days. "Delete everything" also removes the sign-in, so the person comes back under a new uid with a fresh count: a known gap. _Decided by Claude in the owner's absence, 2026-10-10; open to being overturned._ | Otherwise removing and re-creating a try-on would be a way around the per-person limit. The gap after "Delete everything" is bounded by the daily spend cap, which holds regardless. |
 
 ### 22.2 What gets built
 
@@ -943,24 +947,24 @@ The journeys of the two prototypes, as amended above.
 
 | Journey | Mobile | Desktop | Notes | Built in |
 |---|---|---|---|---|
-| Upload first, then browse | C1 | Cold landing | Proof slider → upload → account → pick three labels (V0 has no email step) → starters | Phases A, B, C |
+| Upload first, then browse | C1 | Cold landing | Proof slider → upload → account → pick three labels (V0 has no email step) → starters | Phases A, B, C (`a5b7918`, `f3ab209`, `2f11325`) |
 | Try-on first, then upload | C2 | Browse → try on | Product → upload → queue → account to open → result | Phases B, C |
-| The try-on queue | C3 | Rendering | Walk-away chip, ready toast, default photo, "Which photo?" | Phase C |
+| The try-on queue | C3 | Rendering | Walk-away chip, ready toast, default photo, "Which photo?" | Phase C (`2f11325`) |
 | Fit in words | C4 | — | **Not built** (§22.1 row 1) | Not built |
-| Wear it with | C5 | Wear it with | Pair preview, then one outfit render with both pieces | Phase F |
+| Wear it with | C5 | Wear it with | Pair preview, then one outfit render with both pieces | Phase F (`1c52f77`) |
 | When we can't render it | C6 | Can't render | Closest three, "Email me if we get better photos" | Phase C |
-| Lists and asks | C7 | Lists & votes | Named lists, ask friends, the inbox of asks | Phase D (in progress) |
-| The vote page | C8 | Vote page, A friend voting | No account, one tap, "See it on me" | Phase D (in progress) |
-| Buy and did it arrive | C9 | — | Hand-off to the label, then one question | Phase E |
-| You | C10 | Profile & studio | Kept try-ons, photos and defaults, following, email | Phases B, C (basics); Phase E (Studio) |
-| Compare | — | Compare | Up to four, same photo, same pose | Phase E |
+| Lists and asks | C7 | Lists & votes | Named lists, ask friends, the inbox of asks | Phase D (`328725a`) |
+| The vote page | C8 | Vote page, A friend voting | No account, one tap, "See it on me" | Phase D (`328725a`) |
+| Buy and did it arrive | C9 | — | Hand-off to the label (a demonstration checkout, §22.1 row 25), then one question | Phase E (`0ef59a4`) |
+| You | C10 | Profile & studio | Kept try-ons, photos and defaults, following, email | Phases B, C (basics); Phase E (`0ef59a4`, You and Studio) |
+| Compare | — | Compare | Up to four, same photo, same pose | Phase E (`0ef59a4`) |
 | Designer side | D1 | Designer | **Deferred** (§22.1 row 12) | Deferred |
 
-**V0 — a demonstration on Friday 9 October 2026. Built and deployed behind the password (Phase A `a5b7918`, Phase B `f3ab209`, Phase C `2f11325`).** V0 is BUILD_PLAN §12 Phases A, B and C: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open on both layouts, Google sign-in, "Pick three labels", the result, and honest failure. Buy, Add to a list and Build the outfit show a "coming soon" toast until Phases D, E and F. **Phase D without email** — lists, asks, the public vote page, the Asks inbox — is in progress. Phases E to H follow after Friday, and sending email is the first thing after V0. *As of 2026-10-09 no successful render has been observed on the deployed site (the first real run was refused by the provider, ADR 0004 amendment); the first item of the smoke test in `docs/DEPLOY.md` is to see one.*
+**V0 — a demonstration on Friday 9 October 2026, now passed. Built and deployed behind the password (Phase A `a5b7918`, Phase B `f3ab209`, Phase C `2f11325`).** V0 is BUILD_PLAN §12 Phases A, B and C: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open on both layouts, Google sign-in, "Pick three labels", the result, and honest failure. Real try-ons have been generated on the hosted site. **Status on 2026-10-10:** Phase D (lists, asks, the public vote page, the Asks inbox; no email) is built and deployed. Phases E (You and Studio, Compare, Buy) and F (outfits) are built and on `main`, waiting on a manual rules deploy and rollout. Phases G (the follow loop, real email) and H (hardening) are not started. Sending email is still the first thing not yet built.
 
 ### 22.3 What is not being built now
 
-Fit in words; the live selfie and face match; age estimation; jewellery and accessory try-on; the designer back office; Sign in with Apple; a native app; push notifications; camera-roll scanning; search; the share sheet and screenshot ingestion (§9); "Not for me"; data export. **Designed but not in V0:** sending email and the email-preferences step (§12), everything after Phase C that BUILD_PLAN §12 lists.
+Fit in words; the live selfie and face match; age estimation; jewellery and accessory try-on; the designer back office; Sign in with Apple; a native app; push notifications; camera-roll scanning; search; the share sheet and screenshot ingestion (§9); "Not for me"; data export. **Designed but not built yet:** sending email and the email-preferences step (§12), and Phases G and H of BUILD_PLAN §12. Not built on purpose: each outfit piece also becoming its own try-on (row 26).
 
 ### 22.4 What changed where (index)
 
@@ -979,9 +983,11 @@ Every earlier section has been rewritten in place to state the current decision;
 
 1. **Image rights — answered, 2026-10-07.** The seeded catalogue uses the prototype's images: stock photographs and five four-pose sets of one person. Tejas's statement: they are public images and not a concern. They may be committed to the repo and are in `packages/catalog/assets/prototype/`. Claude raised the provenance of the images and the consent of the person pictured, and the owner accepted that. ADR 0005 records it. This no longer appears among the things owed before the password gate comes off.
 2. **Stock lines.** "Only 2 left" on an invented catalogue is invented scarcity. It is in the prototype and so in the seed; it must not survive into a catalogue with real merchants unless it is true.
-3. **Buy.** The labels are invented, so Buy has nowhere real to go. It opens a clearly marked demo page, then the "did it arrive" question, until there is a merchant.
+3. **Buy — settled for now (row 25).** The labels are invented, so Buy opens a clearly marked demonstration page that takes no payment, then the "did it arrive" question, until there is a merchant.
 4. **Asks from named people.** "Priya is asking" implies people who know each other in the product (§19-C3). In this build an ask reaches your inbox when you open someone's link while signed in. There is no friend graph.
 5. **Retention.** Whether "kept until you remove it" can stand without an inactivity limit (row 16).
 6. **Consent by notice — for the legal review (2026-10-07).** The owner replaced the required tick with a line under the upload controls (row 2). Counsel should say whether that is enough: it is weaker evidence of consent than an affirmative tick, particularly under biometric-privacy statutes such as Illinois BIPA that call for a written release, and for the 18-or-over statement. The fallback is the tick, or a geofence, until resolved. The server's recorded consent version and time are the evidence there is.
 7. **Shelf labels on phone listing cards (2026-10-09, with the owner).** Row 20 removed the label row from every card. Should the shelf label ("New in", "From a label you follow") come back on phone listing cards in some other form, or is the card's image-first look the end of it?
 8. **The "What are you looking for" line (2026-10-09, with the owner).** Row 19 removed the filter-dependent heading on desktop. Should the line above the phone's category tiles go too?
+9. **Email provider and sending domain.** Which provider, and the verified `trailroom.ai` sending domain, are not recorded in the repo. The owner has a provider and DNS access (BUILD_PLAN §12.6). Phase G cannot start its emails until this is settled.
+10. **The pre-rendered "arrives on you" buffer.** May it spend automatically? It would be the first render the person did not ask for (§10.2), so it needs a cost review of its own and an off switch before it runs. Undecided.

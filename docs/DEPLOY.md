@@ -1,21 +1,27 @@
 # Deploy runbook — Trailroom on Firebase
 
-> **Where this stands (2026-10-09).** The site is deployed: App Hosting backend `trailroom`, root
+> **Where this stands (2026-10-10).** The site is deployed: App Hosting backend `trailroom`, root
 > directory `apps/web`, live branch `main`, project `virtual-tryon-tejas`, behind the password gate, at
-> `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`. **Phases A, B and C (V0) are what is
-> live** (commits `a5b7918`, `f3ab209`, `2f11325`). Pushes to `main` have not been triggering rollouts,
-> so each one is started by hand:
+> `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`. **Phases A, B and C (V0) and Phase D
+> are what is live** (commits `a5b7918`, `f3ab209`, `2f11325`, `328725a`), and real try-ons have been
+> generated on the hosted site. **Phases E and F are built and on `main` but not rolled out**
+> (`0ef59a4`, `1c52f77`). Pushes to `main` have not been triggering rollouts, so each one is started by
+> hand:
 >
 > ```bash
 > firebase apphosting:rollouts:create trailroom --git-branch main --project virtual-tryon-tejas --force
 > ```
 >
+> **To put Phases E and F live, in this order.** First the rules, because Phase E adds the server-only
+> `purchases` collection and the running app reads it (`firebase deploy --only firestore:rules
+--project virtual-tryon-tejas`); then the rollout above. Phase F changes no rules, indexes or workflow.
+> Phase D needed the rules and the indexes (`--only firestore:rules,firestore:indexes`; the indexes file
+> gained a field override on `votes.voterUid`), and that is done.
+>
 > **Done for this project:** steps 0 to 11 (2026-10-07 and 2026-10-08), the Phase A rules redeploy for the
-> follows collection, and the catalogue images in `gs://<bucket>/catalog/` (the 31 files from
-> `packages/catalog/assets/prototype/`). **Not yet observed: a successful render on the deployed site.**
-> The first real run was refused by the image model (see the incident note below); the key has since been
-> replaced, and seeing one real render is the first item of the smoke test in step 12. The garment-image
-> step is repeated whenever the catalogue's images change.
+> follows collection, the Phase D rules and indexes, and the catalogue images in `gs://<bucket>/catalog/`
+> (the 31 files from `packages/catalog/assets/prototype/`). The garment-image step is repeated whenever
+> the catalogue's images change.
 >
 > **When a try-on fails on the deployed site, run `runs/diag.sh` first.** It is local and git-ignored; it
 > prints the latest job's per-pose reasons, the server-side error detail and the spend log.
@@ -30,8 +36,8 @@ secret is `GEMINI_API_KEY` version 2. Phase C changed three things because of it
 attempt failed on the provider's side now fails as `internal` ("something went wrong on our side"),
 not as a quality failure; a provider rejection with a 4xx status settles at zero against the daily
 cap, while timeouts and 5xx still settle at the estimate; and each failed model call is logged once
-with its status (ADR 0004, 2026-10-08 amendment). As of 2026-10-09 no successful render has been
-observed on the deployed site.
+with its status (ADR 0004, 2026-10-08 amendment). As of 2026-10-09 no successful render had been
+observed on the deployed site; real try-ons have been generated there since.
 
 ### Rolling out, and changing a secret
 
@@ -138,11 +144,13 @@ JSON
 gcloud storage buckets update gs://$BUCKET --lifecycle-file /tmp/trailroom-lifecycle.json --project $PROJECT
 ```
 
-## 4. Rules and indexes (done; the rules were redeployed in Phase A for the follows collection)
+## 4. Rules and indexes (done through Phase D; the Phase E rules are still to deploy)
 
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes,storage --project $PROJECT
 ```
+
+Phases D and E added explicit denies in `firestore.rules` for `lists`, `asks` (with `votes`), `inbox` and `purchases`, and Phase D added a field override on `votes.voterUid` in `firestore.indexes.json`. Rules for `purchases` are the one piece not yet deployed.
 
 The four composite indexes (`jobs` and `photos` on `isGuest` + `expiresAt`, `jobs` on `status` +
 `updatedAt`, `spendLog` on `state` + `createdAt`) take a few minutes to build. The housekeeping
@@ -278,11 +286,11 @@ gcloud scheduler jobs create http purge-guests \
 Firebase console → Authentication → Settings → Authorised domains: add the host from `$APP_URL`
 (and `trailroom.ai` when it points here). Google sign-in from the account sheet fails without it.
 
-## 12. Smoke test, in this order (not yet passed: step 6 has not been observed)
+## 12. Smoke test, in this order
 
-For the product as it is now (V0, Phases A to C). Steps 1 to 4 do not need the image model; **step 6
-is the first real render on the deployed site and has not been observed.** If it fails, run
-`runs/diag.sh` before anything else.
+For the product as it is now (Phases A to F, once E and F are rolled out). Steps 1 to 4 do not need the image
+model; steps 5 and 6 are the first model calls. If a try-on fails, run `runs/diag.sh` before anything else.
+Steps 1 to 11 were written for V0; steps 12 to 18 cover Phases D to F and have not been run on the deployed site.
 
 1. Open `$APP_URL`. You should land on `/gate`. A wrong password is refused; the right one shows
    Discover **with images** (images prove the catalogue copy in step 3 and the bucket setting).
@@ -297,25 +305,55 @@ is the first real render on the deployed site and has not been observed.** If it
    your try-ons.") and **no tick**. Add a photo.
 5. The queue screen shows four tiles filling in. Navigate away: the chip appears on every screen
    with the true count of poses ready, and a toast with **See it** appears when the set is ready.
-   **This is the first real execution of the model path.** If nothing fills, stop and run
-   `runs/diag.sh`; watch the workflow with
+   If nothing fills, stop and run `runs/diag.sh`; watch the workflow with
    `gcloud workflows executions list render-pose-set --location $REGION --project $PROJECT --limit 3`
-6. **A real render succeeds.** All four tiles fill with a picture of you in the piece. Not yet seen on
-   the deployed site (incident note above).
+6. **A real render succeeds.** All four tiles fill with a picture of you in the piece. (Seen on the
+   deployed site since the incident note above.)
 7. As a guest the result will not open ("4 poses, ready. Create an account to open them."), and a
    direct request for a full-size image is refused: the server hands a guest tile-sized images of
    their own finished set only. Check with the browser's network tab, or `curl` with the session
    cookie, on an `/api/renders/...` URL.
 8. **Continue with Google.** The guest session is linked: the result opens with four poses and the AI
    caption under the gallery (nothing drawn on the images), with no re-render. Buy is the filled
-   action; Buy, Add to a list and Build the outfit show a "coming soon" toast.
+   action. If the Google account already existed, the guest's photo and try-on are merged into it and
+   you still land on the result.
 9. Back in Discover, the piece you tried is shown "on you" with "See your 4 poses". **You → Your
    try-ons** lists it.
 10. **You → remove a photo**, then **Delete everything**, and confirm in the Storage browser that
-    `photos/<uid>/` and `renders/<uid>/` are gone.
+    `photos/<uid>/` and `renders/<uid>/` are gone. Deleting everything also removes the sign-in, so
+    signing in again gives a new uid and a fresh daily try-on count (the old `usage` documents are
+    kept; removing a single try-on never resets the count).
 11. Check spend in Firestore: `spend/<today, UTC>` shows about 150,000 `committedMicros` ($0.15) and
     zero `pendingMicros`; `spendLog` has four settled lines. A call the provider rejected with a 4xx
     status settles at zero.
+
+Phases D to F (run after step 8, signed in with a fresh photo and try-on if step 10 deleted them):
+
+12. **Lists.** Tap the heart on a piece: the list sheet opens; create a list and add the piece. It
+    appears under the **Lists** tab and on the list page. As a guest, the heart opens the account sheet
+    instead and a list cannot be created.
+13. **Ask.** On the list page, start an ask with one to four pieces. The share screen says the link
+    shows those renders to whoever holds it, before the link exists. Copy the link.
+14. **The public vote page.** In a private window with no password cookie, open the link
+    (`$APP_URL/ask/<token>`). It opens **without** the gate, shows the asker's first name, the list
+    name, the question and one image per piece (your Front render, or the label's photo), and nothing
+    else. Vote once. Back in the signed-in window the count shows on the list; the Asks inbox shows
+    the ask when the link is opened while signed in. Check the response headers on the vote page
+    (`noindex`, no caching, no referrer). Revoke the ask: the link stops working on the next request.
+    Confirm another path (for example `$APP_URL/lists`) in the private window still goes to `/gate`.
+15. **Studio and You.** On a wide screen, `/studio` shows real counts, your try-ons and photos. Remove
+    one try-on; it disappears at once.
+16. **Compare.** On a wide screen select two to four tried pieces into the tray (or press `C`) and open
+    Compare: one pose switcher moves every column, and a set missing that pose shows a plain placeholder.
+    Outfits are not offered.
+17. **Buy and the demonstration checkout.** On a result, Buy opens the buy sheet; **Go to LABEL** opens
+    `/demo-checkout/<piece>`, which says there is nothing to purchase and takes no payment. Return and
+    answer "Did it arrive?"; it is asked once per piece.
+18. **Outfit.** On the coat's result, **Build the outfit** (or **Wear it with**) offers the vest, the
+    slip dress and the wrap top. Start one: the queue shows one image, and when ready the outfit screen
+    shows the AI caption beside it, **Buy the outfit** and **Add outfit to a list**, and **Try it on**
+    for a piece you have not tried. The outfit appears in Your try-ons with a tag. Real cost is about
+    $0.039 per outfit (three local runs on 2026-10-10 with `scripts/outfit-smoke.ts`).
 
 ## If the first build fails
 

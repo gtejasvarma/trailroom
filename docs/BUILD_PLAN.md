@@ -496,18 +496,21 @@ M2 + M3 produced a working pipeline behind a plain interface for one journey. Te
 
 Nothing from M2 + M3 is thrown away below the screens. What carries over: the render chokepoint and `edit-v1` prompt, the daily spend cap and per-person limits, the pipeline and its QA gate, the Cloud Workflow, the password gate, the security-rules approach, the three test suites, and the deploy runbook. What is replaced: every screen, the catalogue, and the one-photo-per-person data model.
 
-### 12.0a V0 for Friday 9 October 2026
+### 12.0a V0 for Friday 9 October 2026, and where things stand on 10 October
 
-V0 was a demonstration on Friday 9 October 2026. It is **Phases A, B and C**: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open, Google sign-in, the result, and honest failure. **All three are built and deployed** at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`, behind the password (Phase A `a5b7918`, Phase B `f3ab209`, Phase C `2f11325`). **Phase D without email** — lists, asks, the public vote page, the Asks inbox — is the stretch goal and is **in progress**. **Phases E to H follow after Friday**, and sending email (the first message of the old Phase D, now its own step below) is the first thing after V0. No email is sent in V0 (PRD §22.1 row 10): where the interface promises one, V0 shows the result in the app or does not show the promise. Buy, Add to a list and Build the outfit show a "coming soon" toast until Phases D, E and F.
+V0 was a demonstration on Friday 9 October 2026, and it has passed. It is **Phases A, B and C**: the prototype's catalogue, shell and Discover; photos and capture; the queue, account-to-open, Google sign-in, the result, and honest failure. **All three are built and deployed** at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`, behind the password (Phase A `a5b7918`, Phase B `f3ab209`, Phase C `2f11325`), and real try-ons have been generated on the hosted site.
 
-**Known gaps in V0, stated plainly:**
+**Status on 2026-10-10.** Phase D (`328725a`), Phase E (`0ef59a4`) and Phase F (`1c52f77`) are built, tested and pushed to `main`. Phase D is deployed. Phases E and F wait on a manual rules deploy (`@@FB@@ --only firestore:rules`) and a manual rollout by Tejas (`docs/DEPLOY.md`). **Phase G (the follow loop and real email) and Phase H (hardening) are not started**, and M1 (the eval) is still unfinished, so the QA gate is structural only. No email is sent anywhere (PRD §22.1 row 10): where the interface promises one, the build shows the result in the app or does not show the promise.
 
-- **No successful render has been observed on the deployed site.** The first real run, on 2026-10-08, was refused by the image model with HTTP 402 (the key was not on an account with billing for it; ADR 0004 amendment). The workflow ran correctly end to end. The key was replaced the same day with one verified by a single real image call. Seeing one real render through the whole path is the first item of the smoke test in `docs/DEPLOY.md`.
-- The full end-to-end suite was last run at 234 of 235 and was not re-run in full after the final fix.
+**Known gaps, stated plainly:**
+
+- The first real run on the deployed site, on 2026-10-08, was refused by the image model with HTTP 402 (the key was not on an account with billing for it; ADR 0004 amendment). The key was replaced the same day, and real try-ons have since been generated on the hosted site. The smoke test in `docs/DEPLOY.md` still checks one. The outfit path has not been observed on the deployed site; three real outfits were rendered locally through `scripts/outfit-smoke.ts` (Phase F).
+- The full end-to-end suite was last run by the Phase F agent at 274 of 274. Earlier phases each had one test that failed once in a combined run and passed when re-run alone (see the commit messages).
 - A successful camera upload is not guaranteed by the tests: the fake camera frame can be rejected for size.
-- The reference screenshots in `mocks/screens/` still show the prototype's two-step onboarding and its email promises, which V0 does not have.
+- The reference screenshots in `mocks/screens/` still show the prototype's two-step onboarding and its email promises, which the build does not have.
 - Automatic rollouts on push do not work; each rollout is started by hand (`docs/DEPLOY.md`).
 - The old Firebase Hosting site from the earlier attempt may still be up.
+- `scripts/live-smoke.ts` imports `apps/web/src/server/consent`, which no longer exists, so it does not run. Not fixed; `scripts/outfit-smoke.ts` is the live script that works.
 
 **Phase A was reviewed by the owner on 2026-10-07, and three changes were folded into Phase B:** no filter heading text on Discover, no Follow on listing cards, and consent by a line under the upload controls instead of a tick (PRD §22.1 rows 2, 19, 20; ADR 0005 amendment). Three calls Claude made in his absence ("on you" wording restored, account to open on desktop too, no tints or scrims) are rows 21 to 23 and open to being overturned.
 
@@ -517,7 +520,7 @@ V0 was a demonstration on Friday 9 October 2026. It is **Phases A, B and C**: th
 2. **Tejas sees it before the next phase starts.** Each phase ends with paired screenshots, prototype beside build, at 390 px and 1440 px, for every screen the phase touched, plus the phase deployed at the password-gated URL. The next phase does not start until he has looked. The M2 build failed this test by never taking it.
 3. **A phase is done when its gate is green, not when its code exists.** The gate is `npm run verify`, `npm test`, `npm run test:emu`, `npm run build`, `npm run test:e2e`, run by Claude independently of whichever agent built the phase, plus the phase's own checks below. Screenshot baselines are part of the e2e suite from Phase A on, so a later phase cannot quietly bend an earlier screen.
 
-**What happened to rule 2.** It was not followed for B to C and C to D. The deadline was Friday, and the owner's instruction was to continue; Phase A was seen and reviewed (2026-10-07), and Phases B and C were not looked at before the next began. Owner feedback is folded into the phase that follows it instead, and the screenshot baselines for B and C are in the e2e suite.
+**What happened to rule 2.** It was not followed from B onward. The deadline was Friday, and the owner's instruction was to continue; Phase A was seen and reviewed (2026-10-07), and Phases B to F were not looked at before the next began. Owner feedback is folded into the phase that follows it instead, and the screenshot baselines for every phase so far are in the e2e suite.
 
 Agents build, as before: one Sonnet subagent per phase, sequentially, because the phases share files. Read-only review agents run in parallel at the end.
 
@@ -584,7 +587,9 @@ Tests: a guest cannot fetch a full-size render by any route (API tests, includin
 
 **Checkpoint:** the whole signed-out journey, end to end, with real renders on the deployed site. This is the point at which the demo is worth showing.
 
-#### Phase D — Lists, asks and the vote page (L) — in progress
+#### Phase D — Lists, asks and the vote page (L) — done, commit `328725a`, 2026-10-09 to 10; deployed
+
+_Built as planned, without email. Routes: `/lists`, `/lists/[id]`, `/lists/[id]/share`, `/asks/[askId]` and `/asked/[askId]` (the inbox and sent views), and the public `/ask/[token]`. Collections `lists`, `asks`, `asks/*/votes` and `inbox/{uid}/asks`, all server-only in `firestore.rules`; the rules and one index override (on `votes.voterUid`) needed a manual deploy. Guests cannot create lists or asks; a guest gets the account sheet and the list sheet opens after sign-in. The vote page is the only path outside the password gate (an exact path pattern for `/ask/<token>` and `/api/ask/<token>`); the token is 256 bits and only its hash is stored; responses are `noindex`, not cached and send no referrer. It shows the asker's first name, the list name, the question, and for each piece its name, price and one image (the asker's Front render if that try-on still exists, otherwise the label's photo)._
 
 The social loop, and the first public surface. The stretch goal for V0; without email.
 
@@ -594,7 +599,7 @@ The social loop, and the first public surface. The stretch goal for V0; without 
 - **Asks inbox.** Asks you opened while signed in, with unread state and the ask detail screen.
 - **Votes show in the app, not by email.** The asker sees counts on the list and in the Asks inbox. The "a vote landed" email moves to the email step after V0 (below).
 
-This phase shows one person's renders to other people. So: only the renders in the ask are reachable from the page; they are served through the token, never by a storage URL; revoking or expiring the ask cuts them off at once; nothing on the page identifies the asker beyond a first name. It gets its own privacy review before the checkpoint.
+This phase shows one person's renders to other people. So: only the renders in the ask are reachable from the page; they are served through the token, never by a storage URL; revoking or expiring the ask cuts them off at once; nothing on the page identifies the asker beyond a first name. It gets its own privacy review before the checkpoint. _(A security review of the Phase D to F surfaces ran on 2026-10-10; see Phase H.)_
 
 Tests: token entropy and expiry; revoke takes effect on the next request; a voter cannot reach any render outside the ask; one vote per browser; counts only; rules tests for every new collection; `noindex` present.
 
@@ -608,7 +613,9 @@ Tests: email against the provider's sandbox, including unsubscribe and each togg
 
 **Checkpoint:** vote in a second browser and get the email.
 
-#### Phase E — You, Studio, Compare, Buy (M)
+#### Phase E — You, Studio, Compare, Buy (M) — done, commit `0ef59a4`, 2026-10-10; rules deploy and rollout pending
+
+_Built, with these differences from the text below: no email section in You or Studio (no email is sent); no fit or height; no face or hand photo slots. "Delete everything" also removes the sign-in, so the person returns as a new visitor. The `usage` documents are kept on purpose, so removing a try-on does not reset the daily try-on count (`packages/db/src/users.ts`); after "Delete everything" the person signs in under a new uid and so starts a fresh count, a known gap bounded by the daily spend cap. Routes: `/studio`, `/compare?ids=`, `/demo-checkout/[itemId]`, and `DELETE /api/try-ons/{poseSetId}`; the new collection `purchases` is server-only and its rules need a manual deploy before the rollout. The demonstration checkout records a purchase and takes no payment. "Did it arrive?" is asked once per piece._
 
 - **You** (phone) and **Studio** (wide): kept try-ons, photos and defaults, following, email preferences, the Details sheet, sign out, and "Delete everything", which is real and immediate.
 - **Compare** (wide screens): select up to four tried pieces into a tray, side by side at the same pose, the `C` key, "Add all to a list".
@@ -618,11 +625,13 @@ Tests: delete removes photos, renders, lists, asks, votes cast by others on thos
 
 **Checkpoint:** the signed-in product, both layouts.
 
-#### Phase F — Wear it with (M)
+#### Phase F — Wear it with (M) — done, commit `1c52f77`, 2026-10-10; rollout pending
+
+_Built, with one recorded departure (PRD §22.1 row 26): the two pieces do not also become their own try-ons, because that would spend a second four-pose render the person did not ask for; the outfit screen offers "Try it on" for the untried piece. Two pieces render together through `packages/render` with its own prompt version `outfit-v1`; `edit-v1` is unchanged. Valid pairs: outerwear over a top, bottom or dress, or a top with a bottom; in the current twelve-piece catalogue only the coat pairs with anything (the vest, the slip dress, the wrap top). An outfit runs through the same graph as a try-on with one pose (the Front view only), the same ledger, gate and failure routing, and the workflow file is unchanged. Outfits are signed-in only, appear in Your try-ons with a tag, and are not offered to Compare. Three real outfits were rendered on 2026-10-10 with `scripts/outfit-smoke.ts`; all passed the gate on the first attempt at about $0.039 each. Tejas has not yet looked at them._
 
 - **Pair preview** sheet from the result, with the two prices summed.
 - **Outfit render.** A new prompt for one person and two garments, one image, through the same chokepoint, cap and gate. It needs its own live test runs before it ships, with a ceiling, and a version name of its own so results stay comparable.
-- **Outfit screen**, "Buy the outfit", "Add outfit to a list". Both pieces also stay as their own try-ons.
+- **Outfit screen**, "Buy the outfit", "Add outfit to a list". _(Not built: see the note above.)_
 
 Tests: prompt snapshot; two garments in a fixed order in the request; the outfit counts against the daily limits; live runs reviewed by eye by Tejas before the checkpoint.
 
@@ -643,7 +652,7 @@ Tests: the buffer never renders for someone who has not viewed the last five; ne
 
 #### Phase H — Hardening (M)
 
-Three read-only reviews (privacy, cost, conformance to the prototypes and §22), fixes, accessibility and performance passes on both layouts, a live run of every render path, the runbook brought up to date, and the list of what is owed before the password gate comes off restated in one place.
+Three read-only reviews (privacy, cost, conformance to the prototypes and §22), fixes, accessibility and performance passes on both layouts, a live run of every render path, the runbook brought up to date, and the list of what is owed before the password gate comes off restated in one place. _Not started. A security review of the Phase D to F surfaces was run on 2026-10-10 and its fixes are being applied in a separate change._
 
 ### 12.4 Beside the phases: M1
 
@@ -651,10 +660,11 @@ The eval is still owed and matters more now. Renders are kept indefinitely and s
 
 ### 12.5 Deferred, on purpose
 
-Sending email (first after V0, above). The designer back office. Jewellery and accessory try-on. The live selfie and face match. Sign in with Apple. A native app. Push. Fit in words (cut, not deferred). Each is listed in PRD §22.3 with its reason. Phases E to H are also after Friday (§12.0a).
+Sending email (first after V0, above). The designer back office. Jewellery and accessory try-on. The live selfie and face match. Sign in with Apple. A native app. Push. Fit in words (cut, not deferred). Each is listed in PRD §22.3 with its reason. Phases G and H are not started (§12.0a).
 
 ### 12.6 What Tejas needs to supply
 
-- **Before V0 (Friday 9 October):** nothing. The images are committed, and no email is sent. *(Done: V0 is live.)* To see a real render on the deployed site, the replaced `GEMINI_API_KEY` (secret version 2) must be on an account with billing for the image model; the smoke test checks it.
+- **Before V0 (Friday 9 October):** nothing. The images are committed, and no email is sent. _(Done: V0 is live and real renders have been generated.)_
+- **To put Phases E and F live:** run `firebase deploy --only firestore:rules`, then start a rollout by hand (`docs/DEPLOY.md`).
 - **For the email step, after V0:** an account with an email provider, and access to `trailroom.ai`'s DNS to verify the sending domain. The owner has both.
 - **Before anyone outside the password:** everything on ADR 0004's list. The image-rights question is answered (ADR 0005).

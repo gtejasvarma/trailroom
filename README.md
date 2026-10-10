@@ -4,17 +4,25 @@ Try fashion products without leaving your couch. One photo of you, and every pie
 from the labels you follow comes back on your body — in four poses (Front, Three-quarter,
 Walking, Seated) — before you buy.
 
-**Where it stands (2026-10-09).** V0 is built and live behind a password at
-`https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`: Phases A, B and C of the build plan.
-It has Discover with the proof slider, product and label pages with Follow, several photos per person,
-upload and in-page camera capture with a consent line, a walk-away queue (a chip on every screen and a
-ready toast), account to open (a guest sees tile-sized images only; Google sign-in opens the result, on
-phone and desktop), a four-pose result with the AI caption and Buy as the filled action, tried pieces
-shown "on you", a "Your try-ons" page, and honest-failure screens. Buy, Add to a list and Build the
-outfit show a "coming soon" toast. No email is sent. **No successful render has yet been observed on
-the deployed site**: the first real run was refused by the image model for billing, and the key has
-been replaced. **Next:** Phase D (lists, asks, the public vote page; no email) is in progress; then
-email, and Phases E to H (`docs/BUILD_PLAN.md` §12).
+**Where it stands (2026-10-10).** The demonstration on Friday 9 October has passed. V0 (Phases A, B
+and C) is built and live behind a password at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`,
+and real try-ons have been generated there. Phases D, E and F are built, tested and on `main`; D is
+deployed, and E and F wait on a manual rules deploy and rollout. Phases G and H are not started.
+
+What a visitor can do today (behind the password): browse Discover with the proof slider, product and
+label pages with Follow; add several photos, by upload or the in-page camera, with a consent line under
+the upload controls; start a try-on and keep browsing while it renders (a chip on every screen and a
+ready toast); open a four-pose result with the AI caption by signing in with Google (a guest sees
+tile-sized images only; a guest who signs in with an existing Google account has their photos, finished
+try-ons and follows merged into it); keep lists, ask friends from a list through a link that shows only
+the pieces in the ask (the vote page needs no account and no password), and read the votes in the app;
+use You (phone) and Studio (desktop) with real counts and "Delete everything"; compare up to four tried
+pieces on a wide screen; "Buy", which opens a demonstration checkout that takes no payment; and "Wear it
+with", which renders two pieces together as one outfit image (the Front view) (in the current catalogue only the coat
+pairs with anything). **No email is sent or promised.** Jewellery and accessories cannot be tried on yet.
+**Not done:** the quality checks of the eval (M1), so the gate is structural only. **Next:** the manual
+rollout of E and F, then the follow loop with real email (Phase G) and hardening (Phase H)
+(`docs/BUILD_PLAN.md` §12).
 
 ## Running it locally
 
@@ -35,7 +43,7 @@ The last command previews the app at `http://localhost:3000`; the gate password 
 |---|---|
 | `docs/PRD.md` | **The PRD** (v0.7), one consistent document. §22 holds the decisions and their reasoning; §19 is the register of the original mock-vs-PRD audit. |
 | `docs/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Derive every value from §11 and do not invent tokens. |
-| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H; V0 = A to C is live, D in progress). |
+| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H; V0 = A to C and D are live, E and F are built and await rollout). |
 | `docs/DEPLOY.md` | The manual deploy runbook (Tejas runs it; agents do not deploy). |
 | `docs/decisions/` | ADRs — one file per irreversible call (infra, vendor, architecture, scope). |
 | `specs/` | Units of work — one spec file per increment being built. |
