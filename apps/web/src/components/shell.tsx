@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { copy } from "../lib/copy";
 import { useAccount } from "./account-provider";
 import { JobChips } from "./job-chips";
+import { useLists } from "./lists-provider";
 import { useMe } from "./me-provider";
 import { BackIcon, HeartIcon } from "./ui/icons";
 
@@ -28,7 +29,13 @@ const TABS: { key: Section; href: string; label: string; shape: string }[] = [
 ];
 
 function sectionOf(pathname: string): Section | null {
-  if (pathname === "/lists") return "lists";
+  if (
+    pathname === "/lists" ||
+    pathname.startsWith("/lists/") ||
+    pathname.startsWith("/asks/") ||
+    pathname.startsWith("/asked/")
+  )
+    return "lists";
   if (pathname === "/you" || pathname.startsWith("/you/")) return "you";
   if (
     pathname === "/" ||
@@ -74,6 +81,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const openAccount = useAccount();
   const { isGuest, loaded, who, signOut } = useMe();
+  const { unread } = useLists();
+  const dot = (
+    <span
+      data-testid="lists-dot"
+      aria-hidden="true"
+      className="block size-2 rounded-full bg-danger"
+    />
+  );
   const section = sectionOf(pathname);
   const tabBar = hasTabBar(pathname);
   const signedIn = loaded && !isGuest;
@@ -83,7 +98,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
     else router.push("/");
   };
 
-  const navLink = (href: string, label: string, active: boolean) => (
+  const navLink = (
+    href: string,
+    label: string,
+    active: boolean,
+    extra: React.ReactNode = null,
+  ) => (
     <Link
       key={href}
       href={href}
@@ -93,6 +113,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       }`}
     >
       {label}
+      {extra ? <span className="ml-1.5">{extra}</span> : null}
       <span
         aria-hidden="true"
         className={`absolute inset-x-4 bottom-0 h-0.5 ${active ? "bg-ink" : "bg-transparent"}`}
@@ -131,9 +152,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Link
               href="/lists"
               aria-label={copy.nav.listsShortcut}
-              className="grid size-11 place-items-center text-ink"
+              className="relative grid size-11 place-items-center text-ink"
             >
               <HeartIcon />
+              {unread > 0 ? (
+                <span className="absolute top-2.5 right-2.5">{dot}</span>
+              ) : null}
             </Link>
           </div>
         </div>
@@ -153,7 +177,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
               copy.nav.yourTryOns,
               pathname === "/you/try-ons",
             )}
-            {navLink("/lists", copy.nav.lists, section === "lists")}
+            {navLink(
+              "/lists",
+              copy.nav.lists,
+              section === "lists",
+              unread > 0 ? dot : null,
+            )}
           </div>
           {signedIn ? (
             <div className="flex items-center gap-3">
@@ -203,7 +232,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 key={t.key}
                 href={t.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-1 flex-col items-center justify-center gap-[5px] ${
+                className={`relative flex flex-1 flex-col items-center justify-center gap-[5px] ${
                   active ? "text-ink" : "text-ink-600"
                 }`}
               >
@@ -218,6 +247,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 >
                   {t.label}
                 </span>
+                {t.key === "lists" && unread > 0 ? (
+                  <span className="absolute top-2.5 left-1/2 ml-3">{dot}</span>
+                ) : null}
               </Link>
             );
           })}

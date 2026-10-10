@@ -32,9 +32,15 @@ test("Continue with Google links the guest and opens the result in place, no re-
   await expect(dialog).toBeHidden();
   await expect(page.getByTestId("toast")).toContainText("Signed in");
 
-  // Buy and Add to a list say plainly that they arrive soon.
+  // Add to a list opens the list sheet; Buy and Build the outfit say plainly that they arrive soon.
   await page.getByRole("button", { name: "Add to a list" }).click();
-  await expect(page.getByTestId("toast")).toHaveText("Lists arrive soon.");
+  await expect(
+    page.getByRole("dialog", { name: "Save to a list" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("dialog", { name: "Save to a list" }),
+  ).toBeHidden();
   await page.getByRole("button", { name: /^Buy \$/ }).click();
   await expect(page.getByTestId("toast")).toHaveText("Buying arrives soon.");
   await page.getByRole("button", { name: "Build the outfit" }).click();

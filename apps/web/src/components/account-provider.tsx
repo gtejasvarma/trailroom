@@ -1,7 +1,8 @@
 "use client";
 // The one account sheet for the whole app, and what happens after sign-in (the prototype's
 // resumeIntent): reveal opens the result, picknext goes to the post-signup labels (a brand new
-// account) or the starters, list/buy go back to the piece with an interim toast. Dismissing the
+// account) or the starters, list opens the list sheet for the piece, buy goes back to the piece
+// with an interim toast. Dismissing the
 // sheet never loses anything: the photo and try-on stay with the guest session.
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -19,6 +20,7 @@ import {
   type AccountContext,
   type AccountReason,
 } from "./account-sheet";
+import { useLists } from "./lists-provider";
 import { useMe } from "./me-provider";
 import { useToast } from "./ui/toast";
 
@@ -65,6 +67,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const say = useToast();
   const { refresh } = useMe();
+  const { openSheet } = useLists();
   const [state, setState] = useState<{
     reason: AccountReason;
     intent: AccountIntent;
@@ -118,14 +121,18 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           router.push(paths.tryOn(intent.jobId));
       } else if (reason === "picknext") {
         router.push(paths.welcome);
-      } else if ((reason === "list" || reason === "buy") && intent.itemId) {
+      } else if (reason === "list") {
+        // Back where they were, with the list sheet open for the piece they meant to save.
+        say(copy.toasts.signedIn);
+        openSheet(intent.itemId ?? null);
+      } else if (reason === "buy" && intent.itemId) {
         say(copy.toasts.signedInSoon);
         router.push(paths.item(intent.itemId));
       } else {
         say(copy.toasts.signedIn);
       }
     },
-    [state, refresh, say, router, pathname],
+    [state, refresh, say, router, pathname, openSheet],
   );
 
   const value = useMemo(() => openAccount, [openAccount]);

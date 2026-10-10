@@ -191,3 +191,36 @@ describe("catalogue text shown in the UI", () => {
     }
   });
 });
+
+describe("phase D copy: lists, asks and the vote page", () => {
+  it("states what a link does in one plain sentence, and promises nothing it does not do", () => {
+    expect(copy.share.sentence).toMatch(/^[^.]+\.[^.]+\.$/);
+    expect(copy.share.sentence).toContain("Anyone with the link can see");
+    expect(copy.share.sentence).toContain("switch the link off");
+    // Copy link and Share are the only ways out; no pretend app buttons.
+    expect(JSON.stringify(copy.share)).not.toMatch(/whatsapp|messages\b/i);
+  });
+  it("counts and names read as plain sentences", () => {
+    expect(copy.lists.voteLine(1, "Wool car coat")).toBe(
+      "1 vote · wool car coat ahead",
+    );
+    expect(copy.lists.voteLine(23, "")).toBe("23 votes");
+    expect(copy.lists.count(0)).toBe("No lists yet");
+    expect(copy.lists.count(2)).toBe("2 lists");
+    expect(copy.lists.pieces(1)).toBe("1 piece");
+    expect(copy.sent.rowVotes(1)).toBe("1 vote");
+    expect(copy.sent.closes(1)).toBe("The link closes in 1 day.");
+    expect(copy.vote.isAsking("Maya")).toBe(
+      "Maya is asking. One tap, no sign-in.",
+    );
+    expect(copy.vote.thanks("Maya")).toBe("Thanks — Maya can see your vote");
+    expect(copy.toasts.addedTo("Wedding")).toBe("Added to Wedding");
+    expect(copy.vote.closedTitle).toBe("This link is no longer active");
+  });
+  it("the AI caption is the one string used beside every render", () => {
+    expect(copy.result.aiCaption).toBe("AI-generated preview");
+    expect(copy.vote.renderAlt("Coat", "Marchand")).toContain(
+      "AI-generated preview",
+    );
+  });
+});

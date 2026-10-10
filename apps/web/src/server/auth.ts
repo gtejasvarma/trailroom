@@ -36,3 +36,13 @@ export async function verifyGuestToken(token: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * The verified caller if a valid bearer token is present, else null. Never a 401: the public ask
+ * routes work without an account, and a bad token is treated as no token.
+ */
+export async function optionalUser(request: Request): Promise<User | null> {
+  if (!request.headers.get("authorization")) return null;
+  const u = await requireUser(request);
+  return u instanceof Response ? null : u;
+}

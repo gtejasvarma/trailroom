@@ -30,6 +30,26 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Phase D: lists, asks (with their votes) and inbox entries are server-only. Clients read
+    // them through /api/lists, /api/asks and /api/inbox; the public vote page reaches an ask only
+    // through /api/ask/[token], never Firestore. Explicit so a later edit cannot loosen them by
+    // accident.
+    match /lists/{listId} {
+      allow read, write: if false;
+    }
+
+    match /asks/{askId} {
+      allow read, write: if false;
+
+      match /votes/{voterKey} {
+        allow read, write: if false;
+      }
+    }
+
+    match /inbox/{uid}/asks/{askId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

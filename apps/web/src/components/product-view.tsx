@@ -9,6 +9,8 @@ import { BrandRow } from "./ui/brand-row";
 import { Button } from "./ui/button";
 import { HeartIcon } from "./ui/icons";
 import { useAccount } from "./account-provider";
+import { useLists } from "./lists-provider";
+import { useSaveToList } from "./save-to-list";
 import { useMe } from "./me-provider";
 import { ButtonLink } from "./ui/button";
 import { useToast } from "./ui/toast";
@@ -28,10 +30,10 @@ export function ProductView({ item }: { item: CatalogItem }) {
     isGuest
       ? openAccount("buy", { itemId: item.id })
       : say(copy.toasts.buySoon);
-  const save = () =>
-    isGuest
-      ? openAccount("list", { itemId: item.id })
-      : say(copy.toasts.listsSoon);
+  const saveToList = useSaveToList();
+  const { isSaved } = useLists();
+  const saved = !isGuest && isSaved(item.id);
+  const save = () => saveToList(item.id);
 
   return (
     <div className="rise mx-auto w-full max-w-[1600px] pb-12 md:px-10 md:pt-6">
@@ -109,10 +111,12 @@ export function ProductView({ item }: { item: CatalogItem }) {
               variant="outline"
               size="md"
               onClick={save}
-              aria-label={copy.card.addToList}
+              aria-label={saved ? copy.card.saveToList : copy.card.addToList}
+              data-testid="heart"
+              data-saved={saved ? "true" : "false"}
               className="size-[46px] flex-none !px-0"
             >
-              <HeartIcon />
+              <HeartIcon filled={saved} />
             </Button>
           </div>
 

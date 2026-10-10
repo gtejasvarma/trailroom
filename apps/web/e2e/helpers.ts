@@ -188,7 +188,7 @@ export async function waitForGuestReady(page: Page) {
  */
 export async function continueWithGoogle(
   page: Page,
-  opts: { email?: string; existing?: boolean } = {},
+  opts: { email?: string; existing?: boolean; name?: string } = {},
 ) {
   const dialog = page.getByRole("dialog");
   const email = opts.email ?? newEmail();
@@ -202,6 +202,7 @@ export async function continueWithGoogle(
     await popup.getByText("Add new account").click();
     await expect(popup.locator("#email-input")).toBeVisible();
     await popup.locator("#email-input").fill(email);
+    if (opts.name) await popup.locator("#display-name-input").fill(opts.name);
     await popup.locator("#sign-in").click();
   }
   return email;
@@ -212,7 +213,10 @@ export async function continueWithGoogle(
  * the guest-ready state, signs in with Google from the account sheet, and waits for the gallery.
  * Already signed in: just waits for the gallery.
  */
-export async function waitForResult(page: Page) {
+export async function waitForResult(
+  page: Page,
+  signIn: { name?: string } = {},
+) {
   const hero = page.getByTestId("pose-gallery");
   const guestReady = page.getByTestId("queue-title");
   await expect(hero.or(guestReady.filter({ hasText: /ready$/ }))).toBeVisible({
@@ -220,7 +224,7 @@ export async function waitForResult(page: Page) {
   });
   if (!(await hero.isVisible())) {
     await expect(page.getByRole("dialog")).toBeVisible();
-    await continueWithGoogle(page);
+    await continueWithGoogle(page, { name: signIn.name });
   }
   await expect(hero).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("img[data-hero]").first()).toBeVisible();
@@ -243,4 +247,62 @@ export async function settle(page: Page) {
         .map((a) => a.finished.catch(() => {})),
     ),
   );
+}
+
+/**
+ * Writes an ask straight into the emulator (REST, as the owner): used to seed an ask whose link
+ * expired. `token` is the raw link token; only its hash is stored, as the server does.
+ */
+export async function seedAsk(opts: {
+  id: string;
+  token: string;
+  uid: string;
+  itemIds: string[];
+  expiresAt: Date;
+}) {
+  const { createHash } = await import("node:crypto");
+  const fs = host("FIRESTORE_EMULATOR_HOST", "127.0.0.1:8080");
+  const str = (v: string) => ({ stringValue: v });
+  const ts = (d: Date) => ({ timestampValue: d.toISOString() });
+  const res = await fetch(
+    `http://${fs}/v1/projects/demo-trailroom/databases/(default)/documents/asks/${opts.id}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: "Bearer owner",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fields: {
+          uid: str(opts.uid),
+          askerFirstName: str("Maya"),
+          listId: str("seeded"),
+          listName: str("Wedding in September"),
+          question: { nullValue: null },
+          itemIds: {
+            arrayValue: { values: opts.itemIds.map((i) => str(i)) },
+          },
+          poseSetIds: {
+            mapValue: {
+              fields: Object.fromEntries(
+                opts.itemIds.map((i) => [i, { nullValue: null }]),
+              ),
+            },
+          },
+          tokenHash: str(createHash("sha256").update(opts.token).digest("hex")),
+          createdAt: ts(new Date(opts.expiresAt.getTime() - 7 * 86_400_000)),
+          expiresAt: ts(opts.expiresAt),
+          revokedAt: { nullValue: null },
+          counts: {
+            mapValue: {
+              fields: Object.fromEntries(
+                opts.itemIds.map((i) => [i, { integerValue: "0" }]),
+              ),
+            },
+          },
+        },
+      }),
+    },
+  );
+  if (!res.ok) throw new Error("could not seed the ask");
 }

@@ -269,7 +269,9 @@ for (const size of SIZES) {
       await page.keyboard.press("Escape");
       await page.goto("/lists");
       await page.getByRole("button", { name: "New list" }).first().click();
-      await expect(page.getByTestId("toast")).toHaveText("Lists arrive soon.");
+      await expect(
+        page.getByRole("dialog", { name: "Create an account to save" }),
+      ).toBeVisible();
     });
 
     test("the product page shows gallery, price, stock, description and More from", async ({

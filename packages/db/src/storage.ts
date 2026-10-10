@@ -88,6 +88,17 @@ export async function publishRender(
 export const getRender = (uid: string, poseSetId: string, pose: string) =>
   get(renderPath(uid, poseSetId, pose));
 
+export async function renderExists(
+  uid: string,
+  poseSetId: string,
+  pose: string,
+): Promise<boolean> {
+  const [exists] = await bucket()
+    .file(renderPath(uid, poseSetId, pose))
+    .exists();
+  return exists;
+}
+
 export async function deleteRender(
   uid: string,
   poseSetId: string,

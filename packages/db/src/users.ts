@@ -1,5 +1,11 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./app";
+import {
+  anonymiseVotesBy,
+  deleteAsksForUser,
+  deleteInboxForUser,
+} from "./asks";
+import { deleteListsForUser } from "./lists";
 import { assertSegment } from "./paths";
 import { deleteAllPhotoDocs } from "./photos";
 import {
@@ -20,7 +26,7 @@ async function commitDeletes(refs: FirebaseFirestore.DocumentReference[]) {
 }
 
 /**
- * Removes everything held for a user: photo and renders objects, staging for their jobs, and the
+ * Removes everything held for a user: lists, asks (with votes) and inbox, photo and renders objects, staging for their jobs, and the
  * consent, photo, job, jobInternals and poseSet docs. Other users' data is untouched. It leaves
  * usage/{uid}_{day} alone on purpose, so deleting data cannot reset a daily limit.
  * Objects are deleted again after the docs, to catch anything a racing render or upload wrote
@@ -47,6 +53,12 @@ export async function deleteAllForUser(uid: string): Promise<void> {
   ]);
   await deleteAllPhotoDocs(uid);
   await deleteObjects();
+  // The social side: their votes on other people's asks keep their count but lose the link to
+  // them; their own asks go with their votes; so do their lists and their inbox.
+  await anonymiseVotesBy(uid);
+  await deleteAsksForUser(uid);
+  await deleteInboxForUser(uid);
+  await deleteListsForUser(uid);
 }
 
 /**

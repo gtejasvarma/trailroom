@@ -1,4 +1,5 @@
 "use client";
+import { clearAskLinks } from "../lib/ask-links";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -46,6 +47,7 @@ export function YouScreen() {
     setView("deleting");
     try {
       await api.deleteEverything();
+      clearAskLinks();
       setMe((m) =>
         m ? { ...m, photoCount: 0, defaultPhotoId: null, consented: false } : m,
       );

@@ -11,6 +11,7 @@ import { passedPoses, type JobView } from "../lib/job";
 import { useRenderImage } from "../lib/use-render-image";
 import { Button } from "./ui/button";
 import { Chip } from "./ui/chip";
+import { useSaveToList } from "./save-to-list";
 import { useToast } from "./ui/toast";
 
 function Slide({
@@ -147,6 +148,7 @@ function OutfitRow({
 /** The signed-in person's result. Guests never get here: the server serves them tiles only. */
 export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
   const say = useToast();
+  const saveToList = useSaveToList();
   const poses = passedPoses(job);
   const n = poses.length;
   const scroller = useRef<HTMLDivElement>(null);
@@ -318,7 +320,7 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
           <Button
             variant="outline"
             size="md"
-            onClick={() => say(copy.toasts.listsSoon)}
+            onClick={() => saveToList(item.id)}
             className="mt-2.5 w-full min-h-12"
           >
             {copy.result.addToList}

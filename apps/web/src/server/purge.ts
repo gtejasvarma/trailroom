@@ -5,6 +5,7 @@
 import {
   auth,
   deleteAllForUser,
+  deleteExpiredAsks,
   deleteOldUsage,
   deleteConsent,
   FirestoreDailyLedger,
@@ -29,6 +30,8 @@ export interface PurgeResult {
   reaped: number;
   staleJobs: number;
   usageDeleted: number;
+  /** Asks deleted 30 days after their link expired. */
+  asksDeleted: number;
 }
 
 type AuthUserLike = { providerData: unknown[] };
@@ -61,6 +64,7 @@ export async function purgeExpiredGuests(
     reaped: 0,
     staleJobs: 0,
     usageDeleted: 0,
+    asksDeleted: 0,
   };
 
   // Expired guests.
@@ -122,6 +126,12 @@ export async function purgeExpiredGuests(
     }
   } catch (e) {
     logError("purge: reservation reaper failed", e);
+  }
+
+  try {
+    result.asksDeleted = await deleteExpiredAsks(now, PURGE_BATCH);
+  } catch (e) {
+    logError("purge: expired asks failed", e);
   }
 
   try {

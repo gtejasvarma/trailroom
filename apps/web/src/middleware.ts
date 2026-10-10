@@ -1,20 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { GATE_COOKIE, readGateConfig, verifyGateCookie } from "@/lib/gate";
-
-// Everything is behind the shared password except the gate itself and /api/internal/*,
-// which authenticates callers (Workflows, Scheduler) with OIDC in its own route handlers.
-function isExempt(pathname: string): boolean {
-  return (
-    pathname === "/gate" ||
-    pathname === "/api/gate" ||
-    pathname === "/api/internal" ||
-    pathname.startsWith("/api/internal/")
-  );
-}
+import { isExempt, isPublicAskPath } from "@/lib/gate-paths";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (isExempt(pathname)) return NextResponse.next();
+  if (isExempt(pathname)) {
+    const res = NextResponse.next();
+    if (isPublicAskPath(pathname)) {
+      // The link is the secret: never indexed, cached or sent on as a referrer. (The routes set
+      // the same headers themselves; this covers the page.)
+      res.headers.set("X-Robots-Tag", "noindex, nofollow");
+      res.headers.set("Cache-Control", "private, no-store");
+      res.headers.set("Referrer-Policy", "no-referrer");
+    }
+    return res;
+  }
 
   const config = readGateConfig(process.env);
   const ok =

@@ -82,7 +82,13 @@ let fs: Firestore | undefined;
 export function firestore(): Firestore {
   if (!fs) {
     fs = getFirestore(getApp());
-    fs.settings({ ignoreUndefinedProperties: true });
+    try {
+      fs.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      // The Firestore instance is shared per app, and a server component and a route handler can
+      // load this module twice (separate bundles): the second settings() call is refused, and the
+      // first one already set it.
+    }
   }
   return fs;
 }

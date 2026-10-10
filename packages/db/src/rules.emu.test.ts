@@ -8,6 +8,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -69,6 +70,13 @@ beforeAll(async () => {
     await setDoc(doc(db, "jobInternals/j1"), { failureDetail: "secret" });
     await setDoc(doc(db, "follows/alice"), { labels: ["marchand"] });
     await setDoc(doc(db, "jobs/j2"), { uid: "bob" });
+    await setDoc(doc(db, "lists/l1"), { uid: "alice", name: "Wedding" });
+    await setDoc(doc(db, "asks/a1"), { uid: "alice", tokenHash: "x" });
+    await setDoc(doc(db, "asks/a1/votes/v1"), {
+      itemId: "coat",
+      voterUid: "bob",
+    });
+    await setDoc(doc(db, "inbox/bob/asks/a1"), { askerFirstName: "Maya" });
     // A real object, so a denied read is a permission error and not a not-found.
     await uploadBytes(
       ref(ctx.storage(), "photos/alice/p1.jpg"),
@@ -176,6 +184,44 @@ describe("photos subcollection", () => {
         updateDoc(doc(db, "photos/alice"), { defaultPhotoId: "p2" }),
       );
     }
+  });
+});
+
+describe("phase D: lists, asks, votes and inbox are server-only", () => {
+  const docs = ["lists/l1", "asks/a1", "asks/a1/votes/v1", "inbox/bob/asks/a1"];
+  const lists = ["lists", "asks", "asks/a1/votes", "inbox/bob/asks"];
+  it.each(docs)(
+    "nobody reads or writes %s, not even its owner",
+    async (path) => {
+      const a = actors();
+      for (const db of [a.owner, a.stranger, a.anon]) {
+        await assertFails(getDoc(doc(db, path)));
+        await assertFails(setDoc(doc(db, path), { uid: "alice" }));
+        await assertFails(updateDoc(doc(db, path), { uid: "alice" }));
+        await assertFails(deleteDoc(doc(db, path)));
+      }
+      // The inbox owner is bob, and still gets nothing.
+      const bob = env.authenticatedContext("bob").firestore();
+      await assertFails(getDoc(doc(bob, path)));
+    },
+  );
+  it.each(lists)("nobody lists %s", async (path) => {
+    const a = actors();
+    for (const db of [a.owner, a.stranger, a.anon]) {
+      await assertFails(getDocs(collection(db, path)));
+      await assertFails(setDoc(doc(db, `${path}/brand-new`), { uid: "alice" }));
+    }
+  });
+  it("a collection-group query over votes is denied", async () => {
+    const a = actors();
+    await assertFails(
+      getDocs(
+        query(
+          collectionGroup(a.owner, "votes"),
+          where("voterUid", "==", "alice"),
+        ),
+      ),
+    );
   });
 });
 

@@ -19,6 +19,20 @@ const config: NextConfig = {
     // route's own byte counter still enforces 10 MiB. (Docs: proxyClientMaxBodySize.)
     proxyClientMaxBodySize: "11mb",
   },
+  // The public vote page is never indexed, cached or sent as a referrer (its URL is the secret).
+  // Its API sets the same headers itself.
+  async headers() {
+    return [
+      {
+        source: "/ask/:token",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
+    ];
+  },
   serverExternalPackages: [
     "firebase-admin",
     "@google-cloud/storage",

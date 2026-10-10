@@ -15,6 +15,7 @@ import {
   type AuthError,
 } from "firebase/auth";
 import { api } from "./api";
+import { clearAskLinks } from "./ask-links";
 import { copy } from "./copy";
 import { ensureUser, getFirebaseAuth, peekUser } from "./firebase";
 
@@ -93,5 +94,6 @@ export async function continueWithGoogle(): Promise<SignInResult> {
 
 /** Signs out. The next API call starts a clean guest session. */
 export async function signOutNow(): Promise<void> {
+  clearAskLinks(); // links made on this browser are the signed-out person's no longer
   await firebaseSignOut(getFirebaseAuth());
 }

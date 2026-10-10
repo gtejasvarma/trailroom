@@ -100,3 +100,62 @@ export interface PoseSetDoc {
   createdAt: Timestamp;
   expiresAt: Timestamp | null;
 }
+
+/** At most this many lists per person, and pieces per list. */
+export const MAX_LISTS = 30;
+export const MAX_LIST_ITEMS = 12;
+/** An ask carries 1 to this many pieces, and at most this many asks are live per person. */
+export const MAX_ASK_ITEMS = 4;
+export const MAX_LIVE_ASKS = 20;
+export const MAX_QUESTION_LENGTH = 120;
+export const MAX_LIST_NAME_LENGTH = 60;
+/** An ask link works for 7 days; the purge deletes it 30 days after that. */
+export const ASK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const ASK_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** lists/{listId}. Written only by the server; clients read it through /api/lists. */
+export interface ListDoc {
+  uid: string;
+  name: string;
+  /** Catalogue ids, unique, in the order added. */
+  itemIds: string[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * asks/{askId}. The raw link token is never stored: only its SHA-256 hash, which is how the
+ * public page finds the ask. `uid` is the asker's and is never sent to a voter.
+ */
+export interface AskDoc {
+  uid: string;
+  askerFirstName: string;
+  listId: string;
+  listName: string;
+  question: string | null;
+  itemIds: string[];
+  /** Frozen at creation: the asker's finished try-on for each piece, if any. */
+  poseSetIds: Record<string, string | null>;
+  tokenHash: string;
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  revokedAt: Timestamp | null;
+  counts: Record<string, number>;
+}
+
+/** asks/{askId}/votes/{voterKey}: one vote per voter. `voterUid` is null for cookie voters. */
+export interface VoteDoc {
+  itemId: string;
+  createdAt: Timestamp;
+  voterUid: string | null;
+}
+
+/** inbox/{uid}/asks/{askId}: an ask this signed-in person opened. */
+export interface InboxAskDoc {
+  askerFirstName: string;
+  question: string | null;
+  itemIds: string[];
+  firstOpenedAt: Timestamp;
+  votedItemId: string | null;
+  unread: boolean;
+}

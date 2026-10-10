@@ -1,5 +1,8 @@
 "use client";
 // Every call to /api/* carries a fresh Firebase ID token. Errors are { error, message }.
+import type { AskSummary } from "../server/asks";
+import type { InboxDetail, InboxSummary } from "../server/inbox";
+import type { ListBody } from "../server/lists";
 import type { MeBody } from "../server/me";
 import type { TryOnSummary } from "../server/try-ons";
 import { CONSENT_VERSION } from "./consent";
@@ -72,6 +75,12 @@ export interface UploadedPhoto {
   height: number;
 }
 
+const patch = (body: unknown): RequestInit => ({
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
 export const api = {
   me: () => apiFetch<MeBody>("/api/me"),
   tryOns: () => apiFetch<{ tryOns: TryOnSummary[] }>("/api/try-ons"),
@@ -106,5 +115,26 @@ export const api = {
     ),
   merge: (guestToken: string) =>
     apiFetch<unknown>("/api/account/merge", json({ guestToken })),
+  lists: () => apiFetch<{ lists: ListBody[] }>("/api/lists"),
+  createList: (name: string, itemId?: string) =>
+    apiFetch<{ list: ListBody }>("/api/lists", json({ name, itemId })),
+  changeList: (
+    id: string,
+    change: { name?: string; add?: string; remove?: string },
+  ) => apiFetch<{ list: ListBody }>(`/api/lists/${id}`, patch(change)),
+  deleteList: (id: string) =>
+    apiFetch<{ deleted: true }>(`/api/lists/${id}`, { method: "DELETE" }),
+  asks: () => apiFetch<{ asks: AskSummary[] }>("/api/asks"),
+  createAsk: (listId: string, itemIds: string[], question?: string) =>
+    apiFetch<{ askId: string; url: string }>(
+      "/api/asks",
+      json({ listId, itemIds, question }),
+    ),
+  revokeAsk: (id: string) =>
+    apiFetch<{ revoked: true }>(`/api/asks/${id}/revoke`, { method: "POST" }),
+  inbox: () => apiFetch<{ asks: InboxSummary[]; unread: number }>("/api/inbox"),
+  inboxDetail: (askId: string) => apiFetch<InboxDetail>(`/api/inbox/${askId}`),
+  inboxVote: (askId: string, itemId: string) =>
+    apiFetch<InboxDetail>(`/api/inbox/${askId}/vote`, json({ itemId })),
   attach: () => apiFetch<{ isGuest: false }>("/api/account/attach", json({})),
 };

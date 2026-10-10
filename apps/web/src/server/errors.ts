@@ -89,6 +89,38 @@ export const ERRORS = {
     status: 503,
     message: "We could not start your previews just now, so try again shortly.",
   },
+  list_limit: {
+    status: 409,
+    message:
+      "You can keep up to 30 lists, so delete one before making another.",
+  },
+  list_full: {
+    status: 409,
+    message:
+      "A list holds up to 12 pieces, so remove one before adding another.",
+  },
+  ask_limit: {
+    status: 409,
+    message:
+      "You have 20 asks open, so revoke one before asking friends about another.",
+  },
+  ask_closed: {
+    status: 410,
+    message: "This link is no longer active.",
+  },
+  own_ask: {
+    status: 403,
+    message: "This is your own ask, so only your friends can vote on it.",
+  },
+  too_many_attempts: {
+    status: 429,
+    message:
+      "Too many attempts from your network, so wait a few minutes and try again.",
+  },
+  body_too_large: {
+    status: 413,
+    message: "That request is too large, so send a smaller one.",
+  },
   not_found: {
     status: 404,
     message: "We could not find that.",

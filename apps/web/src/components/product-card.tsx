@@ -8,7 +8,8 @@ import { Button } from "./ui/button";
 import { HeartIcon } from "./ui/icons";
 import { PhotoFrames } from "./ui/photo-frames";
 import { TryOnButton } from "./tryon-button";
-import { useAccount } from "./account-provider";
+import { useLists } from "./lists-provider";
+import { useSaveToList } from "./save-to-list";
 import { useMe } from "./me-provider";
 import { useToast } from "./ui/toast";
 
@@ -20,11 +21,13 @@ import { useToast } from "./ui/toast";
  */
 export function ProductCard({ item }: { item: CatalogItem }) {
   const say = useToast();
-  const openAccount = useAccount();
+  const save = useSaveToList();
+  const { isSaved } = useLists();
   const { isGuest, tryOns } = useMe();
   const mine = isGuest ? undefined : tryOns.find((t) => t.itemId === item.id);
   const urls = useRenderImages(mine?.poseSetId ?? null, mine?.poses ?? []);
   const onYou = Boolean(mine);
+  const saved = !isGuest && isSaved(item.id);
   const price = copy.item.price(item.priceUsd);
 
   const frames = mine
@@ -100,15 +103,13 @@ export function ProductCard({ item }: { item: CatalogItem }) {
           <Button
             variant="outline"
             size="md"
-            onClick={() =>
-              isGuest
-                ? openAccount("list", { itemId: item.id })
-                : say(copy.toasts.listsSoon)
-            }
-            aria-label={copy.card.addToList}
+            onClick={() => save(item.id)}
+            aria-label={saved ? copy.card.saveToList : copy.card.addToList}
+            data-testid="heart"
+            data-saved={saved ? "true" : "false"}
             className="size-11 flex-none !px-0"
           >
-            <HeartIcon />
+            <HeartIcon filled={saved} />
           </Button>
         </div>
       </div>

@@ -99,7 +99,7 @@ test("You: delete everything, visibly, then the next upload starts clean", async
   const deleted = page.getByTestId("deleted");
   await expect(deleted).toBeVisible();
   await expect(deleted).toContainText(
-    "Your photos and every try-on made from them are gone.",
+    "Your photos, try-ons, lists and asks are gone.",
   );
   await expect(
     page.getByRole("button", { name: "Delete everything" }),
