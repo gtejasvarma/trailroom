@@ -1,5 +1,13 @@
 import { readFileSync } from "node:fs";
-import { expect, listDocs, PHOTO, TINY, test, uploadFirst } from "./helpers";
+import {
+  continueWithGoogle,
+  expect,
+  listDocs,
+  PHOTO,
+  TINY,
+  test,
+  uploadFirst,
+} from "./helpers";
 
 test("a tiny image is stopped in the browser with the specific reason, and stays put", async ({
   page,
@@ -101,5 +109,11 @@ test("a photo just under the 10 MiB limit goes through the real server intact", 
     .locator("input[type=file]")
     .setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: big });
   await page.getByRole("button", { name: "Use this photo" }).click();
+  // The upload arrived whole (the account sheet only rises after it was accepted); signing in
+  // then starts the try-on with it.
+  await expect(
+    page.getByRole("dialog", { name: "Create an account to try it on" }),
+  ).toBeVisible();
+  await continueWithGoogle(page);
   await expect(page).toHaveURL(/\/try-on\//);
 });

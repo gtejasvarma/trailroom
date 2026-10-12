@@ -4,7 +4,6 @@ import {
   createJob,
   DailyLimitError,
   getJob,
-  GuestLiveSetError,
   isConsentCurrent,
   kindOf,
   refundDailyStart,
@@ -59,6 +58,10 @@ export async function startTryOn(
   ) {
     return err("invalid_request");
   }
+
+  // An account is required to start any render: a guest may browse and upload, nothing is
+  // rendered for them. Checked before anything is read, created, counted or reserved.
+  if (user.isGuest) return err("account_required");
 
   // Every refusal below happens before any reservation or model call.
   if (!(await isConsentCurrent(user.uid, CONSENT_VERSION))) {
@@ -121,6 +124,9 @@ export async function launchRender(
   input: LaunchInput,
   now: Date,
 ): Promise<Result<TryOnBody>> {
+  // The control behind every start (a try-on and an outfit both come through here): no account,
+  // no job, no pose set, no daily count, no spend reservation, no workflow execution.
+  if (user.isGuest) return err("account_required");
   const { psId, itemId } = input;
   let existing = await getPoseSet(psId);
   if (existing?.status === "rendering") {
@@ -156,19 +162,11 @@ export async function launchRender(
     }
   }
 
-  // Cheap pre-check for the common case; the transaction below is what decides a race.
-  if (user.isGuest) {
-    const sets = await listPoseSetsForUser(user.uid);
-    if (sets.some((s) => LIVE.includes(s.poseSet.status))) {
-      return err("signup_required");
-    }
-  }
-
   // One try-on job at a time per person: a second start for a different piece while one is
   // still rendering is refused (no job, no spend, nothing counted). Reusing the same piece's job
   // was answered above; a job that stopped moving is not "rendering" any more. Pre-check, not a
   // lock: two simultaneous starts could both pass, which the daily limit still bounds.
-  if (!user.isGuest) {
+  {
     const sets = await listPoseSetsForUser(user.uid);
     for (const s of sets) {
       if (s.id === psId || s.poseSet.status !== "rendering") continue;
@@ -183,18 +181,11 @@ export async function launchRender(
     }
   }
 
-  // Counts this start (failed sets count too) and, for a guest, claims their one live set, in a
-  // single transaction. Placed after every free refusal and the reuse check, and before the job
+  // Counts this start (failed sets count too) in a single transaction. Placed after every free refusal and the reuse check, and before the job
   // is created so a refused start leaves nothing behind.
   try {
-    await claimDailyStart(
-      user.uid,
-      dailyStartLimit(user.isGuest),
-      now,
-      user.isGuest ? { poseSetId: psId } : undefined,
-    );
+    await claimDailyStart(user.uid, dailyStartLimit(), now);
   } catch (e) {
-    if (e instanceof GuestLiveSetError) return err("signup_required");
     if (e instanceof DailyLimitError) return err("daily_limit");
     throw e;
   }

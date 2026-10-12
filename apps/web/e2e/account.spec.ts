@@ -3,7 +3,9 @@ import {
   confirmWhichPhoto,
   dismissSheet,
   expect,
+  listDocs,
   test,
+  leftoverGuestTryOn,
   tryOnFromScratch,
   waitForGuestReady,
   waitForResult,
@@ -12,8 +14,7 @@ import {
 test("guest-ready: tiles only, the sheet is dismissible, and the result stays unreachable", async ({
   page,
 }) => {
-  await tryOnFromScratch(page, "Knit button vest");
-  await waitForGuestReady(page);
+  await leftoverGuestTryOn(page, "Knit button vest");
 
   const dialog = page.getByRole("dialog", {
     name: "4 poses are ready — create an account",
@@ -52,11 +53,16 @@ test("guest-ready: tiles only, the sheet is dismissible, and the result stays un
 
   // The tiles are all there is on the page: four tile-size previews, no hero.
   await expect(page.locator("img[data-render]")).toHaveCount(4);
+  // Each carries its AI label beside it, never over it.
+  await expect(
+    page.locator("[data-testid=pose-tile] figcaption").filter({
+      hasText: "AI-generated preview",
+    }),
+  ).toHaveCount(4);
 });
 
 test("the sheet traps keyboard focus", async ({ page }) => {
-  await tryOnFromScratch(page, "Knit button vest");
-  await waitForGuestReady(page);
+  await leftoverGuestTryOn(page, "Knit button vest");
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   for (let i = 0; i < 6; i++) {
@@ -68,23 +74,25 @@ test("the sheet traps keyboard focus", async ({ page }) => {
   }
 });
 
-test("a guest's second item goes to the sign-up screen", async ({ page }) => {
-  await tryOnFromScratch(page, "Knit button vest");
-  await waitForGuestReady(page);
+test("a guest's Try it on on another piece raises the account sheet, and renders nothing", async ({
+  page,
+}) => {
+  await leftoverGuestTryOn(page, "Knit button vest");
   await dismissSheet(page);
 
   await page.goto("/");
   await card(page, "Wool car coat")
     .getByRole("button", { name: "Try it on" })
     .click();
-  await confirmWhichPhoto(page);
-  await expect(page).toHaveURL(/\/item\/coat\/signup$/);
+  await confirmWhichPhoto(page, { signedIn: false });
   await expect(
-    page.getByRole("heading", { name: "Guests get one try-on" }),
+    page.getByRole("dialog", { name: "Create an account to try it on" }),
   ).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
   await expect(
     page.getByRole("button", { name: "Continue with Google" }),
   ).toBeVisible();
+  expect(await listDocs("jobs")).toHaveLength(1); // only the leftover
 });
 
 test("You: delete everything, visibly, then the next upload starts clean", async ({

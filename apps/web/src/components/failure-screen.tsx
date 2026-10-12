@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { catalogUrl, closestThree, getItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
-import { messageOf, paths, startOutfitPath, startTryOnPath } from "../lib/flow";
+import { messageOf, paths, startOutfitPath } from "../lib/flow";
 import { alertStyle, btnPrimary, btnSecondary, labelStyle } from "../lib/ui";
+import { useStartTryOn } from "./use-start-try-on";
 
 export type FailureKind =
   "not_ready" | "render_failed" | "capacity" | "daily_limit" | "internal";
@@ -31,6 +32,7 @@ export function FailureScreen({
   outfit?: { itemIds: [string, string]; photoId: string | null };
 }) {
   const router = useRouter();
+  const begin = useStartTryOn();
   const item = getItem(itemId);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +41,12 @@ export function FailureScreen({
     setBusy(id);
     setError(null);
     try {
-      router.push(
+      const path =
         outfit && id === itemId
           ? await startOutfitPath(outfit.itemIds, outfit.photoId)
-          : await startTryOnPath(id),
-      );
+          : await begin(id);
+      if (path) router.push(path);
+      else setBusy(null); // the account sheet is up; nothing is rendered until they sign in
     } catch (e) {
       setError(messageOf(e));
       setBusy(null);

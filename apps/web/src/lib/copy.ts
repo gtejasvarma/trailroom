@@ -379,6 +379,9 @@ export const copy = {
     titlePiece: "Upload your picture",
     subPiece: (name: string) =>
       `One photo and the ${String(name).toLowerCase()} comes straight back on you.`,
+    // Before an account exists the next step is the account, so the line says so.
+    subPieceGuest: (name: string) =>
+      `One photo, then an account, and the ${String(name).toLowerCase()} comes back on you.`,
     titleAdd: "Add a photo",
     browse: "Browse all photos",
     fileInput: "Choose a photo file from your device",
@@ -579,9 +582,10 @@ export const copy = {
   },
   // The account sheet, by reason (the prototype's gateCopy), minus "ask", which is not built yet.
   account: {
-    reasons: ["reveal", "list", "buy", "picknext", "signin"] as const,
+    reasons: ["tryon", "reveal", "list", "buy", "picknext", "signin"] as const,
     title: (reason: string, n: number) =>
       ({
+        tryon: "Create an account to try it on",
         reveal: `${poseWord(n)} ${Number(n) === 1 ? "is" : "are"} ready — create an account`,
         list: "Create an account to save",
         buy: "Create an account to buy",
@@ -589,6 +593,7 @@ export const copy = {
       })[reason] ?? "Create an account",
     sub: (reason: string, n: number) =>
       ({
+        tryon: `An account is what makes your try-on. You get ${poseWord(n)} on your photo, kept for you until you remove them.`,
         reveal: `Yours to keep. An account is what saves ${Number(n) === 1 ? "it" : "them"}, and your photo, for next time.`,
         list: "Lists and every try-on you make live in your account.",
         buy: "So we can keep this try-on and bring you back to it.",
@@ -597,6 +602,7 @@ export const copy = {
       })[reason] ?? "Your photos and try-ons stay with you.",
     pending: (reason: string, n: number) =>
       ({
+        tryon: "Then your try-on starts.",
         reveal: `Then your ${poseWord(n)} ${Number(n) === 1 ? "opens" : "open"}.`,
         list: "Then you are back at the piece.",
         buy: "Then you are back at the piece.",
@@ -696,12 +702,6 @@ export const copy = {
     back: "Back to the piece",
     pieceAlt: (name: string, label: string) => `${name} by ${label}`,
     unknown: "We could not find that piece.",
-  },
-  signup: {
-    title: "Guests get one try-on",
-    body: "Create an account to try on another piece. Your first set stays yours.",
-    google: "Continue with Google",
-    back: "Back to the pieces",
   },
   failure: {
     notYetTitle: (what: string) => `Not yet for ${lower(what)}`,

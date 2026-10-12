@@ -3,7 +3,7 @@ import {
   expect,
   newEmail,
   test,
-  tryOnFromScratch,
+  leftoverGuestTryOn,
   waitForGuestReady,
 } from "./helpers";
 
@@ -12,8 +12,7 @@ import {
 test("Continue with Google links the guest and opens the result in place, no re-render", async ({
   page,
 }) => {
-  await tryOnFromScratch(page, "Knit button vest");
-  await waitForGuestReady(page);
+  await leftoverGuestTryOn(page, "Knit button vest");
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
 

@@ -271,8 +271,8 @@ for (const size of SIZES) {
       await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 
       // Maya: signs in with a name, tries on the vest, saves two pieces in a list.
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForResult(page, { name: "Maya Chen" });
+      await tryOnFromScratch(page, "Knit button vest", { name: "Maya Chen" });
+      await waitForResult(page);
       await page.goto("/");
       await expect(page.getByTestId("item-card")).toHaveCount(12);
       await viaHeart(page, "vest");

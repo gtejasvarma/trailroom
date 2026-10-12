@@ -1,9 +1,18 @@
 // Test-only helpers for the API emulator tests. Never imported by product code.
 import sharp from "sharp";
+import {
+  claimPoseSet,
+  createJob,
+  getDefaultPhotoId,
+  getJob,
+  poseSetId as makePoseSetId,
+} from "@trailroom/db";
+import { PROMPT_VERSION, renderConfigFromEnv } from "@trailroom/render";
 import { clearFirestore } from "../../../../packages/db/src/emu-helpers";
 import { clearBucket } from "../../../../packages/pipeline/src/testkit";
 import { CONSENT_VERSION } from "../lib/consent";
 import { POST as photoPOST } from "../app/api/photo/route";
+import { startRender } from "./orchestrator";
 
 const host = () => process.env.FIREBASE_AUTH_EMULATOR_HOST!;
 
@@ -113,4 +122,40 @@ export async function waitForJob(
     await new Promise((r) => setTimeout(r, 100));
   }
   throw new Error("job did not finish");
+}
+
+/**
+ * A finished try-on held by a guest, made the way a guest could before an account became required
+ * to start a render (POST /api/try-on now refuses a guest). Guests keep such try-ons for up to 48
+ * hours, and the rules that protect them (tiles only, account_required for full size, the merge on
+ * sign-in, the purge) are still tested against it. The guest must have uploaded a photo.
+ */
+export async function leftoverGuestTryOn(
+  token: string,
+  itemId = "blouse",
+): Promise<{ jobId: string; poseSetId: string }> {
+  const uid = uidOf(token);
+  const photoId = await getDefaultPhotoId(uid);
+  if (!photoId) throw new Error("the guest has no photo");
+  const cfg = renderConfigFromEnv();
+  const poses = cfg.poses as string[];
+  const psId = makePoseSetId(uid, photoId, itemId);
+  const { id: jobId } = await createJob({
+    uid,
+    itemId,
+    photoId,
+    poseSetId: psId,
+    poseOrder: poses,
+    poses: Object.fromEntries(
+      poses.map((p) => [p, { status: "pending", attempt: 0, reasons: [] }]),
+    ),
+    qaSkipped: [],
+    model: cfg.model,
+    promptVersion: PROMPT_VERSION,
+    isGuest: true,
+  });
+  await claimPoseSet({ uid, itemId, photoId, jobId, isGuest: true });
+  await startRender(jobId);
+  await waitForJob(jobId, getJob);
+  return { jobId, poseSetId: psId };
 }

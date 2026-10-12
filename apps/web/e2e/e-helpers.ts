@@ -99,8 +99,8 @@ const PIECES: Record<string, string> = {
  */
 export async function signedInWithTryOns(page: Page, itemIds: string[]) {
   const [first, ...rest] = itemIds;
-  await tryOnFromScratch(page, PIECES[first!]!);
-  await waitForResult(page, { name: NAME });
+  await tryOnFromScratch(page, PIECES[first!]!, { name: NAME });
+  await waitForResult(page);
   for (const id of rest) await tryOnNext(page, id);
 }
 

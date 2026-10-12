@@ -5,15 +5,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
-import { messageOf, paths, startTryOnPath } from "../lib/flow";
+import { messageOf, paths } from "../lib/flow";
 import { usePhotos } from "../lib/use-photos";
 import { alertStyle, body, h1, page } from "../lib/ui";
 import { PhotoThumb } from "./photo-thumb";
 import { ButtonLink } from "./ui/button";
+import { useStartTryOn } from "./use-start-try-on";
 import { Chip } from "./ui/chip";
 
 export function LibraryScreen({ itemId }: { itemId: string }) {
   const router = useRouter();
+  const begin = useStartTryOn();
   const { photos, loaded, error: loadError } = usePhotos();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,12 @@ export function LibraryScreen({ itemId }: { itemId: string }) {
     setBusy(photoId);
     setError(null);
     try {
-      router.push(await startTryOnPath(itemId, photoId));
+      const path = await begin(itemId, {
+        photoId,
+        photoThumbUrl: photos.find((p) => p.id === photoId)?.thumbUrl,
+      });
+      if (path) router.push(path);
+      else setBusy(null); // the account sheet is up; nothing is rendered until they sign in
     } catch (e) {
       setError(messageOf(e));
       setBusy(null);

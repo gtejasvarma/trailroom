@@ -6,12 +6,12 @@ import { POSES, setFakeScript } from "@trailroom/render";
 import { POST as mergePOST } from "../app/api/account/merge/route";
 import { GET as renderGET } from "../app/api/renders/[poseSetId]/[pose]/route";
 import { GET as jobGET } from "../app/api/jobs/[jobId]/route";
-import { POST as tryOnPOST } from "../app/api/try-on/route";
 import { awaitInlineRuns } from "./orchestrator";
 import { purgeExpiredGuests } from "./purge";
 import {
   anonymousToken,
   emailToken,
+  leftoverGuestTryOn,
   req,
   reset,
   uidOf,
@@ -50,12 +50,8 @@ const full = (t: string, setId: string, pose: string) =>
 async function guestWithTryOn() {
   const g = await anonymousToken();
   await uploadOk(g);
-  const res = await tryOnPOST(
-    req("POST", "/api/try-on", { token: g, json: { itemId: "blouse" } }),
-  );
-  const body = (await res.json()) as { jobId: string; poseSetId: string };
-  await waitForJob(body.jobId, getJob);
-  return { g, ...body };
+  // A guest can no longer start a render; this is one made before that rule.
+  return { g, ...(await leftoverGuestTryOn(g)) };
 }
 
 describe("POST /api/account/merge", () => {

@@ -4,7 +4,6 @@ import {
   setScript,
   test,
   tryOnFromScratch,
-  waitForGuestReady,
   waitForResult,
 } from "./helpers";
 
@@ -57,15 +56,6 @@ test("AI caption sits beside every queue tile, never over it", async ({
   const ib = (await img.boundingBox())!;
   const cb = (await front.locator("figcaption").boundingBox())!;
   expect(cb.y).toBeGreaterThanOrEqual(ib.y + ib.height - 1);
-  await noLabelOverRender(page);
-
-  // The guest-ready tiles carry it too.
-  await waitForGuestReady(page);
-  await expect(
-    page.locator("[data-testid=pose-tile] figcaption").filter({
-      hasText: "AI-generated preview",
-    }),
-  ).toHaveCount(4);
   await noLabelOverRender(page);
 });
 

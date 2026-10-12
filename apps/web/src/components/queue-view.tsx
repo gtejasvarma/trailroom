@@ -1,8 +1,9 @@
 "use client";
 // The queue (the prototype's `gen` screen): title and line from the job's real state, four tiles
-// that fill as poses pass, a way to keep browsing, and when it is done the call to action. For a
-// guest the finished state is "4 poses, ready" at tile size with the account sheet: the full
-// result is only served to an account (PRD 22.1 rows 4 and 22).
+// that fill as poses pass, a way to keep browsing, and when it is done the call to action. A guest
+// can no longer start a render (an account is required), but one who made a try-on before that rule
+// keeps it for up to 48 hours: for them the finished state is "4 poses, ready" at tile size with the
+// account sheet, and the full result is only served to an account (PRD 22.1 rows 4 and 22).
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { catalogUrl, type CatalogItem } from "@trailroom/catalog";

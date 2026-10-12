@@ -61,7 +61,7 @@ const isRoot = (p: string) =>
 /** Focused flow screens (photo, queue, result) run without the tab bar. */
 function hasTabBar(p: string): boolean {
   if (p.startsWith("/try-on/")) return false;
-  return !/^\/item\/[^/]+\/(photo|photos|signup|limit)$/.test(p);
+  return !/^\/item\/[^/]+\/(photo|photos|limit)$/.test(p);
 }
 
 function Wordmark({ className = "" }: { className?: string }) {

@@ -8,15 +8,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { catalogUrl, startWithThese } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
-import { messageOf, paths, startTryOnPath } from "../lib/flow";
+import { messageOf, paths } from "../lib/flow";
 import { usePhotos } from "../lib/use-photos";
 import { alertStyle, btnLink, h1 } from "../lib/ui";
 import { PhotoThumb } from "./photo-thumb";
+import { useStartTryOn } from "./use-start-try-on";
 import { Button } from "./ui/button";
 import { PhotoFrames } from "./ui/photo-frames";
 
 export function StartersScreen() {
   const router = useRouter();
+  const begin = useStartTryOn();
   const { photos, loaded } = usePhotos();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,12 @@ export function StartersScreen() {
     setBusy(itemId);
     setError(null);
     try {
-      router.push(await startTryOnPath(itemId, def?.id));
+      const path = await begin(itemId, {
+        photoId: def?.id,
+        photoThumbUrl: def?.thumbUrl,
+      });
+      if (path) router.push(path);
+      else setBusy(null); // the account sheet is up; nothing is rendered until they sign in
     } catch (e) {
       setError(messageOf(e));
       setBusy(null);

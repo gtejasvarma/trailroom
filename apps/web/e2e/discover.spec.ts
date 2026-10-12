@@ -5,7 +5,15 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { card, expect, listDocs, PHOTO, test, waitForResult } from "./helpers";
+import {
+  card,
+  continueWithGoogle,
+  expect,
+  listDocs,
+  PHOTO,
+  test,
+  waitForResult,
+} from "./helpers";
 
 const SIZES = [
   { name: "phone", width: 390, height: 844 },
@@ -346,6 +354,8 @@ for (const size of SIZES) {
       await expect(page).toHaveURL(/\/item\/blouse\/photo$/);
       await page.locator("input[type=file]").setInputFiles(PHOTO);
       await page.getByRole("button", { name: "Use this photo" }).click();
+      // An account is required to start: sign in at the sheet, then the try-on starts.
+      await continueWithGoogle(page);
       await expect(page).toHaveURL(/\/try-on\//);
       await waitForResult(page);
       await expect(page.locator("img[data-render]")).toHaveCount(4);

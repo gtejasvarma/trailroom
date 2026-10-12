@@ -10,7 +10,7 @@ import {
   expect,
   setScript,
   test,
-  tryOnFromScratch,
+  leftoverGuestTryOn,
   waitForGuestReady,
 } from "./helpers";
 import {
@@ -270,8 +270,7 @@ for (const size of SIZES) {
 }
 
 test("a guest has no way to start an outfit", async ({ page }) => {
-  await tryOnFromScratch(page, "Wool car coat");
-  await waitForGuestReady(page);
+  await leftoverGuestTryOn(page, "Wool car coat");
   await dismissSheet(page);
   await expect(page.getByTestId("outfit-row")).toHaveCount(0);
   await expect(page.getByTestId("pair-thumb")).toHaveCount(0);

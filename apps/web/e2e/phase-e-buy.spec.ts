@@ -7,7 +7,7 @@ import {
   expect,
   listDocs,
   test,
-  tryOnFromScratch,
+  leftoverGuestTryOn,
   waitForGuestReady,
 } from "./helpers";
 import { SIZES, serious, shot, signedInWithTryOns } from "./e-helpers";
@@ -27,8 +27,7 @@ const purchases = async () => (await listDocs("purchases")) as Purchase[];
 
 /** A guest with a finished try-on presses Buy on the product page, signs in, and gets the buy sheet. */
 async function guestBuysVest(page: Page) {
-  await tryOnFromScratch(page, "Knit button vest");
-  await waitForGuestReady(page);
+  await leftoverGuestTryOn(page, "Knit button vest");
   await dismissSheet(page);
   await page.goto("/item/vest");
   await expect(page.getByTestId("buy")).toBeVisible();

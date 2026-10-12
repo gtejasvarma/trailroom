@@ -2,7 +2,7 @@
 
 One photo in, four poses out. This document follows a request from the browser to the image model
 and back, and says where every piece of state lives. It is written to be read aloud to someone who
-has not seen the code. It describes `main` as of 11 October 2026. The diagrams are Mermaid and
+has not seen the code. It describes `main` as of 12 October 2026, including the account requirement for starting a render, which is committed but not yet rolled out. The diagrams are Mermaid and
 render on GitHub.
 
 Contents: [the whole system](#the-whole-system) · [is it serverless?](#is-it-serverless) ·
@@ -96,8 +96,8 @@ There are three kinds of caller, and each proves who it is differently.
 
 | Caller | How it is identified | What it can do |
 |---|---|---|
-| Guest | Firebase anonymous sign-in, created silently the first time an identity is needed. A real user id, just with no account behind it. | Upload a photo, run up to 2 try-ons a day, see results at thumbnail size only, keep a Favourites list. Deleted after 48 hours if they never sign up. |
-| Account | Google sign-in in a popup. Google is the only provider. | Everything: full-size results, lists, asks, compare, outfits, 5 try-ons a day. Data is kept until they delete it. |
+| Guest | Firebase anonymous sign-in, created silently the first time an identity is needed. A real user id, just with no account behind it. | Browse, upload a photo, keep a Favourites list. **Cannot start a try-on**: the server refuses it with `account_required`, so a guest never spends a render. A try-on a guest made before 12 October still shows at thumbnail size only and opens after sign-in. Deleted after 48 hours if they never sign up. |
+| Account | Google sign-in in a popup. Google is the only provider. | Everything a guest can do, plus starting try-ons and outfits (5 starts a day), full-size results, lists, asks and compare. Data is kept until they delete it. |
 | Google's own services | An OIDC token signed by Google for a specific service account, with this app's address as the audience. | Only the `/api/internal/*` routes: the pipeline steps (Workflows) and housekeeping (Scheduler). |
 
 On every request:
@@ -114,6 +114,13 @@ id, so nothing moves and the records simply stop expiring. If the Google account
 linking is impossible, so the browser signs into it and sends the server both tokens. Holding both
 is the proof they belong to one person, and the server copies the guest's photos, finished
 try-ons, follows and Favourites across.
+
+**A guest cannot start a render.** When a guest presses "Try it on" (after the photo step, if they
+have no photo), the account sheet rises with the reason `tryon`. After Google sign-in, by either
+path above, the try-on they asked for starts by itself, with the photo they uploaded (the
+account's default photo if that one did not carry over), and they land on the queue. Closing the
+sheet renders nothing and keeps the photo. The owner's reason (12 October): if the site is going
+to spend 20 cents, the person must have signed up.
 
 **After sign-up** a new person lands on a screen offering four pieces to try on with the photo
 they just uploaded. There is no step that makes them follow labels first.
@@ -137,6 +144,7 @@ sequenceDiagram
   A->>S: store cleaned JPEG at photos/uid/
   A->>D: record photo + consent version
   B->>A: POST /api/try-on { item, photo }
+  Note over A: refused with account_required if the caller is a guest
   A->>D: check daily count, create job, claim pose set
   A->>W: start execution(jobId)
   A-->>B: 202 { jobId }
@@ -188,7 +196,7 @@ Every render is checked in `staging/` before anyone can see it (`packages/pipeli
 | Decodes, right size, right shape | A broken or tiny image | Always on |
 | Not blank | A flat grey or white field | Always on |
 | Not a copy of the input | The model handing the photo back unchanged | Always on |
-| Same face as the person | A render that put someone else's face on them | On only when the face-match service is deployed and `FACE_MATCH_URL` is set |
+| Same face as the person | A render that put someone else's face on them | On in production since 12 October (the service is deployed and `FACE_MATCH_URL` is set); skipped if the variable is unset. Whether the identity result was recorded as passed on a real job is not yet confirmed. |
 | Body proportion, garment, consistency across poses | The harder perceptual failures | Not built. This is the unfinished eval ("M1"). |
 
 **The face check.** A small Python service (`services/face-match/`, the `face_recognition` library)
@@ -265,7 +273,8 @@ and no shared cache.
 
 - **$5 a day, hard.** One render is about $0.04, so a four-pose try-on is about $0.15. The cap is
   enforced in the ledger transaction, not by a check beforehand.
-- **Per person:** 2 try-on starts a day for a guest, 5 for an account, one running at a time.
+- **Per person:** a guest cannot start a render, so there is no guest limit; an account gets 5
+  try-on starts a day, one running at a time.
 - **A failed call costs what it cost.** A request the provider rejected settles at zero; anything
   else settles at the estimate. A reservation left hanging is settled by housekeeping after 20
   minutes. A pose that fails the quality gate is rendered once more, so it costs two renders.
@@ -278,12 +287,13 @@ and no shared cache.
 
 If someone asks where this would break, these are the true answers.
 
-- **The quality gate is thin.** Without the face-match service it is structural only. With it, the
-  face check is uncalibrated, and nothing yet checks whether the body's proportions changed or the
+- **The quality gate is thin.** It is structural plus the face check, which is on in production
+  since 12 October and uncalibrated, and nothing yet checks whether the body's proportions changed or the
   garment is right. That work (the eval, "M1") is unfinished.
 - **Rate limits live in memory.** Per instance, lost on restart, and keyed on a proxy header whose
   trusted position has not yet been confirmed on the live site. There is no Cloud Armor in front.
-- **Anyone can spend the day's budget** now the password is off. The cost is capped; availability
+- **Anyone with a Google account can spend the day's budget** now the password is off. Starting a
+  render needs an account, which is a friction and not a control. The cost is capped; availability
   is not protected.
 - **Nothing checks whose photo is uploaded.** There is a consent line and a recorded consent
   version, and no verification.
@@ -302,3 +312,5 @@ If someone asks where this would break, these are the true answers.
 | The plan and what is still owed | `docs/BUILD_PLAN.md` §12 |
 | Why the larger calls were made | `docs/decisions/` |
 | Visual tokens and motion | `docs/Design.md` |
+| Directions under consideration, with a recommendation (nothing decided) | `docs/IDEAS.md` |
+| Draft requirements for the next four journeys (nothing decided) | `docs/PRD_TRY_ON_ANYTHING.md` |

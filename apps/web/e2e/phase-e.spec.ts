@@ -5,7 +5,7 @@ import {
   expect,
   listDocs,
   test,
-  tryOnFromScratch,
+  leftoverGuestTryOn,
   waitForGuestReady,
 } from "./helpers";
 import {
@@ -182,8 +182,7 @@ for (const size of SIZES) {
     test("a guest sees their photo, the invitation, Details and Delete everything, and no try-ons grid", async ({
       page,
     }) => {
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
+      await leftoverGuestTryOn(page, "Knit button vest");
       await dismissSheet(page);
       await page.goto(wide ? "/studio" : "/you");
       await expect(page.getByTestId("photo-count")).toHaveText("1 photo");

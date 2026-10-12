@@ -8,7 +8,7 @@ import {
   listDocs,
   passGate,
   test,
-  tryOnFromScratch,
+  leftoverGuestTryOn,
   uploadFirstAsGuest,
   waitForGuestReady,
 } from "./helpers";
@@ -63,8 +63,7 @@ for (const size of SIZES) {
       browser,
     }) => {
       const email = await existingAccount(browser);
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
+      await leftoverGuestTryOn(page, "Knit button vest");
       const jobUrl = page.url();
       const jobsBefore = (await listDocs("jobs")).length;
       const renders = watchRenders(page);
@@ -93,8 +92,7 @@ for (const size of SIZES) {
     test("new Google account: from See your poses, dismissed and reopened, and across a reload", async ({
       page,
     }) => {
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
+      await leftoverGuestTryOn(page, "Knit button vest");
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
       await page.keyboard.press("Escape");
@@ -121,8 +119,7 @@ for (const size of SIZES) {
       browser,
     }) => {
       const email = await existingAccount(browser);
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
+      await leftoverGuestTryOn(page, "Knit button vest");
       await page.route("**/api/account/merge", (route) =>
         route.fulfill({
           status: 500,

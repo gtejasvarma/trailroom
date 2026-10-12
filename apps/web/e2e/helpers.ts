@@ -1,8 +1,11 @@
+import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test as base, type Page } from "@playwright/test";
 import { E2E_PASSWORD, E2E_TMP, FAKE_SCRIPT_FILE } from "../playwright.config";
 
+const ROOT = join(fileURLToPath(import.meta.url), "../../../..");
 export const PHOTO = join(E2E_TMP, "photo.jpg");
 export const TINY = join(E2E_TMP, "tiny.png");
 
@@ -120,8 +123,15 @@ export { expect };
 export const card = (page: Page, name: string) =>
   page.locator("article[data-testid=item-card]").filter({ hasText: name });
 
-/** From the product page of `name`: Try it on, upload. Ends on the try-on route. */
-export async function tryOnFromScratch(page: Page, name: string) {
+export type SignInOptions = {
+  email?: string;
+  existing?: boolean;
+  name?: string;
+};
+
+/** Opens the product page of `name`, presses Try it on and uploads the photo. A guest ends on the
+ * account sheet (nothing is rendered for a guest); the photo is on file. */
+async function tryOnUntilSheet(page: Page, name: string) {
   await card(page, name)
     .getByRole("link", { name: `View ${name}` })
     .click();
@@ -134,7 +144,102 @@ export async function tryOnFromScratch(page: Page, name: string) {
   }).toPass({ timeout: 30_000 });
   await page.locator("input[type=file]").setInputFiles(PHOTO);
   await page.getByRole("button", { name: "Use this photo" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Create an account to try it on" }),
+  ).toBeVisible();
+}
+
+/**
+ * From the product page of `name`: Try it on, upload, the account sheet, Continue with Google.
+ * An account is required to start a render, so this signs in (a new Google account unless `signIn`
+ * says otherwise) and ends on the try-on route, signed in, with the render running.
+ * `signIn: false` stops at the open account sheet instead (nothing is rendered).
+ */
+export async function tryOnFromScratch(
+  page: Page,
+  name: string,
+  signIn: SignInOptions | false = {},
+) {
+  await tryOnUntilSheet(page, name);
+  if (signIn === false) return;
+  await continueWithGoogle(page, signIn);
   await expect(page).toHaveURL(/\/try-on\//);
+}
+
+const ITEM_IDS: Record<string, string> = {
+  "Knit button vest": "vest",
+  "Wool car coat": "coat",
+};
+
+/** The uid of the newest anonymous (guest) session in the Auth emulator. */
+async function guestUid(): Promise<string> {
+  const auth = host("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
+  const res = await fetch(
+    `http://${auth}/identitytoolkit.googleapis.com/v1/projects/demo-trailroom/accounts:query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer owner",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ returnUserInfo: true }),
+    },
+  );
+  const j = (await res.json()) as {
+    userInfo?: {
+      localId: string;
+      email?: string;
+      createdAt?: string;
+      providerUserInfo?: unknown[];
+    }[];
+  };
+  const guests = (j.userInfo ?? [])
+    .filter((u) => !u.email && !(u.providerUserInfo ?? []).length)
+    .sort((x, y) => Number(x.createdAt) - Number(y.createdAt));
+  const uid = guests.at(-1)?.localId;
+  if (!uid) throw new Error("no guest session in the Auth emulator");
+  return uid;
+}
+
+/**
+ * A guest's finished try-on made BEFORE an account was required to start one (a guest keeps such a
+ * try-on for up to 48 hours). The product no longer lets a guest start a render, so this uploads
+ * the photo through the normal flow, dismisses the account sheet, then has the emulator-only
+ * script make the try-on and opens it: the page ends on the guest's "N poses, ready" queue (the
+ * account sheet rises by itself, once).
+ */
+export async function leftoverGuestTryOn(page: Page, name: string) {
+  await tryOnUntilSheet(page, name);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+  const uid = await guestUid();
+  const out = execFileSync(
+    "npx",
+    ["tsx", "scripts/seed-guest-tryon.ts", uid, ITEM_IDS[name]!],
+    {
+      cwd: ROOT,
+      env: {
+        ...process.env,
+        GOOGLE_CLOUD_PROJECT: "demo-trailroom",
+        RENDER_PROVIDER: "fake",
+        ORCHESTRATOR: "inline",
+        RENDER_FAKE_SCRIPT_FILE: FAKE_SCRIPT_FILE,
+        FIRESTORE_EMULATOR_HOST:
+          process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080",
+        FIREBASE_AUTH_EMULATOR_HOST:
+          process.env.FIREBASE_AUTH_EMULATOR_HOST ?? "127.0.0.1:9099",
+        FIREBASE_STORAGE_EMULATOR_HOST:
+          process.env.FIREBASE_STORAGE_EMULATOR_HOST ?? "127.0.0.1:9199",
+      },
+      encoding: "utf8",
+    },
+  );
+  const { jobId } = JSON.parse(out.trim().split("\n").at(-1)!) as {
+    jobId: string;
+  };
+  await page.goto(`/try-on/${jobId}`);
+  await waitForGuestReady(page);
+  return jobId;
 }
 
 /** Upload first as a guest: /upload, choose the photo, Use this photo. Ends on the account sheet. */
@@ -176,11 +281,22 @@ export async function followLabels(
   }
 }
 
-/** The "Which photo?" sheet that follows Try it on when photos exist: start with the default. */
-export async function confirmWhichPhoto(page: Page) {
+/**
+ * The "Which photo?" sheet that follows Try it on when photos exist: start with the default. For a
+ * guest (`signedIn: false`) the press raises the account sheet instead of leaving the piece.
+ */
+export async function confirmWhichPhoto(
+  page: Page,
+  opts: { signedIn?: boolean } = {},
+) {
   const sheet = page.getByRole("dialog", { name: "Which photo?" });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByText("DEFAULT", { exact: true })).toBeVisible();
+  if (opts.signedIn === false) {
+    await sheet.getByRole("button", { name: "Add to the queue" }).click();
+    await expect(sheet).toBeHidden();
+    return;
+  }
   await expect(async () => {
     await sheet.getByRole("button", { name: "Add to the queue" }).click();
     await expect(page).not.toHaveURL(/\/item\//, { timeout: 3_000 });

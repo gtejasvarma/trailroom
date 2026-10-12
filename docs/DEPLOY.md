@@ -1,6 +1,6 @@
 # Deploy runbook — Trailroom on Firebase
 
-> **Where this stands (2026-10-11).** The site is deployed: App Hosting backend `trailroom`, root
+> **Where this stands (2026-10-12).** The site is deployed: App Hosting backend `trailroom`, root
 > directory `apps/web`, live branch `main`, project `virtual-tryon-tejas`, at
 > `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` and, since the same day, at
 > `https://trailroom.ai` (see "Custom domain" below). **The rollout of commit `9d5694d` is done: Phases A to
@@ -12,12 +12,22 @@
 > firebase apphosting:rollouts:create trailroom --git-branch main --project virtual-tryon-tejas --force
 > ```
 >
-> **Two changes of 2026-10-11 are on `main` after `9d5694d` and are not rolled out** (PRD §22.1 rows 42 and
-> 43): the "Pick three labels" step is removed (after signing up a person lands on "Your photo is in"; the old
-> address `/upload/labels` redirects there), and the QA gate has a face check, whose service has to be
-> deployed by hand first ("The face-match service" below). The same change makes a four-pose try-on
-> complete with two or three passed poses (it needed three), so **a result with only two poses is now
+> **Two changes of 2026-10-11 were rolled out on 2026-10-12 with `847e9ba`** (PRD §22.1 rows 42 and 43): the
+> "Pick three labels" step is removed (after signing up a person lands on "Your photo is in"; the old
+> address `/upload/labels` redirects there), and the QA gate has a face check. The owner deployed the
+> face-match service on 2026-10-12 and `FACE_MATCH_URL` is set, so the check is on in production
+> ("The face-match service" below); one real four-pose try-on after the rollout passed all four poses, and
+> that the identity result was recorded as passed is **not yet confirmed**. The same change makes a four-pose
+> try-on complete with two or three passed poses (it needed three), so **a result with only two poses is now
 > possible**, and a result with fewer than two is the failure screen.
+>
+> **One change of 2026-10-12 is on `main` after the next commit and needs a rollout** (PRD §22.1 row 44):
+> **an account is required to start any render.** A guest can browse, keep Favourites and upload a photo,
+> but the server refuses their `POST /api/try-on` with `account_required`; pressing "Try it on" raises the
+> account sheet, and after Google sign-in the try-on starts by itself. The guest limit of two starts a day is
+> gone (signed-in people get 5). It changes no rules, no indexes and no config, so it needs only the rollout
+> command above. A try-on a guest made before the rollout still shows tiles and opens after sign-in until
+> the guest is purged, about 48 hours after capture; nothing needs doing about it.
 >
 > **The password is off.** `apps/web/apphosting.yaml` sets `GATE` to `"off"` and the rollout of `9d5694d`
 > took effect: the site is open to anyone and search engines may index it. The eval (M1), the legal review
@@ -342,9 +352,23 @@ The site has sat behind one shared password. From the rollout after 2026-10-11 i
 
 A small private Python service, `services/face-match/`, which the QA gate calls to ask whether the face
 in a render is the face in the person's own photo (ADR 0007). It is a service of its own because the Node
-app cannot run a Python library in-process. **Not deployed yet.** Until it is, `FACE_MATCH_URL` is unset in
-`apps/web/apphosting.yaml` and the check is skipped, as before. The service's `README.md` has the API, the
-privacy notes and how to run it locally; the steps below are copied from its "Deploy" section.
+app cannot run a Python library in-process. **Done on 2026-10-12.** The owner deployed it as the private
+Cloud Run service `trailroom-face-match`, at `https://trailroom-face-match-zghitd3y5q-uc.a.run.app`. The Cloud
+Build on amd64 succeeded first time, and an unauthenticated `POST /match` is refused with 403. The owner granted
+`roles/run.invoker` to `firebase-app-hosting-compute@virtual-tryon-tejas.iam.gserviceaccount.com`. `FACE_MATCH_URL` is set in
+`apps/web/apphosting.yaml` (commit `847e9ba`), and that commit was rolled out the same day, so the check
+is on in production. Cloud Run reserves the path `/healthz`, so the service's health path answers 404 from
+outside; that is expected and is not a fault.
+
+**What remains:** confirm that the identity result was recorded as passed on a real job. One real four-pose
+try-on after the rollout completed with all four poses passed, but the diagnostic script did not print the
+identity result at the time. It does now. Run `bash runs/diag.sh`: for each pose it prints the face result
+(status, probability, note) and the job's list of checks that did not run, followed by three log sections
+(what the app logged, requests that failed, and the face-match service's lines). The identity result is
+`pass` with a probability and the job's `qaSkipped` does not list `identity` (smoke test step 27).
+
+The steps below are kept as the record of what was done and for redeploying; they are copied from the
+service's `README.md` "Deploy" section, which has the API, the privacy notes and how to run it locally.
 
 1. Deploy the service, private:
 
@@ -354,8 +378,8 @@ privacy notes and how to run it locally; the steps below are copied from its "De
 
    Note the service URL it prints (`https://trailroom-face-match-<hash>-uc.a.run.app` or
    `https://trailroom-face-match-<number>.us-central1.run.app`). The first build compiles dlib and
-   takes several minutes. **The image was built and run only on arm64 locally; Cloud Build builds it on
-   amd64 for the first time here**, so read the build log if it fails.
+   takes several minutes. The image was built and run on arm64 locally; Cloud Build built it on amd64
+   on 2026-10-12 and succeeded first time. Read the build log if a later build fails.
 
 2. Let the app call it. The App Hosting backend runs as the service account below (the default, per
    section 7; confirm under Cloud Run, `trailroom`, Security, and if it differs use that one):
@@ -372,7 +396,7 @@ privacy notes and how to run it locally; the steps below are copied from its "De
 
 3. In `apps/web/apphosting.yaml`, uncomment the `FACE_MATCH_URL` entry, set it to the service URL from step
    1 (no trailing slash), and roll the backend out (the command at the top of this file). Until this step
-   the check stays switched off and nothing about the app changes. `FACE_MATCH_MIN` (default `0.50` since 2026-10-12; it was `0.10`, the
+   the check stays switched off and nothing about the app changes. (Done: it is set to the URL above.) `FACE_MATCH_MIN` (default `0.50` since 2026-10-12; it was `0.10`, the
    owner's rule) is in the same file.
 4. Run smoke test steps 27 and 28.
 
@@ -382,7 +406,8 @@ What to know before relying on it:
   on 0.6, `k = 10`), not a measured probability. Locally, four real renders of the fictional test person
   scored 0.99, 19 of 21 different-person pairs scored under 0.10, and two scored 0.108 and 0.482. The
   sample is small and nearly all front-facing; nothing is known about the Walking and Seated poses. The
-  data suggests a higher `FACE_MATCH_MIN` (around 0.3 to 0.5) would be safer than the default.
+  data suggested a higher `FACE_MATCH_MIN` (around 0.3 to 0.5) would be safer than the first default of
+  0.10; the owner set 0.50 on 2026-10-12.
 - **What fails and what skips.** A match below the minimum fails the pose (`identity_mismatch`), the render
   is never published, and the pose is retried once, so a mismatching pose costs two renders (about $0.04
   extra). No face found in the photo or in the render is a skip. The service being unreachable (a cold
@@ -399,9 +424,9 @@ What to know before relying on it:
 
 ## 12. Smoke test, in this order
 
-For the product as it is now (Phases A to G, rolled out, with the defaults of both switches), **with the password gate off, as `apphosting.yaml` has it and as the site has been since the rollout of `9d5694d` on 2026-10-11: nobody enters a password.** If the gate is put back, the steps that mention `/gate` or a password apply again ("The password gate"). Steps 1 to 4 do not need the image
+For the product as it is now (Phases A to G, rolled out, with the defaults of both switches, and with the account requirement of 2026-10-12, which needs its own rollout first), **with the password gate off, as `apphosting.yaml` has it and as the site has been since the rollout of `9d5694d` on 2026-10-11: nobody enters a password.** If the gate is put back, the steps that mention `/gate` or a password apply again ("The password gate"). Steps 1 to 4 do not need the image
 model; steps 5 and 6 are the first model calls. If a try-on fails, run `runs/diag.sh` before anything else.
-Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the security fixes, steps 21 and 22 cover Phase G, steps 23 to 26 cover the 2026-10-11 redesign, and steps 27 and 28 cover the two changes made after it (the starters screen with no label step, and the face check, which needs the face-match service). This file does not record that any of steps 12 to 28 has been run on the deployed site. Run steps 23 to 26 on both addresses: `https://trailroom.ai` and `$APP_URL` (the `hosted.app` address).
+Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the security fixes, steps 21 and 22 cover Phase G, steps 23 to 26 cover the 2026-10-11 redesign, and steps 27 and 28 cover the two changes made after it (the starters screen with no label step, and the face check, whose service is deployed). Steps 4 to 8 were rewritten on 2026-10-12 for the account requirement: nobody renders before signing in. This file does not record that any of steps 12 to 28 has been run on the deployed site. Run steps 23 to 26 on both addresses: `https://trailroom.ai` and `$APP_URL` (the `hosted.app` address).
 
 1. Open `$APP_URL`. It shows Discover **with images**, with no password page. Open `$APP_URL/gate`: it leads home
    (`/`). (With the gate put back, the visit lands on `/gate` instead, a wrong password is refused and the right one shows Discover.) The images prove the catalogue copy in step 3 and the bucket setting.
@@ -411,26 +436,36 @@ Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the se
 3. Open a jewellery piece and tap **Try it on**: it shows the "not yet" state with apparel
    alternatives. Open the leather jacket and tap **Try it on**: it shows the honest reason and the
    closest three. Neither asks for a photo.
-4. Open an apparel piece and tap **Try it on**. The upload screen shows the consent line under the
-   upload controls ("By adding a photo you confirm you're 18 or over and agree to it being used to make
-   your try-ons.") and **no tick**. Add a photo.
-5. The queue screen shows four tiles filling in. Navigate away: the chip appears on every screen
-   with the true count of poses ready, and a toast with **See it** appears when the set is ready.
-   If nothing fills, stop and run `runs/diag.sh`; watch the workflow with
+4. In a private window, not signed in, open an apparel piece and tap **Try it on**. The upload screen
+   shows the consent line under the upload controls ("By adding a photo you confirm you're 18 or over and
+   agree to it being used to make your try-ons.") and **no tick**; its line under the title says an
+   account comes after the photo. Add a photo.
+5. **The account comes before the render.** The account sheet rises with "Create an account to try it on".
+   Nothing has been rendered: no new job for the guest in Firestore, `spend/<today, UTC>` has not moved,
+   and a `POST /api/try-on` with the guest's ID token answers 403 `account_required`. Close the sheet:
+   still nothing renders, and the photo is kept. Then press **Continue with Google**. When the popup
+   closes the try-on starts by itself, with no second press, and you land on the queue screen: four
+   tiles filling in. Navigate away: the chip appears on every screen with the true count of poses ready,
+   and a toast with **See it** appears when the set is ready. If nothing fills, stop and run
+   `runs/diag.sh`; watch the workflow with
    `gcloud workflows executions list render-pose-set --location $REGION --project $PROJECT --limit 3`
+   Do this once with a Google account that is new to the site (the guest is linked and keeps its uid)
+   and once with one that already exists (the guest's photo is merged in under the same photo id; if it
+   did not carry over, the try-on uses the account's default photo).
 6. **A real render succeeds.** All four tiles fill with a picture of you in the piece. (Seen on the
    deployed site since the incident note above.) Since the change of 2026-10-11 a result with only two or
    three poses is also a finished try-on, with a line saying how many poses are shown; fewer than two is
-   the failure screen. That includes a pose refused by the face check, once it is switched on.
-7. As a guest the result will not open ("4 poses, ready. Create an account to open them."), and a
-   direct request for a full-size image is refused: the server hands a guest tile-sized images of
-   their own finished set only. Check with the browser's network tab, or `curl` with the session
-   cookie, on an `/api/renders/...` URL.
-8. **Continue with Google.** The guest session is linked: the result opens with four poses and the AI
-   caption under the gallery (nothing drawn on the images), with no re-render. Buy is the filled
-   action. If the Google account already existed, the guest's photo and try-on are merged into it and
-   you still land on the result. (When there is no try-on yet, because the sign-in came right after an
-   upload from the home page, you land on "Your photo is in" instead, with no label picker: see step 28.)
+   the failure screen. That includes a pose refused by the face check.
+7. **A guest cannot start a render, and cannot see a full-size image.** Beyond the 403 in step 5, check
+   a guest's request for a full-size image: it is refused, and the server hands a guest tile-sized images
+   of their own finished set only. Check with the browser's network tab, or `curl` with the session
+   cookie, on an `/api/renders/...` URL. A guest can only have a finished set if it was made before the
+   rollout of the account requirement; such a set shows "4 poses, ready. Create an account to open them."
+   until the guest signs in or is purged, about 48 hours after capture. A leftover set needs no action.
+8. **The result.** After the reveal the result opens with four poses and the AI caption under the
+   gallery (nothing drawn on the images), with no re-render. Buy is the filled action. (When there is no
+   try-on yet, because the sign-in came right after an upload from the home page, you land on "Your
+   photo is in" instead, with no label picker: see step 28.)
 9. Back in Discover, the piece you tried is shown "on you" with "See your 4 poses". **You → Your
    try-ons** lists it.
 10. **You → remove a photo**, then **Delete everything**, and confirm in the Storage browser that
@@ -579,8 +614,7 @@ Three things could not be checked locally.
 
 The two changes made after the redesign (PRD §22.1 rows 42 and 43; ADR 0007):
 
-27. **The face check judges each pose.** Needs the face-match service deployed, `FACE_MATCH_URL` set and the
-    backend rolled out ("The face-match service"). Run a real try-on with a photo of a face, then read the
+27. **The face check judges each pose. This is what confirms the open item of 2026-10-12.** The face-match service is deployed and `FACE_MATCH_URL` is set ("The face-match service"). Run a real try-on with a photo of a face, then read the
     latest job with `runs/diag.sh` (or in the Firebase console, Firestore, `jobs/<jobId>`). For each pose,
     the attempt's `qa.identity` is `pass` with a `probability` (the only real renders scored so far, locally, were
     0.99 in the Front pose; write the Three-quarter, Walking and Seated numbers down, because nobody has
@@ -601,8 +635,8 @@ The two changes made after the redesign (PRD §22.1 rows 42 and 43; ADR 0007):
 
 - **Daily cap or model:** edit `DAILY_CAP_USD` or `RENDER_MODEL` in `apphosting.yaml`, push. A cap
   above 1000 is rejected as a likely typo.
-- **Per-person limits:** guests get 2 try-on starts a day and signed-in users 5, in
-  `apps/web/src/server/limits.ts`.
+- **Per-person limits:** signed-in users get 5 try-on starts a day, in
+  `apps/web/src/server/limits.ts`. There is no guest limit: since 2026-10-12 a guest cannot start a render at all.
 - **Kill switch:** set `DAILY_CAP_USD` to `0.01`. Every try-on then ends on the capacity screen
   without calling the model.
 - **Secret value:** `firebase apphosting:secrets:set`, then a rollout (top of this file).
@@ -617,11 +651,12 @@ amendment of 2026-10-11). The owner went ahead knowing that the list in
 `docs/decisions/0004-m2-m3-ahead-of-m1.md` ("Owed before the password gate comes off") is mostly
 still open. The things that matter most:
 
-- **M1 is unfinished.** The QA gate is structural, except for the identity check, which exists in the code
-  and runs only once the face-match service is deployed; even then it is uncalibrated, and the gate cannot
+- **M1 is unfinished.** The QA gate is structural, except for the identity check, which has been deployed and
+  on in production since 2026-10-12 (the identity result on a real job is not yet confirmed); it is uncalibrated, and the gate cannot
   tell whether a render changed the person's body or got the garment right (the proportion, garment and
   cross-pose checks are empty slots).
-- **Strangers can spend the render budget.** Anyone can start a guest session. The cost is bounded by
+- **Strangers can spend the render budget.** Anyone with a Google account can start a render (a guest
+  cannot, since 2026-10-12, which is a friction and not a control). The cost is bounded by
   `DAILY_CAP_USD` (5) and the per-person limits, but the budget can be used up, after which real
   visitors are told the service is at capacity until the next UTC day.
 - **Anyone can upload a photograph of anyone**, another person or a minor included. The only safeguard

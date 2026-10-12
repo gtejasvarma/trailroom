@@ -1,6 +1,5 @@
 import type { Page } from "@playwright/test";
 import {
-  confirmWhichPhoto,
   continueWithGoogle,
   dismissSheet,
   expect,
@@ -8,6 +7,7 @@ import {
   settle,
   uploadFirst,
   uploadFirstAsGuest,
+  leftoverGuestTryOn,
   tryOnFromScratch,
   waitForGuestReady,
   waitForResult,
@@ -143,8 +143,7 @@ export const SCREENS: Screen[] = [
   {
     name: "guest ready",
     go: async (page) => {
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
+      await leftoverGuestTryOn(page, "Knit button vest");
       await dismissSheet(page);
     },
     primary: "[data-testid=see-poses]",
@@ -152,8 +151,7 @@ export const SCREENS: Screen[] = [
   {
     name: "account sheet",
     go: async (page) => {
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
+      await leftoverGuestTryOn(page, "Knit button vest");
       await expect(page.getByRole("dialog")).toBeVisible();
       await settle(page);
     },
@@ -216,19 +214,12 @@ export const SCREENS: Screen[] = [
     primary: "main a",
   },
   {
-    name: "sign-up",
+    name: "account sheet to try it on",
     go: async (page) => {
-      await tryOnFromScratch(page, "Knit button vest");
-      await waitForGuestReady(page);
-      await dismissSheet(page);
-      await page.goto("/");
-      await page
-        .locator("article[data-item=coat]")
-        .getByRole("button", { name: "Try it on" })
-        .click();
-      await confirmWhichPhoto(page);
-      await expect(page).toHaveURL(/\/signup$/);
+      // A guest uploaded a photo for a piece: the account sheet is up and nothing is rendered.
+      await tryOnFromScratch(page, "Knit button vest", false);
+      await settle(page);
     },
-    primary: "main button",
+    primary: "dialog button:has-text('Not now')",
   },
 ];

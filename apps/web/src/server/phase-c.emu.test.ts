@@ -14,6 +14,7 @@ import { awaitInlineRuns } from "./orchestrator";
 import { purgeExpiredGuests } from "./purge";
 import {
   anonymousToken,
+  leftoverGuestTryOn,
   emailToken,
   req,
   reset,
@@ -53,6 +54,10 @@ async function finish(t: string, itemId: string) {
   await waitForJob(body.jobId, getJob);
   return body as { jobId: string; poseSetId: string };
 }
+/** A guest's finished try-on from before an account was required to start one. */
+async function leftover(t: string, itemId: string) {
+  return leftoverGuestTryOn(t, itemId);
+}
 async function person(kind: "guest" | "user") {
   const t = kind === "guest" ? await anonymousToken() : await emailToken();
   await uploadOk(t);
@@ -66,7 +71,7 @@ const longSide = async (b: Buffer) => {
 describe("account to open", () => {
   it("a guest owner gets the tile for every pose and 403 account_required for full size", async () => {
     const g = await person("guest");
-    const { poseSetId } = await finish(g, "blouse");
+    const { poseSetId } = await leftover(g, "blouse");
     expect((await getPoseSet(poseSetId))!.status).toBe("complete");
     for (const pose of POSE_LIST) {
       const tile = await render(g, poseSetId, pose, "?size=tile");
@@ -93,7 +98,7 @@ describe("account to open", () => {
   it("forged and foreign pose-set ids are 404 at both sizes", async () => {
     const g = await person("guest");
     const u = await person("user");
-    const mine = await finish(g, "blouse");
+    const mine = await leftover(g, "blouse");
     const theirs = await finish(u, "blouse");
     for (const q of ["", "?size=tile"]) {
       expect((await render(g, theirs.poseSetId, "front", q)).status).toBe(404);
@@ -125,7 +130,7 @@ describe("account to open", () => {
   it("a failed set serves nothing at either size", async () => {
     setFakeScript([{ outcome: "error" }]);
     const g = await person("guest");
-    const { poseSetId } = await finish(g, "blouse");
+    const { poseSetId } = await leftover(g, "blouse");
     for (const q of ["", "?size=tile"]) {
       expect((await render(g, poseSetId, "front", q)).status).toBe(404);
     }
@@ -257,7 +262,7 @@ describe("kept try-ons", () => {
 
   it("control: a guest who never linked is purged with their renders", async () => {
     const g = await person("guest");
-    const { poseSetId } = await finish(g, "blouse");
+    const { poseSetId } = await leftover(g, "blouse");
     const uid = uidOf(g);
     const result = await purgeExpiredGuests(new Date("2099-01-01T00:00:00Z"));
     expect(result.purged).toBe(1);

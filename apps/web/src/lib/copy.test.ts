@@ -153,6 +153,12 @@ describe("counts in copy", () => {
 describe("account sheet copy by reason (the prototype's gateCopy)", () => {
   const table: [string, string, string, string][] = [
     [
+      "tryon",
+      "Create an account to try it on",
+      "An account is what makes your try-on. You get 4 poses on your photo, kept for you until you remove them.",
+      "Then your try-on starts.",
+    ],
+    [
       "reveal",
       "4 poses are ready — create an account",
       "Yours to keep. An account is what saves them, and your photo, for next time.",
@@ -184,6 +190,7 @@ describe("account sheet copy by reason (the prototype's gateCopy)", () => {
   });
   it("covers every reason the sheet can open with, and falls back to a plain default", () => {
     expect(copy.account.reasons).toEqual([
+      "tryon",
       "reveal",
       "list",
       "buy",

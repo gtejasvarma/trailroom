@@ -18,23 +18,39 @@ export const paths = {
   /** "Which photo?" for one piece. */
   library: (id: string) => `/item/${id}/photos`,
   unavailable: (id: string) => `/item/${id}/unavailable`,
-  signup: (id: string) => `/item/${id}/signup`,
   limit: (id: string) => `/item/${id}/limit`,
   tryOn: (jobId: string) => `/try-on/${jobId}`,
 };
 
-/** Starts (or reuses) the try-on and returns where to go. Throws a plain Error for the UI. */
+/**
+ * Starts (or reuses) the try-on and returns where to go. Throws a plain Error for the UI. The server
+ * refuses a guest, so callers go through `useStartTryOn`, which raises the account sheet instead.
+ * `fallbackToDefault`: when the chosen photo is not found (after a sign-in into an existing account
+ * the guest's photo may not have carried over), start with the account's default photo instead.
+ */
 export async function startTryOnPath(
   itemId: string,
   photoId?: string,
+  fallbackToDefault = false,
 ): Promise<string> {
   try {
-    const r = await api.tryOn(itemId, photoId);
+    let r;
+    try {
+      r = await api.tryOn(itemId, photoId);
+    } catch (e) {
+      if (!(
+        fallbackToDefault &&
+        photoId &&
+        e instanceof ApiError &&
+        e.code === "not_found"
+      ))
+        throw e;
+      r = await api.tryOn(itemId);
+    }
     return paths.tryOn(r.jobId);
   } catch (e) {
     if (e instanceof ApiError) {
       if (e.code === "not_ready") return paths.unavailable(itemId);
-      if (e.code === "signup_required") return paths.signup(itemId);
       if (e.code === "daily_limit") return paths.limit(itemId);
       if (e.code === "job_in_progress") throw new Error(e.message);
       if (e.code === "consent_required" || e.code === "photo_required")

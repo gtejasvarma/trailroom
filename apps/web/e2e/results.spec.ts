@@ -46,10 +46,8 @@ test("partial set, two poses: two images, the two-of-four line, the reveal count
   // Two poses are not shown (as when the face check refuses them); the other two are.
   setScript([twice("walking"), twice("seated")]);
   await realReveal(page);
+  // The sign-in comes first (an account is required to start), then the render and the reveal.
   await tryOnFromScratch(page, "Knit button vest");
-  // A guest sees the account sheet first; signing in opens the reveal.
-  await expect(page.getByRole("dialog")).toBeVisible({ timeout: 30_000 });
-  await continueWithGoogle(page);
   const reveal = page.getByTestId("reveal");
   await expect(reveal).toBeVisible({ timeout: 30_000 });
   // It plays by itself to the end state (pressing Escape could close it if it got there first).
@@ -215,21 +213,24 @@ test("capacity: the budget message and exactly one action, no retry", async ({
   await expect(screen).toHaveAttribute("data-kind", "capacity");
 });
 
-test("daily limit: a guest's third start shows its own message, one way back, no retry", async ({
+test("daily limit: a signed-in person's sixth start shows its own message, one way back, no retry", async ({
   page,
 }) => {
+  test.setTimeout(240_000);
   const always = (pose: string) => ({ pose, outcome: "blocked" as const });
   setScript(["front", "three-quarter", "walking", "seated"].map(always));
-  await tryOnFromScratch(page, "Knit button vest");
+  await tryOnFromScratch(page, "Knit button vest"); // the first of five starts
   const screen = page.getByTestId("honest-failure");
   await expect(screen).toHaveAttribute("data-kind", "render_failed", {
     timeout: 30_000,
   });
-  await screen.getByRole("button", { name: "Try again" }).click(); // second (and last) start
-  await expect(screen).toHaveAttribute("data-kind", "render_failed", {
-    timeout: 30_000,
-  });
-  await screen.getByRole("button", { name: "Try again" }).click(); // third
+  for (let i = 0; i < 4; i++) {
+    await screen.getByRole("button", { name: "Try again" }).click(); // starts two to five
+    await expect(screen).toHaveAttribute("data-kind", "render_failed", {
+      timeout: 30_000,
+    });
+  }
+  await screen.getByRole("button", { name: "Try again" }).click(); // the sixth
   await expect(page).toHaveURL(/\/limit$/);
   const limit = page.getByTestId("honest-failure");
   await expect(limit).toHaveAttribute("data-kind", "daily_limit");

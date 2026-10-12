@@ -133,3 +133,24 @@ matters more at a stricter setting: no walking or seated renders have been measu
 person turned away from the camera may score lower than a front-facing one. A stricter minimum
 means more poses retried (about $0.04 each) and more two-pose or failed results if those poses
 score low. Wherever this document says the default is 10%, read 50%.
+
+## Amendment, 2026-10-12 (second): deployed and switched on; one result not yet confirmed
+
+The owner deployed the service on 2026-10-12 as the private Cloud Run service `trailroom-face-match`
+(`https://trailroom-face-match-zghitd3y5q-uc.a.run.app`). The Cloud Build on amd64, which this ADR listed
+as untried, succeeded first time. An unauthenticated `POST /match` is refused with 403. The owner granted
+`roles/run.invoker` to the App Hosting runtime service account, `FACE_MATCH_URL` is set in
+`apps/web/apphosting.yaml` (commit `847e9ba`), and that commit was rolled out the same day. The identity
+check is therefore on in production, with the minimum at 50%. Cloud Run reserves the path `/healthz`, so
+the service's health path answers 404 from outside; that is expected.
+
+One real four-pose try-on after the rollout completed with all four poses passed. **What is not
+confirmed** is that the identity result was recorded as passed on those poses: the diagnostic script
+(`runs/diag.sh`, local) did not print it at the time. It now prints, per pose, the face result (status,
+probability, note) and the job's list of checks that did not run, and three log sections (what the app
+logged, requests that failed, the face-match service's lines). Running it on the next real job answers
+the question; until then it is recorded here as open. Nothing about calibration has changed: no walking or
+seated render has been measured, and M1 is still unfinished.
+
+Wherever this document says the service is not deployed, or that production skips the check, read this
+amendment: it is deployed and on.

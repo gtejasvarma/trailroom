@@ -355,8 +355,8 @@ for (const size of SIZES) {
 
     test("hold to see the label's photo", async ({ page }) => {
       test.setTimeout(120_000);
-      await tryOnFromScratch(page, "Wool car coat");
-      await waitForResult(page, { name: "Maya Chen" });
+      await tryOnFromScratch(page, "Wool car coat", { name: "Maya Chen" });
+      await waitForResult(page);
       const chip = page.getByTestId("state-chip");
       await expect(chip).toHaveText("On you");
       await expect(page.getByTestId("counter")).toHaveCount(0);
@@ -392,8 +392,8 @@ for (const size of SIZES) {
       page,
     }) => {
       test.setTimeout(120_000);
-      await tryOnFromScratch(page, "Wool car coat");
-      await waitForResult(page, { name: "Maya Chen" });
+      await tryOnFromScratch(page, "Wool car coat", { name: "Maya Chen" });
+      await waitForResult(page);
       await page.goto("/");
       const coat = page.locator("article[data-item=coat]");
       await expect(coat).toHaveAttribute("data-on-you", "true");

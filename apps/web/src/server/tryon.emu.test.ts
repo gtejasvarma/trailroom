@@ -4,11 +4,7 @@ import { getUsage, firestore, getJob, getPoseSet } from "@trailroom/db";
 import { Timestamp } from "firebase-admin/firestore";
 import { DELETE as photoDELETE } from "../app/api/photo/route";
 import { startTryOn } from "./tryon";
-import {
-  GUEST_DAILY_STARTS,
-  SIGNED_IN_DAILY_STARTS,
-  STALE_JOB_MS,
-} from "./limits";
+import { SIGNED_IN_DAILY_STARTS, STALE_JOB_MS } from "./limits";
 import { getFakeCalls, setFakeScript } from "@trailroom/render";
 import { listObjects } from "../../../../packages/pipeline/src/testkit";
 import { POST as tryOnPOST } from "../app/api/try-on/route";
@@ -58,7 +54,7 @@ const render = (t: string, setId: string, pose: string) =>
     params({ poseSetId: setId, pose }),
   );
 
-async function ready(kind: "guest" | "user" = "guest") {
+async function ready(kind: "guest" | "user" = "user") {
   const t = kind === "guest" ? await anonymousToken() : await emailToken();
   await uploadOk(t);
   return t;
@@ -73,7 +69,7 @@ async function finish(t: string, itemId: string) {
 
 describe("try-on refusals", () => {
   it("no photo is 403 (no consent on file yet), unknown item is 404", async () => {
-    const t = await anonymousToken();
+    const t = await emailToken();
     let res = await tryOn(t, "blouse");
     expect([res.status, (await res.json()).error]).toEqual([
       403,
@@ -106,6 +102,41 @@ describe("try-on refusals", () => {
   });
 });
 
+describe("an account is required to start a render", () => {
+  it("a guest is refused with account_required and nothing is created, counted or spent", async () => {
+    vi.stubEnv("ORCHESTRATOR", "workflows");
+    const g = await ready("guest"); // a guest may still upload a photo
+    const before = {
+      jobs: (await firestore().collection("jobs").get()).size,
+      sets: (await firestore().collection("poseSets").get()).size,
+    };
+    for (const itemId of ["blouse", "vest", "nope"]) {
+      const res = await tryOn(g, itemId);
+      expect([res.status, (await res.json()).error]).toEqual([
+        403,
+        "account_required",
+      ]);
+    }
+    // The server-side function too, not only the route.
+    const direct = await startTryOn(
+      { uid: uidOf(g), isGuest: true },
+      { itemId: "blouse" },
+    );
+    expect([direct.status]).toEqual([403]);
+    expect(await jobCount(uidOf(g))).toBe(0);
+    expect((await firestore().collection("jobs").get()).size).toBe(before.jobs);
+    expect((await firestore().collection("poseSets").get()).size).toBe(
+      before.sets,
+    );
+    expect(await getUsage(uidOf(g))).toBeNull();
+    expect(await spendLines()).toBe(0);
+    // The daily spend document is where a reservation would be written.
+    expect((await firestore().collection("spend").get()).size).toBe(0);
+    expect(getFakeCalls()).toHaveLength(0);
+    expect(startWorkflowExecution).not.toHaveBeenCalled();
+  });
+});
+
 describe("try-on happy path, reuse and caps", () => {
   it("renders four poses; the same item again is reused with no extra calls or spend", async () => {
     const t = await ready();
@@ -126,19 +157,7 @@ describe("try-on happy path, reuse and caps", () => {
     expect(await jobCount(uidOf(t))).toBe(1);
   });
 
-  it("a guest's second item is signup_required with no spend; a signed-in user can start another", async () => {
-    const g = await ready("guest");
-    await finish(g, "blouse");
-    const spend = await spendLines();
-    const calls = getFakeCalls().length;
-    const res = await tryOn(g, "vest");
-    expect([res.status, (await res.json()).error]).toEqual([
-      403,
-      "signup_required",
-    ]);
-    expect(await spendLines()).toBe(spend);
-    expect(getFakeCalls()).toHaveLength(calls);
-
+  it("a signed-in user can start a second piece while the first is finished", async () => {
     const u = await ready("user");
     await finish(u, "blouse");
     const second = await tryOn(u, "vest");
@@ -191,24 +210,7 @@ describe("try-on happy path, reuse and caps", () => {
   });
 });
 
-describe("daily limits and the guest race", () => {
-  it("a guest's third start in a day is 429 with zero new spend", async () => {
-    const g = await ready("guest");
-    setFakeScript([{ outcome: "error" }]);
-    for (let i = 0; i < GUEST_DAILY_STARTS; i++) {
-      await finish(g, "blouse"); // failed sets count
-    }
-    const spend = await spendLines();
-    const calls = getFakeCalls().length;
-    const res = await tryOn(g, "blouse");
-    expect([res.status, (await res.json()).error]).toEqual([
-      429,
-      "daily_limit",
-    ]);
-    expect(await spendLines()).toBe(spend);
-    expect(getFakeCalls()).toHaveLength(calls);
-  });
-
+describe("daily limits", () => {
   it("a signed-in user's sixth start is 429", async () => {
     const u = await ready("user");
     setFakeScript([{ outcome: "error" }]);
@@ -222,12 +224,12 @@ describe("daily limits and the guest race", () => {
   });
 
   it("Delete everything leaves the day's count alone, and the deleted sign-in is refused", async () => {
-    const g = await ready("guest");
+    const g = await ready("user");
     setFakeScript([{ outcome: "error" }]);
-    for (let i = 0; i < GUEST_DAILY_STARTS; i++) await finish(g, "blouse");
+    for (let i = 0; i < SIGNED_IN_DAILY_STARTS; i++) await finish(g, "blouse");
     await photoDELETE(req("DELETE", "/api/photo", { token: g }));
     // The count is not reset by deleting data...
-    expect((await getUsage(uidOf(g)))!.starts).toBe(GUEST_DAILY_STARTS);
+    expect((await getUsage(uidOf(g)))!.starts).toBe(SIGNED_IN_DAILY_STARTS);
     // ...and the sign-in is gone too, so the old token starts nothing.
     const res = await tryOn(g, "blouse");
     expect(res.status).toBe(401);
@@ -244,11 +246,11 @@ describe("daily limits and the guest race", () => {
   });
 
   it("the count rolls over at UTC midnight (injectable clock)", async () => {
-    const g = await ready("guest");
-    const user = { uid: uidOf(g), isGuest: true };
+    const g = await ready("user");
+    const user = { uid: uidOf(g), isGuest: false };
     setFakeScript([{ outcome: "error" }]);
     const day1 = new Date("2030-03-01T23:30:00Z");
-    for (let i = 0; i < GUEST_DAILY_STARTS; i++) {
+    for (let i = 0; i < SIGNED_IN_DAILY_STARTS; i++) {
       const r = await startTryOn(user, { itemId: "blouse" }, day1);
       expect(r.status).toBe(202);
       await waitForJob((r.body as { jobId: string }).jobId, getJob);
@@ -262,19 +264,6 @@ describe("daily limits and the guest race", () => {
       new Date("2030-03-02T00:05:00Z"),
     );
     expect(next.status).toBe(202);
-  });
-
-  it("two concurrent guest starts for different items: one job, the other signup_required", async () => {
-    const g = await ready("guest");
-    const [a, b] = await Promise.all([tryOn(g, "blouse"), tryOn(g, "vest")]);
-    const bodies = [await a.json(), await b.json()];
-    expect([a.status, b.status].sort()).toEqual([202, 403]);
-    expect(bodies.map((x) => x.error).filter(Boolean)).toEqual([
-      "signup_required",
-    ]);
-    expect(await jobCount(uidOf(g))).toBe(1);
-    await waitForJob(bodies.find((x) => x.jobId).jobId, getJob);
-    expect(getFakeCalls().length).toBe(4);
   });
 });
 

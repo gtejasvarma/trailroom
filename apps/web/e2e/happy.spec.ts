@@ -1,6 +1,14 @@
-import { card, expect, PHOTO, setScript, test, waitForResult } from "./helpers";
+import {
+  card,
+  continueWithGoogle,
+  expect,
+  PHOTO,
+  setScript,
+  test,
+  waitForResult,
+} from "./helpers";
 
-test("happy path: catalogue to four tiles to the guest-ready state, then the result", async ({
+test("happy path: catalogue, photo, sign-in, four tiles, then the result", async ({
   page,
 }) => {
   // Slow the renders a little so the queue can be watched.
@@ -22,6 +30,12 @@ test("happy path: catalogue to four tiles to the guest-ready state, then the res
   await expect(page.getByAltText("The photo you chose")).toBeVisible();
   await page.getByRole("button", { name: "Use this photo" }).click();
 
+  // An account is required to start a render: the sheet, then the try-on starts by itself.
+  await expect(
+    page.getByRole("dialog", { name: "Create an account to try it on" }),
+  ).toBeVisible();
+  await continueWithGoogle(page);
+
   // Queue: four tiles, the garment visible on each skeleton, one honest status line.
   await expect(page).toHaveURL(/\/try-on\//);
   await expect(page.getByTestId("pose-tile")).toHaveCount(4);
@@ -41,7 +55,7 @@ test("happy path: catalogue to four tiles to the guest-ready state, then the res
     page.getByRole("link", { name: "Keep browsing while it renders" }),
   ).toBeVisible();
 
-  // Signed in with Google from the sheet, the result opens with all four poses at full size.
+  // Signed in, the result opens with all four poses at full size.
   await waitForResult(page);
   await expect(page.locator("img[data-render]")).toHaveCount(4);
   for (const img of await page.locator("img[data-render]").all()) {

@@ -62,11 +62,6 @@ export const ERRORS = {
     message:
       "Those two pieces do not make an outfit together, so choose a different pair.",
   },
-  signup_required: {
-    status: 403,
-    message:
-      "Guests get one set of previews, so create an account to try on more.",
-  },
   account_required: {
     status: 403,
     message: "Create an account to open your poses.",

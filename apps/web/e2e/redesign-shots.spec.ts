@@ -67,7 +67,7 @@ for (const size of SIZES) {
 
       // Try-on: the reveal at three moments.
       await page.goto("/");
-      await tryOnFromScratch(page, "Wool car coat");
+      await tryOnFromScratch(page, "Wool car coat", { name: "Maya Chen" });
       const dialog = page.getByRole("dialog", {
         name: "Create an account to save",
       });

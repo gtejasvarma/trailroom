@@ -1,6 +1,8 @@
 "use client";
 // The one account sheet for the whole app, and what happens after sign-in (the prototype's
-// resumeIntent): reveal opens the result, picknext goes to the starters ("Your photo is in"), list opens the list sheet for the piece, buy opens the buy sheet for it. Dismissing the
+// resumeIntent): tryon starts the try-on they asked for (an account is required to start any
+// render), with the photo they just uploaded, and lands on its queue; reveal opens the result of a
+// try-on made before that rule (a guest can still hold one for up to 48 hours), picknext goes to the starters ("Your photo is in"), list opens the list sheet for the piece, buy opens the buy sheet for it. Dismissing the
 // sheet never loses anything: the photo and try-on stay with the guest session.
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -11,7 +13,7 @@ import {
   useState,
 } from "react";
 import { copy } from "../lib/copy";
-import { paths } from "../lib/flow";
+import { messageOf, paths, startTryOnPath } from "../lib/flow";
 import { ACCOUNT_CHANGED } from "../lib/use-job";
 import {
   AccountSheet,
@@ -26,8 +28,10 @@ import { useToast } from "./ui/toast";
 export interface AccountIntent extends AccountContext {
   /** The try-on to open after sign-in (reveal). */
   jobId?: string;
-  /** The piece to return to after sign-in (list, buy). */
+  /** The piece to return to after sign-in (tryon, list, buy). */
   itemId?: string;
+  /** The photo the try-on is for (tryon): the one just uploaded, or the one chosen. */
+  photoId?: string;
   /** Called when the sheet is dismissed without signing in. */
   onDismiss?: () => void;
 }
@@ -39,13 +43,23 @@ const OpenContext = createContext<
 export const useAccount = () => useContext(OpenContext);
 
 const INTENT_KEY = "trailroom.account-intent";
-type Stored = { reason: AccountReason; jobId?: string; itemId?: string };
+type Stored = {
+  reason: AccountReason;
+  jobId?: string;
+  itemId?: string;
+  photoId?: string;
+};
 
 // The intent also lives in sessionStorage, so a remount or reload around the sign-in popup
 // cannot drop where the person was going.
 function keepIntent(reason: AccountReason, intent: AccountIntent) {
   try {
-    const v: Stored = { reason, jobId: intent.jobId, itemId: intent.itemId };
+    const v: Stored = {
+      reason,
+      jobId: intent.jobId,
+      itemId: intent.itemId,
+      photoId: intent.photoId,
+    };
     sessionStorage.setItem(INTENT_KEY, JSON.stringify(v));
   } catch {
     // storage unavailable: the in-memory intent is used
@@ -114,7 +128,21 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       }
       if (!cur) return;
       const { reason, intent } = cur;
-      if (reason === "reveal" && intent.jobId) {
+      if (reason === "tryon" && intent.itemId) {
+        // Starts now, with the photo they just uploaded; if it did not carry over into an existing
+        // account the account's default photo is used. Nothing is pressed a second time.
+        try {
+          const path = await startTryOnPath(
+            intent.itemId,
+            intent.photoId,
+            true,
+          );
+          say(copy.toasts.signedIn);
+          router.push(path);
+        } catch (e) {
+          say(messageOf(e));
+        }
+      } else if (reason === "reveal" && intent.jobId) {
         say(copy.toasts.signedIn);
         // Already on that screen: it re-renders as the result by itself.
         if (pathname !== paths.tryOn(intent.jobId))

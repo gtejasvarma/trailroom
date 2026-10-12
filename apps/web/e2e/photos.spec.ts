@@ -182,11 +182,13 @@ for (const size of SIZES) {
       }).toPass({ timeout: 30_000 });
       await expect(
         page.getByText(
-          "One photo and the knit button vest comes straight back on you.",
+          "One photo, then an account, and the knit button vest comes back on you.",
         ),
       ).toBeVisible();
       await page.locator("input[type=file]").setInputFiles(PHOTO);
       await page.getByRole("button", { name: "Use this photo" }).click();
+      // The account sheet, then the try-on starts straight into the queue.
+      await continueWithGoogle(page);
       await expect(page).toHaveURL(/\/try-on\//);
       await waitForResult(page);
     });

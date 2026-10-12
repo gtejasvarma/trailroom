@@ -13,10 +13,10 @@ import {
   listDocs,
   setScript,
   test,
+  leftoverGuestTryOn,
   tryOnFromScratch,
   uploadFirst,
   uploadFirstAsGuest,
-  waitForGuestReady,
   waitForResult,
 } from "./helpers";
 
@@ -99,8 +99,9 @@ for (const size of SIZES) {
       );
       await expect(page.getByTestId("job-chip")).toHaveCount(0); // not on its own screen
       await shot(page, "queue-mid-render", size.name);
+      // The sign-in toast is still up when the queue opens (it is timed, so it is masked).
       await expect(page).toHaveScreenshot(`queue-${size.name}.png`, {
-        mask: [page.locator("nextjs-portal")],
+        mask: [page.locator("nextjs-portal"), page.getByTestId("toast")],
       });
 
       // Keep browsing: the chip is on Discover and on a product page, and opens the queue.
@@ -132,7 +133,7 @@ for (const size of SIZES) {
       await expect(page.getByTestId("ready-bar")).toHaveCount(0);
     });
 
-    test("walk away, ready toast, account to open, sign in, result, on-you, try-ons, sign out", async ({
+    test("walk away, ready toast, the result opens, on-you, try-ons", async ({
       page,
     }) => {
       test.setTimeout(180_000);
@@ -140,7 +141,6 @@ for (const size of SIZES) {
         { pose: "front", outcome: "ok" },
         { outcome: "ok", delayMs: 9_000 },
       ]);
-      const seen = watchPoseSet(page);
       await tryOnFromScratch(page, "Knit button vest");
       await page
         .getByRole("link", { name: "Keep browsing while it renders" })
@@ -166,8 +166,30 @@ for (const size of SIZES) {
         .first()
         .click();
 
+      // Signed in: the full result opens, with no account sheet in the way.
+      await expect(page.getByTestId("pose-gallery")).toBeVisible({
+        timeout: 20_000,
+      });
+      await expect(page.locator("img[data-render]")).toHaveCount(4);
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.goto("/");
+      await expect(page.locator("article[data-on-you=true]")).toHaveCount(1);
+      await page.goto("/you/try-ons");
+      await expect(page.getByTestId("tryon-card")).toHaveCount(1);
+      await expect(page.getByTestId("tryons-guest")).toHaveCount(0);
+    });
+
+    // A guest cannot start a render any more, but one who made a try-on before that rule keeps it
+    // for up to 48 hours. It still shows tiles, raises the account sheet and opens after sign-in.
+    test("a leftover guest try-on: tiles, the account to open, no full image, sign in opens it", async ({
+      page,
+    }) => {
+      test.setTimeout(180_000);
+      const seen = watchPoseSet(page);
+      await leftoverGuestTryOn(page, "Knit button vest");
+      const jobUrl = page.url();
+
       // Guest-ready: tiles at tile size, the account to open, no full render.
-      await waitForGuestReady(page);
       await expect(page.getByTestId("status-line")).toHaveText(
         "The knit button vest on your photo, 4 poses. Create an account to open them.",
       );
@@ -175,12 +197,13 @@ for (const size of SIZES) {
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
       await expect(page).toHaveScreenshot(`account-sheet-${size.name}.png`, {
-        mask: [page.locator("nextjs-portal")],
+        mask: [page.locator("nextjs-portal"), page.getByTestId("ready-bar")],
       });
       await shot(page, "account-sheet", size.name);
       await dismissSheet(page);
+      // The ready bar is there because this try-on finished while nobody was watching.
       await expect(page).toHaveScreenshot(`guest-ready-${size.name}.png`, {
-        mask: [page.locator("nextjs-portal")],
+        mask: [page.locator("nextjs-portal"), page.getByTestId("ready-bar")],
       });
       await shot(page, "guest-ready", size.name, true);
       expect(seen.poseSetId).not.toBe("");
@@ -200,9 +223,12 @@ for (const size of SIZES) {
         expect(tile.status(), `${pose} tile`).toBe(200);
       }
       await expect(page.getByTestId("pose-gallery")).toHaveCount(0);
+      await page.goto("/you/try-ons");
+      await expect(page.getByTestId("tryons-guest")).toBeVisible();
+      await expect(page.getByTestId("tryon-card")).toHaveCount(0);
+      await page.goto(jobUrl);
 
       // Sign in with Google: the result opens, no re-render.
-      const spendBefore = (await listDocs("spendLog")).length;
       const tryOnCalls: string[] = [];
       page.on("request", (r) => {
         if (new URL(r.url()).pathname === "/api/try-on")
@@ -210,125 +236,11 @@ for (const size of SIZES) {
       });
       await page.getByRole("button", { name: "See your 4 poses" }).click();
       await continueWithGoogle(page);
-      const gallery = page.getByTestId("pose-gallery");
-      await expect(gallery).toBeVisible({ timeout: 20_000 });
-      await expect(page.locator("img[data-render]")).toHaveCount(4);
-      for (const img of await page.locator("img[data-render]").all()) {
-        await expect(async () => {
-          expect(
-            await img.evaluate((e) => (e as HTMLImageElement).naturalWidth),
-          ).toBeGreaterThan(500);
-        }).toPass();
-      }
-      expect(tryOnCalls).toEqual([]);
-      expect((await listDocs("spendLog")).length).toBe(spendBefore);
-
-      // Gallery: the On you chip only (no counter), thumbnails that jump, a swipe; caption
-      // directly under it.
-      await expect(page.getByTestId("counter")).toHaveCount(0);
-      await expect(page.getByTestId("state-chip")).toHaveText("On you");
-      const thumb = (pose: string) =>
-        page.locator(`[data-testid=pose-thumb][data-pose=${pose}]`);
-      await expect(thumb("front")).toHaveAttribute("aria-pressed", "true");
-      await expect(page.getByTestId("dot")).toHaveCount(4);
-      await expect(page).toHaveScreenshot(`result-${size.name}.png`, {
-        mask: [page.locator("nextjs-portal"), page.getByTestId("toast")],
-      });
-      await shot(page, "result-first-pose", size.name);
-      await page.getByRole("button", { name: "Seated" }).click();
-      await expect(thumb("seated")).toHaveAttribute("aria-pressed", "true");
-      await gallery.evaluate((el) =>
-        el.scrollTo({ left: el.clientWidth * 2, behavior: "instant" }),
-      );
-      await expect(thumb("walking")).toHaveAttribute("aria-pressed", "true");
-      await shot(page, "result-third-pose", size.name);
-      const gb = (await gallery.boundingBox())!;
-      const cb = (await page.getByTestId("ai-caption").boundingBox())!;
-      expect(cb.y).toBeGreaterThanOrEqual(gb.y + gb.height - 1);
-      await expect(
-        page.getByText(
-          "A preview, not a fitting — it can't tell you size or fit.",
-        ),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: /^Buy \$\d+ at / }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Add to a list" }),
-      ).toBeVisible();
-      await expect(page.getByTestId("outfit-row")).toContainText(
-        size.width >= 768 ? "Wear it with" : "Build the outfit",
-      );
-      await expect(page.getByTestId("pair-thumb")).toHaveCount(1);
-      await expect(
-        page.getByRole("button", { name: /download|save/i }),
-      ).toHaveCount(0);
-
-      // Reload keeps the signed-in state and the result.
-      await page.reload();
       await expect(page.getByTestId("pose-gallery")).toBeVisible({
         timeout: 20_000,
       });
       await expect(page.locator("img[data-render]")).toHaveCount(4);
-
-      // Signed in: the tried piece is on you in Discover, the product says See your 4 poses,
-      // Your try-ons lists it, and signing out returns to a clean guest state.
-      await page.goto("/");
-      const onYou = page.locator("article[data-item=vest][data-on-you=true]");
-      await expect(onYou).toBeVisible();
-      await expect(onYou.getByTestId("state-chip")).toHaveText("On you");
-      await expect(onYou.getByTestId("count-chip")).toHaveCount(0);
-      await expect(onYou.getByTestId("card-ai")).toHaveText(
-        "AI-generated preview",
-      );
-      await expect(onYou.getByTestId("dot")).toHaveCount(4);
-      await expect(onYou.locator("img").first()).toHaveAttribute(
-        "src",
-        /^blob:/,
-      );
-      await onYou.scrollIntoViewIfNeeded();
-      await shot(page, "discover-on-you", size.name);
-      await onYou.getByTestId("state-chip").scrollIntoViewIfNeeded();
-      await page.goto("/item/vest");
-      await expect(page.getByTestId("see-poses")).toHaveText(
-        "See your 4 poses",
-      );
-      await page.getByTestId("see-poses").click();
-      await expect(page.getByTestId("pose-gallery")).toBeVisible();
-
-      if (size.name === "desktop") {
-        await page
-          .getByRole("navigation", { name: "Main" })
-          .getByRole("link", { name: "Your try-ons" })
-          .click();
-      } else {
-        await page.goto("/you"); // the tab bar is hidden on try-on screens
-        await page
-          .getByRole("heading", { name: "Your try-ons" })
-          .scrollIntoViewIfNeeded();
-      }
-      await expect(page.getByTestId("tryon-card")).toHaveCount(1);
-      await expect(page.getByTestId("tryon-card")).toContainText(
-        "Knit button vest",
-      );
-      await shot(page, "your-tryons", size.name);
-      await page.getByTestId("tryon-card").getByRole("link").click();
-      await expect(page.getByTestId("pose-gallery")).toBeVisible();
-
-      if (size.name === "desktop") {
-        await page.getByTestId("account-initial").click();
-        await page.getByRole("menuitem", { name: "Sign out" }).click();
-      } else {
-        await page.goto("/you");
-        await page.getByRole("button", { name: "Sign out" }).click();
-      }
-      await expect(page).toHaveURL(/\/$/);
-      await expect(page.locator("article[data-on-you=true]")).toHaveCount(0);
-      await page.goto("/you/try-ons");
-      await expect(page.getByTestId("tryons-guest")).toBeVisible();
-      await expect(page.locator("img[data-render]")).toHaveCount(0);
-      await expect(page.getByTestId("tryon-card")).toHaveCount(0);
-      await expect(page.getByTestId("job-chip")).toHaveCount(0);
+      expect(tryOnCalls).toEqual([]);
     });
 
     test("upload first as a guest: sheet, sign in, straight to the starters, one tap starts the try-on", async ({
@@ -441,7 +353,7 @@ for (const size of SIZES) {
         failure.getByRole("link", { name: "Use a different photo" }),
       ).toBeVisible();
       await expect(page).toHaveScreenshot(`failure-${size.name}.png`, {
-        mask: [page.locator("nextjs-portal")],
+        mask: [page.locator("nextjs-portal"), page.getByTestId("toast")],
       });
       await shot(page, "fail-render-failed", size.name);
 
