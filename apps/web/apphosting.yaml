@@ -125,10 +125,10 @@ env:
   # set, every render's face is compared with the person's own photo before it can be shown, and a
   # match probability below FACE_MATCH_MIN fails the pose. The app calls the service with a
   # Google-signed token, so the App Hosting runtime service account needs roles/run.invoker on it.
-  # - variable: FACE_MATCH_URL
-  #   value: https://trailroom-face-match-REPLACE-ME.us-central1.run.app
-  #   availability:
-  #     - RUNTIME
+  - variable: FACE_MATCH_URL
+    value: https://trailroom-face-match-zghitd3y5q-uc.a.run.app
+    availability:
+      - RUNTIME
   # The lowest match probability that still shows (default 0.50, the owner's rule of 2026-10-12).
   # - variable: FACE_MATCH_MIN
   #   value: "0.50"
