@@ -3,6 +3,7 @@ import {
   GATE_COOKIE,
   GATE_MAX_AGE_SECONDS,
   constantTimeEqual,
+  gateIsOff,
   readGateConfig,
   signGateCookie,
 } from "../../../lib/gate";
@@ -27,6 +28,8 @@ function back(path: string, search = "") {
 }
 
 export async function POST(request: NextRequest) {
+  // With the gate off there is no password to check.
+  if (gateIsOff(process.env)) return back("/");
   const key = clientKey(request.headers);
   if (limiter.blocked(key) || globalLimiter.blocked(GLOBAL_KEY)) {
     return new Response(copy.gate.tooMany, {

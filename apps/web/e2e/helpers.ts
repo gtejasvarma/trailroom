@@ -95,6 +95,20 @@ export const test = base.extend<{ fresh: void }>({
     async ({ page }, use) => {
       await resetEmulators();
       setScript([]);
+      // The reveal plays once per job. Specs that are about something else start with every job
+      // already "seen"; the reveal specs call realReveal(page) before navigating.
+      await page.addInitScript(() => {
+        const get = Storage.prototype.getItem;
+        Storage.prototype.getItem = function (key: string) {
+          if (
+            typeof key === "string" &&
+            key.startsWith("trailroom.reveal.") &&
+            !(window as unknown as { __realReveal?: boolean }).__realReveal
+          )
+            return "1";
+          return get.call(this, key);
+        };
+      });
       await passGate(page);
       await use();
     },
@@ -312,4 +326,11 @@ export async function seedAsk(opts: {
     },
   );
   if (!res.ok) throw new Error("could not seed the ask");
+}
+
+/** Lets the reveal stage play for the jobs this page sees (see the fixture above). */
+export async function realReveal(page: Page) {
+  await page.addInitScript(() => {
+    (window as unknown as { __realReveal?: boolean }).__realReveal = true;
+  });
 }

@@ -144,6 +144,7 @@ export function ListSheet({
                   aria-pressed={inIt}
                   data-testid="list-choice"
                   data-in={inIt ? "true" : "false"}
+                  data-kind={l.kind}
                   className={`flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left ${
                     inIt ? "border-2 border-accent" : "border border-line"
                   }`}

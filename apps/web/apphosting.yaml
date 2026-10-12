@@ -34,6 +34,14 @@ env:
     secret: GATE_COOKIE_SECRET
     availability:
       - RUNTIME
+  # The owner's switch for the shared password. "off" (exactly) opens the whole site to anyone;
+  # any other value, or removing this entry, puts the password gate back on at the next rollout.
+  # Switched off by Tejas on 2026-10-11 with the list of what was owed first still open
+  # (docs/decisions/0004 and BUILD_PLAN 12): the eval (M1), the legal review, real rate limiting.
+  - variable: GATE
+    value: "off"
+    availability:
+      - RUNTIME
   - variable: RENDER_MODEL
     value: nano-banana-2.1
   - variable: DAILY_CAP_USD
@@ -78,8 +86,9 @@ env:
       - RUNTIME
 
   # How many proxies in front of the app append to x-forwarded-for; the client key is the entry
-  # that many places from the RIGHT. Verify after deploy: 11 wrong passwords, each with a
-  # different made-up first hop in x-forwarded-for, must end in a 429. Too low a number only
+  # that many places from the RIGHT. Verify after deploy (docs/DEPLOY.md smoke test step 19): 31
+  # requests for made-up ask tokens, each with a different made-up first hop in
+  # x-forwarded-for, must end in a 429. Too low a number only
   # makes clients share a bucket; too high a number makes the limit spoofable.
   - variable: TRUSTED_PROXY_HOPS
     value: "1"

@@ -1,10 +1,11 @@
 "use client";
 // The product gallery: swipeable frames on a phone, a thumbnail strip with a hero and arrows
-// from 768px.
+// from 768px, each with the heart on the picture (the strip is what selects a photo).
 import { useState } from "react";
 import { catalogUrl, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
-import { Chip } from "./ui/chip";
+import { FavouriteHeart } from "./favourite-heart";
+import { FadeImg } from "./ui/fade-img";
 import { PhotoFrames } from "./ui/photo-frames";
 
 export function Gallery({ item }: { item: CatalogItem }) {
@@ -16,13 +17,14 @@ export function Gallery({ item }: { item: CatalogItem }) {
     alt: copy.item.imageAlt(item.name, item.label, p.label),
     focus: p.focus,
   }));
-  const arrow =
-    "absolute top-1/2 grid size-[38px] -translate-y-1/2 place-items-center rounded-full bg-canvas/90 text-ink shadow-2";
-
   return (
     <div data-testid="gallery">
       <div className="md:hidden">
-        <PhotoFrames name={item.name} frames={frames} />
+        <PhotoFrames
+          name={item.name}
+          frames={frames}
+          action={<FavouriteHeart itemId={item.id} className="top-3 right-3" />}
+        />
       </div>
       <div className="hidden gap-4 md:flex">
         {n > 1 ? (
@@ -57,42 +59,18 @@ export function Gallery({ item }: { item: CatalogItem }) {
         ) : null}
         <div
           data-testid="hero"
-          className="relative aspect-[4/5] min-w-0 flex-1 overflow-hidden rounded-md bg-canvas"
+          className="relative aspect-[4/5] min-w-0 flex-1 overflow-hidden rounded-md bg-surface"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <FadeImg
             src={catalogUrl(photo.file)}
             alt={copy.item.imageAlt(item.name, item.label, photo.label)}
-            className="reveal size-full object-cover"
+            loading="eager"
+            fetchPriority="high"
+            className="size-full object-cover"
             style={{ objectPosition: photo.focus }}
             key={photo.file}
           />
-          <Chip upper className="absolute top-3.5 left-3.5">
-            {copy.card.modelShot}
-          </Chip>
-          {n > 1 ? (
-            <>
-              <Chip className="absolute top-3.5 right-3.5 tabular-nums">
-                {copy.item.photoCount(i + 1, n)}
-              </Chip>
-              <button
-                type="button"
-                onClick={() => setI((i + n - 1) % n)}
-                aria-label={copy.card.prev}
-                className={`${arrow} left-3.5`}
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                onClick={() => setI((i + 1) % n)}
-                aria-label={copy.card.next}
-                className={`${arrow} right-3.5`}
-              >
-                →
-              </button>
-            </>
-          ) : null}
+          <FavouriteHeart itemId={item.id} className="top-3.5 right-3.5" />
         </div>
       </div>
     </div>

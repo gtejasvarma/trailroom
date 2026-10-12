@@ -59,6 +59,8 @@
   --dur-fast: 150ms;
   --dur: 250ms;
   --dur-slow: 400ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @media (min-width: 768px) {
@@ -235,6 +237,61 @@ dialog.sheet::backdrop {
   }
 }
 
+/* Frame dots (carousels): white on any photograph, a soft shadow so they read on light ones. */
+.frame-dot {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+/* The heart on an image pops once when a piece is saved; nothing when it is removed. */
+.heart-pop {
+  animation: heart-pop 180ms var(--ease-out) both;
+}
+@keyframes heart-pop {
+  from {
+    transform: scale(0.85);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heart-pop {
+    animation: none;
+  }
+}
+
+/* The hero's divider and the reveal's wipe are driven from script with the Web Animations API;
+   these are the resting states. */
+.hero-divider {
+  will-change: transform;
+}
+
+/* The reveal stage (see reveal.tsx): near-black layer, everything timed from script via classes. */
+.rv-fade {
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+.rv-fade[data-on="true"] {
+  opacity: 1;
+}
+.rv-rise {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 260ms var(--ease-out),
+    transform 260ms var(--ease-out);
+}
+.rv-rise[data-on="true"] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-rise {
+    transform: none;
+    transition: opacity 300ms linear;
+  }
+}
+
 /* The proof slider: a native range input stretched over the image, invisible, with a wide
    thumb so a finger can grab the divider anywhere along it. Keyboard and screen readers get
    the real control. */
@@ -272,5 +329,25 @@ input[type="range"].proof-range:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .toast {
     animation: none;
+  }
+}
+
+/* The Discover feed: one column on a phone, then two, three (1100px) and four (1700px). */
+.feed-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .feed-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .feed-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1700px) {
+  .feed-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

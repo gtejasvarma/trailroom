@@ -7,10 +7,8 @@ import { PieceTile } from "./piece-tile";
 import { TryOnButton } from "./tryon-button";
 import { BrandRow } from "./ui/brand-row";
 import { Button } from "./ui/button";
-import { HeartIcon } from "./ui/icons";
 import { useBuy } from "./use-buy";
 import { useCompare } from "./compare-provider";
-import { useLists } from "./lists-provider";
 import { useSaveToList } from "./save-to-list";
 import { useMe } from "./me-provider";
 import { ButtonLink } from "./ui/button";
@@ -27,12 +25,10 @@ export function ProductView({ item }: { item: CatalogItem }) {
   const buy = useBuy();
   const compare = useCompare();
   const saveToList = useSaveToList();
-  const { isSaved } = useLists();
-  const saved = !isGuest && isSaved(item.id);
   const save = () => saveToList(item.id);
 
   return (
-    <div className="rise mx-auto w-full max-w-[1600px] pb-12 md:px-10 md:pt-6">
+    <div className="mx-auto w-full max-w-[1600px] pb-12 md:px-10 md:pt-6">
       <nav
         aria-label={copy.item.breadcrumb}
         className="mb-[18px] hidden items-center gap-2 text-[13px] text-ink-600 md:flex"
@@ -56,7 +52,7 @@ export function ProductView({ item }: { item: CatalogItem }) {
         </div>
 
         <div className="p-4 md:min-w-[320px] md:flex-[1_1_380px] md:p-0">
-          <p className="mb-1 text-[11px] leading-[15px] font-semibold tracking-[0.08em] text-ink-600 uppercase">
+          <p className="mb-1 text-[14px] leading-5 text-ink-600">
             {item.label}
           </p>
           <h1 className="mb-1 text-[24px] leading-[30px] font-medium tracking-[-0.02em] text-ink md:text-[30px] md:leading-9">
@@ -108,13 +104,13 @@ export function ProductView({ item }: { item: CatalogItem }) {
           <p className="mt-2.5 hidden text-[13px] leading-[18px] text-ink-600 md:block">
             {copy.item.notePhoto}
           </p>
-          <div className="mt-2.5 flex items-center gap-2 md:mt-5">
+          <div className="mt-2.5 flex flex-col gap-2.5 md:mt-5">
             <Button
               variant="outline"
               size="md"
               onClick={() => buy(item.id)}
               data-testid="buy"
-              className="min-h-[46px] flex-1"
+              className="min-h-[46px] w-full"
             >
               {copy.card.buy(price)}
             </Button>
@@ -122,12 +118,10 @@ export function ProductView({ item }: { item: CatalogItem }) {
               variant="outline"
               size="md"
               onClick={save}
-              aria-label={saved ? copy.card.saveToList : copy.card.addToList}
-              data-testid="heart"
-              data-saved={saved ? "true" : "false"}
-              className="size-[46px] flex-none !px-0"
+              data-testid="add-to-list"
+              className="min-h-[46px] w-full"
             >
-              <HeartIcon filled={saved} />
+              {copy.result.addToList}
             </Button>
           </div>
 

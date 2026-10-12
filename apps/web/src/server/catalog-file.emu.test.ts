@@ -30,10 +30,12 @@ describe("/catalog/[file]", () => {
     expect(bytes.equals(readCatalogAsset("dress-2-front.webp"))).toBe(true);
   });
 
-  it("serves the Discover proof photograph", async () => {
-    const res = await get("p6218357.jpg");
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toBe("image/jpeg");
+  it("serves both Discover proof photographs", async () => {
+    for (const file of ["proof-label.jpg", "proof-on-her.jpg"]) {
+      const res = await get(file);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/jpeg");
+    }
   });
 
   it("404s for unknown names, traversal, encoded slashes and other prefixes", async () => {

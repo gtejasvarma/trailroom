@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   request as pwRequest,
   type BrowserContext,
+  type Locator,
   type Page,
 } from "@playwright/test";
 import { E2E_PORT } from "../playwright.config";
@@ -88,12 +89,25 @@ const heart = (page: Page, item: string) =>
   page.locator(`article[data-item=${item}]`).getByTestId("heart");
 const listSheet = (page: Page) =>
   page.getByRole("dialog", { name: "Save to a list" });
+/** The lists the person made (Favourites is always there, first, and is checked on its own). */
+const listCards = (page: Page) =>
+  page.locator("[data-testid=list-card]:not([data-kind=favourites])");
+const own = (sheet: Locator) =>
+  sheet.locator("[data-testid=list-choice]:not([data-kind=favourites])");
+/** The heart saves to Favourites at once; the toast's Change is the way to the list sheet. */
+async function viaHeart(page: Page, item: string) {
+  await heart(page, item).click();
+  await page
+    .getByTestId("toast")
+    .getByRole("button", { name: "Change" })
+    .click();
+}
 
 /** A guest taps a heart, signs in, and lands on the list sheet for that piece. */
 async function signInFromHeart(page: Page, item: string, name?: string) {
   await page.goto("/");
   await expect(page.getByTestId("item-card")).toHaveCount(12);
-  await heart(page, item).click();
+  await viaHeart(page, item);
   await expect(
     page.getByRole("dialog", { name: "Create an account to save" }),
   ).toBeVisible();
@@ -131,7 +145,7 @@ for (const size of SIZES) {
 
       // Create a list from the sheet: it is created with the piece in it.
       const sheet = listSheet(page);
-      await expect(sheet.getByTestId("list-choice")).toHaveCount(0);
+      await expect(own(sheet)).toHaveCount(0);
       await shot(page, "list-sheet-empty", size.name);
       await sheet.getByTestId("new-list-name").fill("Wedding in September");
       await sheet.getByRole("button", { name: "Create list and add" }).click();
@@ -139,7 +153,7 @@ for (const size of SIZES) {
         "Created Wedding in September",
       );
       await expect(page.getByTestId("toast")).toContainText("Open list");
-      const row = sheet.getByTestId("list-choice");
+      const row = own(sheet);
       await expect(row).toHaveCount(1);
       await expect(row).toHaveAttribute("data-in", "true");
       await expect(row).toContainText("1 piece");
@@ -151,46 +165,34 @@ for (const size of SIZES) {
       await expect(heart(page, "slip")).toHaveAttribute("data-saved", "false");
 
       // Add another piece to it, then remove it, then add it again: the heart follows.
-      await heart(page, "slip").click();
+      await viaHeart(page, "slip");
       await expect(sheet).toBeVisible();
-      await expect(sheet.getByTestId("list-choice")).toHaveAttribute(
-        "data-in",
-        "false",
-      );
-      await sheet.getByTestId("list-choice").click();
+      await expect(own(sheet)).toHaveAttribute("data-in", "false");
+      await own(sheet).click();
       await expect(page.getByTestId("toast")).toContainText(
         "Added to Wedding in September",
       );
-      await expect(sheet.getByTestId("list-choice")).toHaveAttribute(
-        "data-in",
-        "true",
-      );
-      await sheet.getByTestId("list-choice").click();
+      await expect(own(sheet)).toHaveAttribute("data-in", "true");
+      await own(sheet).click();
       await expect(page.getByTestId("toast")).toContainText(
         "Removed from Wedding in September",
       );
-      await expect(sheet.getByTestId("list-choice")).toHaveAttribute(
-        "data-in",
-        "false",
-      );
-      await sheet.getByTestId("list-choice").click();
-      await expect(sheet.getByTestId("list-choice")).toHaveAttribute(
-        "data-in",
-        "true",
-      );
+      await expect(own(sheet)).toHaveAttribute("data-in", "false");
+      await own(sheet).click();
+      await expect(own(sheet)).toHaveAttribute("data-in", "true");
       await sheet.getByRole("button", { name: "Done" }).click();
       await expect(heart(page, "slip")).toHaveAttribute("data-saved", "true");
 
       // The product page's heart agrees, and "Add to a list" is the same sheet.
       await page.goto("/item/coat");
-      await expect(page.getByTestId("heart")).toHaveAttribute(
+      await expect(page.locator("[data-testid=heart]:visible")).toHaveAttribute(
         "data-saved",
         "true",
       );
 
       // The Lists tab: both segments.
       await page.goto("/lists");
-      const cardEl = page.getByTestId("list-card");
+      const cardEl = listCards(page);
       await expect(cardEl).toHaveCount(1);
       await expect(cardEl).toContainText("Wedding in September");
       await expect(cardEl).toContainText("2 pieces · ready to ask");
@@ -253,7 +255,7 @@ for (const size of SIZES) {
       await page.getByTestId("delete-list").click();
       await page.getByTestId("confirm-delete").click();
       await expect(page).toHaveURL(/\/lists$/);
-      await expect(page.getByTestId("list-card")).toHaveCount(0);
+      await expect(listCards(page)).toHaveCount(0);
       await expect(page.getByTestId("lists-empty")).toBeVisible();
       // The empty state has a live piece to start with.
       await expect(
@@ -273,24 +275,21 @@ for (const size of SIZES) {
       await waitForResult(page, { name: "Maya Chen" });
       await page.goto("/");
       await expect(page.getByTestId("item-card")).toHaveCount(12);
-      await heart(page, "vest").click();
+      await viaHeart(page, "vest");
       const sheet = listSheet(page);
       await expect(sheet).toBeVisible();
       await sheet.getByTestId("new-list-name").fill("Wedding in September");
       await sheet.getByRole("button", { name: "Create list and add" }).click();
-      await expect(sheet.getByTestId("list-choice")).toHaveCount(1);
+      await expect(own(sheet)).toHaveCount(1);
       await sheet.getByRole("button", { name: "Done" }).click();
-      await heart(page, "coat").click();
-      await sheet.getByTestId("list-choice").click();
-      await expect(sheet.getByTestId("list-choice")).toHaveAttribute(
-        "data-in",
-        "true",
-      );
+      await viaHeart(page, "coat");
+      await own(sheet).click();
+      await expect(own(sheet)).toHaveAttribute("data-in", "true");
       await sheet.getByRole("button", { name: "Done" }).click();
 
       // The list page shows the person's own Front render where they have one.
       await page.goto("/lists");
-      await page.getByTestId("list-card").click();
+      await listCards(page).click();
       await expect(page.getByTestId("list-piece")).toHaveCount(2);
       await expect(
         page.locator(
@@ -435,11 +434,9 @@ for (const size of SIZES) {
       await expect(page.getByTestId("vote-line")).toHaveText("2 votes", {
         timeout: 20_000,
       });
-      await expect(page.getByTestId("list-card")).toContainText(
-        "shared with friends",
-      );
+      await expect(listCards(page)).toContainText("shared with friends");
       await shot(page, "lists-with-votes", size.name);
-      await page.getByTestId("list-card").click();
+      await listCards(page).click();
       await page.getByTestId("see-votes").click();
       await expect(page).toHaveURL(/\/asks\/[^/]+$/);
       const rows = page.getByTestId("vote-row");
@@ -653,14 +650,14 @@ for (const size of SIZES) {
       await tryOnFromScratch(page, "Knit button vest");
       await waitForResult(page);
       await page.goto("/");
-      await heart(page, "vest").click();
+      await viaHeart(page, "vest");
       const sheet = listSheet(page);
       await sheet.getByTestId("new-list-name").fill("Work capsule");
       await sheet.getByRole("button", { name: "Create list and add" }).click();
-      await expect(sheet.getByTestId("list-choice")).toHaveCount(1);
+      await expect(own(sheet)).toHaveCount(1);
       await sheet.getByRole("button", { name: "Done" }).click();
       await page.goto("/lists");
-      await page.getByTestId("list-card").click();
+      await listCards(page).click();
       await expect(page.getByTestId("ask-button")).toHaveText(
         "Ask friends about this one",
       );
@@ -675,7 +672,7 @@ for (const size of SIZES) {
         });
       });
       await bare.goto("/lists");
-      await bare.getByTestId("list-card").click();
+      await listCards(bare).click();
       await bare.getByTestId("ask-button").click();
       await bare.getByTestId("create-link").click();
       await expect(bare.getByTestId("copy-link")).toBeVisible();
@@ -696,7 +693,7 @@ for (const size of SIZES) {
         });
       });
       await sharing.goto("/lists");
-      await sharing.getByTestId("list-card").click();
+      await listCards(sharing).click();
       await sharing.getByTestId("ask-button").click();
       await sharing.getByTestId("create-link").click();
       const link = await sharing.getByTestId("ask-link").inputValue();

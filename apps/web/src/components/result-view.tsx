@@ -1,8 +1,9 @@
 "use client";
-// The result, as the prototypes: a full-bleed swipe gallery of the poses (counter, dots, ON YOU
-// chip), the AI caption directly under it, pose thumbnails that jump the gallery, then the piece
-// and its actions. From 768px the thumbnails sit in a column beside a large pose and the details
-// sit to the right (the desktop product view in its on-you state).
+// The result: a full-bleed swipe gallery of the poses (dots and the On you chip, nothing else),
+// the AI caption and the expectation line directly under it, a press-and-hold control that swaps
+// in the label's own photograph, pose thumbnails that jump the gallery, then the piece and its
+// actions. From 768px the thumbnails sit in a column beside a larger pose and the details sit to
+// the right. The first sight of a finished try-on is the Reveal (reveal.tsx), not this.
 // Buy opens the buy sheet; Add to a list opens the list sheet; Build the outfit opens the pair preview
 // (outfit-row.tsx). On wide screens the piece can be added to Compare.
 import { useRef, useState } from "react";
@@ -11,6 +12,7 @@ import { copy } from "../lib/copy";
 import { passedPoses, type JobView } from "../lib/job";
 import { useRenderImage } from "../lib/use-render-image";
 import { Button } from "./ui/button";
+import { catalogUrl } from "@trailroom/catalog";
 import { Chip } from "./ui/chip";
 import { useBuy } from "./use-buy";
 import { useCompare } from "./compare-provider";
@@ -43,7 +45,7 @@ function Slide({
           alt={copy.result.heroAlt(item.name, item.label, poseName)}
           data-render
           data-hero
-          className="reveal block size-full bg-canvas object-cover"
+          className="block size-full bg-canvas object-cover"
         />
       ) : null}
     </div>
@@ -107,6 +109,9 @@ function Thumb({
 export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
   const saveToList = useSaveToList();
   const buy = useBuy();
+  const [held, setHeld] = useState(false);
+  const heldBy = useRef(false);
+  const photo = item.photos[0]!;
   const compare = useCompare();
   const poses = passedPoses(job);
   const n = poses.length;
@@ -115,8 +120,6 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
   const target = useRef(0);
   const animating = useRef<ReturnType<typeof setTimeout>>(undefined);
   const price = copy.item.price(item.priceUsd);
-  const current = poses[Math.min(index, n - 1)] ?? poses[0]!;
-  const poseName = copy.poses[current] ?? current;
 
   const jump = (i: number) => {
     const el = scroller.current;
@@ -135,10 +138,11 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
     setIndex(to);
   };
 
+  const release = () => setHeld(false);
   return (
-    <div className="rise mx-auto w-full max-w-[1600px] pb-8 md:px-10 md:pt-6">
-      <div className="md:grid md:grid-cols-[76px_minmax(0,520px)_minmax(300px,1fr)] md:items-start md:gap-x-6">
-        <div className="relative md:col-start-2 md:row-start-1 md:overflow-hidden md:rounded-md">
+    <div className="mx-auto w-full max-w-[1600px] pb-8 md:px-10 md:pt-6">
+      <div className="md:grid md:grid-cols-[76px_minmax(0,600px)_minmax(300px,1fr)] md:items-start md:gap-x-8">
+        <div className="relative md:col-start-2 md:row-start-1 md:max-w-[min(600px,calc((100svh-200px)*0.75))] md:overflow-hidden md:rounded-md">
           <div
             ref={scroller}
             data-testid="pose-gallery"
@@ -146,6 +150,15 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
             aria-roledescription={copy.card.carousel}
             aria-label={copy.result.galleryLabel}
             tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight") {
+                e.preventDefault();
+                jump(index + 1);
+              } else if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                jump(index - 1);
+              }
+            }}
             onScroll={(e) => {
               const el = e.currentTarget;
               const i = Math.round(el.scrollLeft / (el.clientWidth || 1));
@@ -160,54 +173,67 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
               <Slide key={p} job={job} item={item} pose={p} />
             ))}
           </div>
+          {held ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={catalogUrl(photo.file)}
+              alt={copy.result.labelsPhotoAlt(item.name, item.label)}
+              data-testid="label-photo"
+              className="absolute inset-0 z-[5] size-full bg-canvas object-cover"
+              style={{ objectPosition: photo.focus }}
+            />
+          ) : null}
           <Chip
-            upper
-            className="absolute top-3 left-3"
+            className="absolute top-3 left-3 z-[6]"
             data-testid="state-chip"
           >
-            <span className="md:hidden">{copy.result.onYou}</span>
-            <span className="hidden md:inline">
-              {copy.result.onYouPose(poseName)}
-            </span>
-          </Chip>
-          <Chip
-            className="absolute top-3 right-3 tabular-nums"
-            data-testid="counter"
-          >
-            {copy.result.counter(poseName, index + 1, n)}
+            {held ? copy.result.labelsPhoto : copy.result.onYou}
           </Chip>
           {n > 1 ? (
             <>
-              <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-[5px]">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-3 z-[6] flex justify-center gap-1.5"
+              >
                 {poses.map((p, i) => (
                   <span
                     key={p}
                     data-testid="dot"
                     data-active={i === index}
-                    className={`size-1.5 rounded-full shadow-1 ${
+                    className={`frame-dot size-1.5 rounded-full ${
                       i === index ? "bg-canvas" : "bg-canvas/50"
                     }`}
                   />
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={() => jump(index - 1)}
-                disabled={index === 0}
-                aria-label={copy.card.prev}
-                className="absolute top-1/2 left-3 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-canvas/90 text-ink shadow-2 disabled:opacity-0 md:flex"
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                onClick={() => jump(index + 1)}
-                disabled={index === n - 1}
-                aria-label={copy.card.next}
-                className="absolute top-1/2 right-3 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full bg-canvas/90 text-ink shadow-2 disabled:opacity-0 md:flex"
-              >
-                →
-              </button>
+              {(["prev", "next"] as const).map((dir) => (
+                <button
+                  key={dir}
+                  type="button"
+                  onClick={() => jump(index + (dir === "next" ? 1 : -1))}
+                  disabled={dir === "next" ? index === n - 1 : index === 0}
+                  aria-label={copy.card[dir]}
+                  className={`pointer-events-none absolute top-1/2 z-[6] grid size-10 -translate-y-1/2 place-items-center rounded-full bg-canvas/90 text-ink opacity-0 shadow-2 focus:pointer-events-auto focus:opacity-100 ${
+                    dir === "next" ? "right-3" : "left-3"
+                  }`}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path
+                      d={dir === "next" ? "M9 5l7 7-7 7" : "M15 5l-7 7 7 7"}
+                    />
+                  </svg>
+                </button>
+              ))}
             </>
           ) : null}
         </div>
@@ -222,6 +248,39 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
           <p className="text-[12px] leading-4 text-ink-600">
             {copy.result.expectation}
           </p>
+          <button
+            type="button"
+            aria-pressed={held}
+            data-testid="hold-compare"
+            onPointerDown={(e) => {
+              heldBy.current = true;
+              e.currentTarget.setPointerCapture?.(e.pointerId);
+              setHeld(true);
+            }}
+            onPointerUp={release}
+            onPointerCancel={release}
+            onLostPointerCapture={release}
+            onKeyDown={(e) => {
+              if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                heldBy.current = true;
+                setHeld(true);
+              }
+            }}
+            onKeyUp={(e) => {
+              if (e.key === " " || e.key === "Enter") release();
+            }}
+            onBlur={release}
+            onContextMenu={(e) => e.preventDefault()}
+            onClick={() => {
+              // A click with no press before it is a screen reader's activation: toggle.
+              if (heldBy.current) heldBy.current = false;
+              else setHeld((h) => !h);
+            }}
+            className="mt-2.5 inline-flex min-h-11 touch-manipulation items-center text-[14px] leading-5 font-medium text-ink underline decoration-ink-400 underline-offset-4 select-none"
+          >
+            {copy.result.holdToCompare}
+          </button>
           {job.status === "complete_partial" ? (
             <p
               className="mt-3 text-[14px] leading-5 text-ink-700"
@@ -250,7 +309,7 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
         </div>
 
         <div className="px-4 pt-3 md:col-start-3 md:row-span-3 md:row-start-1 md:px-0 md:pt-0">
-          <p className="mb-0.5 text-[11px] leading-[15px] font-semibold tracking-[0.08em] text-ink-600 uppercase">
+          <p className="mb-0.5 text-[14px] leading-5 text-ink-600">
             {item.label}
           </p>
           <div className="flex items-baseline gap-2.5 md:block">

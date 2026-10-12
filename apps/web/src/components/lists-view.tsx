@@ -47,13 +47,23 @@ function VoteLine({ ask }: { ask: AskSummary }) {
   );
 }
 
-function ListCard({ list, ask }: { list: ListBody; ask?: AskSummary }) {
+function ListCard({
+  list,
+  ask,
+  guest = false,
+}: {
+  list: ListBody;
+  ask?: AskSummary;
+  guest?: boolean;
+}) {
   const live = ask?.state === "live" ? ask : undefined;
+  const fav = list.kind === "favourites";
   return (
     <Link
-      href={`/lists/${list.id}`}
+      href={`/lists/${fav ? "favourites" : list.id}`}
       data-testid="list-card"
       data-list={list.id}
+      data-kind={list.kind}
       aria-label={copy.lists.openLabel(list.name)}
       className={`${card} border-line`}
     >
@@ -67,10 +77,12 @@ function ListCard({ list, ask }: { list: ListBody; ask?: AskSummary }) {
             list.itemIds.length ? "text-accent-dark" : "text-ink-600"
           }`}
         >
-          {copy.lists.pieces(list.itemIds.length)}
+          {fav && list.itemIds.length === 0
+            ? copy.lists.favouritesHint
+            : copy.lists.pieces(list.itemIds.length)}
           {live
             ? ` · ${copy.lists.sharedWith}`
-            : list.itemIds.length
+            : list.itemIds.length && !guest
               ? ` · ${copy.lists.readyToAsk}`
               : ""}
         </span>
@@ -141,6 +153,7 @@ export function ListsView() {
       active ? "bg-canvas text-ink shadow-1" : "text-ink-700"
     }`;
 
+  const others = lists.filter((l) => l.kind !== "favourites");
   const waiting = !meLoaded || (!isGuest && !loaded);
 
   return (
@@ -214,7 +227,7 @@ export function ListsView() {
           <>
             <div className="mb-3 flex items-baseline justify-between">
               <p className="text-[13px] leading-[18px] text-ink-600">
-                {copy.lists.count(isGuest ? 0 : lists.length)}
+                {copy.lists.count(isGuest ? 0 : others.length)}
               </p>
               <button
                 type="button"
@@ -224,20 +237,29 @@ export function ListsView() {
                 {copy.lists.create}
               </button>
             </div>
-            {isGuest || lists.length === 0 ? (
-              <div
-                className="rounded-lg border border-line p-[18px]"
+            <ul
+              aria-label={copy.lists.gridLabel}
+              className="m-0 flex list-none flex-col gap-3 p-0"
+            >
+              {lists.map((l) => (
+                <li key={l.id}>
+                  <ListCard list={l} ask={askFor(l.id)} guest={isGuest} />
+                </li>
+              ))}
+            </ul>
+            {isGuest ? (
+              <p
                 data-testid="lists-empty"
+                className="mt-4 text-[14px] leading-5 text-ink-600"
               >
+                {copy.lists.guestFavouritesNote}
+              </p>
+            ) : others.length === 0 ? (
+              <div data-testid="lists-empty" className="mt-6">
                 <p className="text-[15px] leading-[22px] text-ink-700">
                   {copy.lists.intro}
                 </p>
-                {isGuest ? (
-                  <p className="mt-2 text-[14px] leading-5 text-ink-600">
-                    {copy.lists.guestNote}
-                  </p>
-                ) : null}
-                {!isGuest && start ? (
+                {start ? (
                   <Button
                     size="md"
                     className="mt-4"
@@ -247,18 +269,7 @@ export function ListsView() {
                   </Button>
                 ) : null}
               </div>
-            ) : (
-              <ul
-                aria-label={copy.lists.gridLabel}
-                className="m-0 flex list-none flex-col gap-3 p-0"
-              >
-                {lists.map((l) => (
-                  <li key={l.id}>
-                    <ListCard list={l} ask={askFor(l.id)} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            ) : null}
           </>
         ) : (
           <>

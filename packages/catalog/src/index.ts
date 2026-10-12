@@ -67,11 +67,13 @@ export function closestThree(itemId: string): CatalogItem[] {
 }
 
 /**
- * The Discover proof slider: two photographs of the same framing. The model shot is not a
- * catalogue piece; the on-person side is the car coat's label photograph.
+ * The Discover proof slider: the same piece (the pink wrap top) twice, cropped to one 4:5 framing.
+ * The label side is the label's own photograph. The on-person side is a real render made by this
+ * product (scripts/hero-proof.ts, edit-v1, Front) on the fictional test person s01, cropped and
+ * otherwise untouched; it is shown with the AI caption beside it like any other render.
  */
-export const PROOF_MODEL_FILE = "p6218357.jpg";
-export const PROOF_ON_PERSON_FILE = "p19299199.jpg";
+export const PROOF_MODEL_FILE = "proof-label.jpg";
+export const PROOF_ON_PERSON_FILE = "proof-on-her.jpg";
 
 /** The Discover category tiles: a photograph and crop for each shop category. */
 export const SHOP_CATEGORIES: readonly {

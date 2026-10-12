@@ -1,30 +1,37 @@
 # Deploy runbook — Trailroom on Firebase
 
-> **Where this stands (2026-10-10).** The site is deployed: App Hosting backend `trailroom`, root
-> directory `apps/web`, live branch `main`, project `virtual-tryon-tejas`, behind the password gate, at
-> `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`. **Phases A, B and C (V0) and Phase D
+> **Where this stands (2026-10-11).** The site is deployed: App Hosting backend `trailroom`, root
+> directory `apps/web`, live branch `main`, project `virtual-tryon-tejas`, behind the password gate until the next rollout, at
+> `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`, and the custom domain `trailroom.ai`
+> was connected to the same backend on 2026-10-11 (see "Custom domain" below). **Phases A, B and C (V0) and Phase D
 > are what is live** (commits `a5b7918`, `f3ab209`, `2f11325`, `328725a`), and real try-ons have been
-> generated on the hosted site. **Phases E, F and G and the fixes of the security review are built and
-> on `main` but not rolled out** (`0ef59a4`, `1c52f77`, `4ea213f`, `a05f1ce`). Pushes to `main` have not
+> generated on the hosted site. **Phases E, F and G, the fixes of the security review and the redesign of 2026-10-11 (ADR 0006) are
+> built and on `main` but not rolled out** (`0ef59a4`, `1c52f77`, `4ea213f`, `a05f1ce`, and the redesign on top of `fb4d8d6`). Pushes to `main` have not
 > been triggering rollouts, so each one is started by hand:
 >
 > ```bash
 > firebase apphosting:rollouts:create trailroom --git-branch main --project virtual-tryon-tejas --force
 > ```
 >
-> **To put Phases E, F and G live, in this order.** First the rules, because Phase E adds the server-only
-> `purchases` collection and Phase G adds six more (`publishedPieces`, `publishEvents`, `arrivals`,
-> `emailPrefs`, `emailSent`, `emailTokens`), and the running app reads them:
+> **The next rollout also takes the password off (decided by the owner on 2026-10-11, PRD §22.1 row 41).** `apps/web/apphosting.yaml` sets `GATE` to `"off"`; it takes effect at that rollout and not before. After it the site is open to anyone and search engines may index it, and the eval (M1), the legal review and the other items of ADR 0004's list are still open (see "What this deploy is not"). Run smoke test step 19 straight after the rollout. See "The password gate" below for how to put the password back.
+>
+> **To put Phases E, F and G and the redesign live, in this order.** First the rules and the indexes,
+> because Phase E adds the server-only `purchases` collection, Phase G adds six more (`publishedPieces`,
+> `publishEvents`, `arrivals`, `emailPrefs`, `emailSent`, `emailTokens`), and the redesign adds one
+> composite index on `lists` (`isGuest`, `expiresAt`) that the guest purge needs, because a guest's
+> Favourites are now purged with the guest. The running app reads all of these:
 >
 > ```bash
-> firebase deploy --only firestore:rules --project virtual-tryon-tejas
+> firebase deploy --only firestore:indexes,firestore:rules --project virtual-tryon-tejas
 > ```
 >
-> Then the rollout above. This one rules deploy covers both phases. Phases F and G change no indexes
-> and no workflow, and add no Scheduler job: the follow loop runs inside the existing 15-minute
-> housekeeping call (step 10). One query (`publishEvents`: equality on `type` with a range on
-> `createdAt`) may need a composite index in production, and the emulator cannot tell. If the logs show
-> an index error after the rollout, create the index from the link in the error.
+> Wait until the new index shows as built (a few minutes; Firebase console, Firestore, Indexes), because
+> the housekeeping endpoint fails until it is. Then the rollout above. This one deploy covers Phase E's
+> rules and Phase G's rules, which are still undeployed, and the redesign's index; the redesign changes
+> no rules. Phases F and G change no workflow and add no Scheduler job: the follow loop runs inside the
+> existing 15-minute housekeeping call (step 10). One query (`publishEvents`: equality on `type` with a
+> range on `createdAt`) may need a composite index in production, and the emulator cannot tell. If the
+> logs show an index error after the rollout, create the index from the link in the error.
 >
 > **Phase G ships with two switches, both off:** `EMAIL_TRANSPORT` (default `none`: nothing is sent and
 > the product shows no email controls) and `ARRIVALS_BUFFER` (default `off`: nothing is rendered that a
@@ -36,8 +43,9 @@
 >
 > **Done for this project:** steps 0 to 11 (2026-10-07 and 2026-10-08), the Phase A rules redeploy for the
 > follows collection, the Phase D rules and indexes, and the catalogue images in `gs://<bucket>/catalog/`
-> (the 31 files from `packages/catalog/assets/prototype/`). The garment-image step is repeated whenever
-> the catalogue's images change.
+> (all 33 files from `packages/catalog/assets/prototype/`, copied by the owner on 2026-10-11 after the
+> sharper photographs replaced the old ones). The garment-image step is repeated whenever a catalogue
+> image changes, and it must be done before the rollout that needs it.
 >
 > **When a try-on fails on the deployed site, run `runs/diag.sh` first.** It is local and git-ignored; it
 > prints the latest job's per-pose reasons, the server-side error detail and the spend log.
@@ -124,11 +132,16 @@ gcloud services enable \
 - [ ] **Project settings → Your apps**: a **Web app** is registered (App Hosting injects its
       config into the build).
 
-## 3. Copy the garment images to Cloud Storage (done: the prototype's 31 images)
+## 3. Copy the garment images to Cloud Storage (done: all 33 files, 2026-10-11)
 
-*Done for the current catalogue: `gs://<bucket>/catalog/` holds the 31 files from
-`packages/catalog/assets/prototype/`. The original M2 text was for five garments; the commands below
-are for the current set.*
+*Done for the current catalogue: on 2026-10-11 the owner copied all 33 files from
+`packages/catalog/assets/prototype/` to `gs://virtual-tryon-tejas.firebasestorage.app/catalog/`. They
+are the sharper photographs (eleven stock photographs at 1400 px, sixteen restored pose-set photographs
+at 896 x 1200, four unchanged wrap-top photographs) and the two files of the home page hero,
+`proof-label.jpg` and `proof-on-her.jpg`. **Repeat this step whenever a file in that folder changes,**
+and before the rollout that uses it: the restored photographs are also the garment reference the try-on
+sends to the image model, and a missing or stale file fails the try-on. The original M2 text was for
+five garments; the commands below are for the current set.*
 
 Garment images live in the bucket under `catalog/`. Both the render step and the product pages
 read them from there. In production a missing image fails the try-on with an `internal` error and
@@ -140,7 +153,7 @@ a log line naming the file; there is no fallback.
 gcloud storage cp packages/catalog/assets/prototype/* gs://$BUCKET/catalog/ --project $PROJECT
 ```
 
-- [ ] Check all 31 are listed:
+- [ ] Check all 33 are listed:
 
 ```bash
 gcloud storage ls gs://$BUCKET/catalog/ --project $PROJECT
@@ -160,17 +173,21 @@ JSON
 gcloud storage buckets update gs://$BUCKET --lifecycle-file /tmp/trailroom-lifecycle.json --project $PROJECT
 ```
 
-## 4. Rules and indexes (done through Phase D; the Phase E and Phase G rules are still to deploy)
+## 4. Rules and indexes (done through Phase D; the Phase E and Phase G rules and the redesign's `lists` index are still to deploy)
 
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes,storage --project $PROJECT
 ```
 
-Phases D and E added explicit denies in `firestore.rules` for `lists`, `asks` (with `votes`), `inbox` and `purchases`, and Phase D added a field override on `votes.voterUid` in `firestore.indexes.json`. Phase G added explicit denies for `publishedPieces`, `publishEvents`, `arrivals`, `emailPrefs`, `emailSent` and `emailTokens`. The rules for `purchases` and for those six are not yet deployed; one `firebase deploy --only firestore:rules --project virtual-tryon-tejas` covers all of them.
+Phases D and E added explicit denies in `firestore.rules` for `lists`, `asks` (with `votes`), `inbox` and `purchases`, and Phase D added a field override on `votes.voterUid` in `firestore.indexes.json`. Phase G added explicit denies for `publishedPieces`, `publishEvents`, `arrivals`, `emailPrefs`, `emailSent` and `emailTokens`. The rules for `purchases` and for those six are not yet deployed. The 2026-10-11 redesign changed no rules but added a composite index on `lists` (`isGuest` + `expiresAt`), which the guest purge uses to find a guest's expired Favourites. One command deploys all of it, rules and indexes together:
 
-The four composite indexes (`jobs` and `photos` on `isGuest` + `expiresAt`, `jobs` on `status` +
+```bash
+firebase deploy --only firestore:indexes,firestore:rules --project virtual-tryon-tejas
+```
+
+The five composite indexes (`jobs`, `photos` and `lists` on `isGuest` + `expiresAt`, `jobs` on `status` +
 `updatedAt`, `spendLog` on `state` + `createdAt`) take a few minutes to build. The housekeeping
-endpoint fails until they are ready.
+endpoint fails until they are ready, so for the new `lists` index, wait for it before the rollout.
 
 ## 5. Secrets (done: all three set and access granted to the backend)
 
@@ -183,7 +200,7 @@ firebase apphosting:secrets:set GATE_COOKIE_SECRET --project $PROJECT  # paste: 
 ```
 
 The password and the cookie secret must be different values, or the gate refuses everyone.
-Changing `GATE_PASSWORD` later signs everyone out.
+Changing `GATE_PASSWORD` later signs everyone out. With `GATE` set to `off` the two secrets are unused but stay in place, so the password can be put back ("The password gate").
 
 Each command offers to grant the backend access; say yes once the backend exists (step 6), or run
 `firebase apphosting:secrets:grantaccess <NAME> --backend trailroom --project $PROJECT` after.
@@ -301,17 +318,28 @@ gcloud scheduler jobs create http purge-guests \
 
 ## 11. Authorised domain (done)
 
-Firebase console → Authentication → Settings → Authorised domains: add the host from `$APP_URL`
-(and `trailroom.ai` when it points here). Google sign-in from the account sheet fails without it.
+Firebase console → Authentication → Settings → Authorised domains: add the host from `$APP_URL`.
+Google sign-in from the account sheet fails without it. **`trailroom.ai` now points here, so it must be
+added as well (not done yet; see "Custom domain" below).**
+
+## The password gate
+
+The site has sat behind one shared password. From the rollout after 2026-10-11 it does not.
+
+- **The switch.** `GATE` in `apps/web/apphosting.yaml` (runtime). `gateIsOff` in `apps/web/src/lib/gate.ts` is true only for exactly `off`. Any other value, or removing the entry, leaves the password gate on, so a typo can never open the site. The checked-in value is `"off"`.
+- **What it does when off.** `apps/web/src/middleware.ts` lets every path through; `/gate` sends the visitor to `/`; `POST /api/gate` leads home. `/api/internal/*` is unchanged: it is still authenticated by OIDC in its own handlers. The public ask and unsubscribe paths keep their own `noindex`, no-store and no-referrer headers. Nothing else carries `noindex`, so the rest of the site can be indexed by search engines.
+- **What stays.** The gate code, the `GATE_PASSWORD` and `GATE_COOKIE_SECRET` secrets (section 5) and the gate tests. Local development and the test suites do not set `GATE`, so they still run with the gate on.
+- **When it takes effect.** At the next manual rollout, not before (see the top of this file). Editing the file or pushing does nothing by itself.
+- **To put the password back.** Set `GATE` to anything other than `off` (or delete the entry) in `apps/web/apphosting.yaml`, commit and push, then run the rollout command at the top of this file. The secrets are still in place, so the password is the same one as before unless `GATE_PASSWORD` was changed. With the gate back on, the older smoke test steps (a visit lands on `/gate`; the private-window checks that other paths go to `/gate`) apply again, and step 19 can be done by posting wrong passwords to `/api/gate` as it used to be.
 
 ## 12. Smoke test, in this order
 
-For the product as it is now (Phases A to G, once E, F and G are rolled out, with the defaults of both switches). Steps 1 to 4 do not need the image
+For the product as it is now (Phases A to G, once E, F and G are rolled out, with the defaults of both switches), **with the password gate off, as `apphosting.yaml` has it after 2026-10-11 and from the next rollout: nobody enters a password.** If the gate is put back, the steps that mention `/gate` or a password apply again ("The password gate"). Steps 1 to 4 do not need the image
 model; steps 5 and 6 are the first model calls. If a try-on fails, run `runs/diag.sh` before anything else.
-Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the security fixes, steps 21 and 22 cover Phase G, and none of them has been run on the deployed site.
+Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the security fixes, steps 21 and 22 cover Phase G, steps 23 to 26 cover the 2026-10-11 redesign, and none of steps 12 to 26 has been run on the deployed site. Run steps 23 to 26 on both addresses: `https://trailroom.ai` and `$APP_URL` (the `hosted.app` address).
 
-1. Open `$APP_URL`. You should land on `/gate`. A wrong password is refused; the right one shows
-   Discover **with images** (images prove the catalogue copy in step 3 and the bucket setting).
+1. Open `$APP_URL`. It shows Discover **with images**, with no password page. Open `$APP_URL/gate`: it leads home
+   (`/`). (With the gate put back, the visit lands on `/gate` instead, a wrong password is refused and the right one shows Discover.) The images prove the catalogue copy in step 3 and the bucket setting.
 2. Internal endpoints are closed: `curl -i -X POST $APP_URL/api/internal/purge` returns 401. Run the
    purge once: `gcloud scheduler jobs run purge-guests --location $REGION --project $PROJECT`, then
    check the app's logs for a 200 whose body starts `{"purged":0`.
@@ -347,18 +375,21 @@ Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the se
 
 Phases D to F (run after step 8, signed in with a fresh photo and try-on if step 10 deleted them):
 
-12. **Lists.** Tap the heart on a piece: the list sheet opens; create a list and add the piece. It
-    appears under the **Lists** tab and on the list page. As a guest, the heart opens the account sheet
-    instead and a list cannot be created.
+12. **Lists.** Tap the heart on a piece: it saves to **Favourites** at once and a toast offers
+    **Change**, which opens the list sheet; create a list and add the piece there. Favourites is shown
+    first under the **Lists** tab and on its page, and cannot be renamed or deleted. As a guest, the heart
+    still saves to Favourites, but **Change** and "Add to a list" open the account sheet and a list
+    cannot be created.
 13. **Ask.** On the list page, start an ask with one to four pieces. The share screen says the link
     shows those renders to whoever holds it, before the link exists. Copy the link.
-14. **The public vote page.** In a private window with no password cookie, open the link
-    (`$APP_URL/ask/<token>`). It opens **without** the gate, shows the asker's first name, the list
+14. **The public vote page.** In a private window, open the link
+    (`$APP_URL/ask/<token>`). It opens, shows the asker's first name, the list
     name, the question and one image per piece (your Front render, or the label's photo), and nothing
     else. Vote once. Back in the signed-in window the count shows on the list; the Asks inbox shows
     the ask when the link is opened while signed in. Check the response headers on the vote page
     (`noindex`, no caching, no referrer). Revoke the ask: the link stops working on the next request.
-    Confirm another path (for example `$APP_URL/lists`) in the private window still goes to `/gate`.
+    With the gate off, another path (for example `$APP_URL/lists`) in the private window also opens, and
+    it does not carry the ask page's `noindex` headers. (With the gate put back, it goes to `/gate`.)
 15. **Studio and You.** On a wide screen, `/studio` shows real counts, your try-ons and photos. Remove
     one try-on; it disappears at once.
 16. **Compare.** On a wide screen select two to four tried pieces into the tray (or press `C`) and open
@@ -372,12 +403,24 @@ Phases D to F (run after step 8, signed in with a fresh photo and try-on if step
     shows the AI caption beside it, **Buy the outfit** and **Add outfit to a list**, and **Try it on**
     for a piece you have not tried. The outfit appears in Your try-ons with a tag. Real cost is about
     $0.039 per outfit (three local runs on 2026-10-10 with `scripts/outfit-smoke.ts`).
-19. **The attempt limit cannot be dodged.** From one machine, post 11 wrong passwords to `/api/gate`,
-    each with a different made-up first hop in `X-Forwarded-For`. The 11th must answer 429. If it does
-    not, `TRUSTED_PROXY_HOPS` in `apps/web/apphosting.yaml` is too high. If people on different
-    networks block each other, it is too low: raise it by one, roll out, and repeat this step. Wait ten
-    minutes afterwards, or the gate refuses the right password too. Until this is checked the limits
-    (gate, votes, public reads) may be shared by every visitor.
+19. **The attempt limit cannot be dodged. Required straight after the rollout that removes the password.**
+    The password page can no longer be used for this, so use the public ask page's miss limit: 30
+    requests per client in 10 minutes for tokens that are not found (`apps/web/src/server/ask-public.ts`).
+    A token is 43 characters from `A-Z a-z 0-9 _ -`; the loop below makes made-up ones of that shape.
+    From one machine, send 31 requests, each with a different made-up first hop in `X-Forwarded-For`:
+
+    ```bash
+    for i in $(seq 1 31); do curl -s -o /dev/null -w "$i %{http_code}\n" -H "X-Forwarded-For: 10.0.$((i / 250)).$((i % 250))" "$APP_URL/api/ask/$(printf '%043d' $i)"; done
+    ```
+
+    The first 30 answer with a not-found status; the 31st must answer 429. If it does not,
+    `TRUSTED_PROXY_HOPS` in `apps/web/apphosting.yaml` is too high (the made-up hops are counting as
+    different clients), or the requests were spread over more than one instance (the limits are in memory
+    per instance): repeat the loop a few times before concluding. If people on different networks block
+    each other, it is too low: raise it by one, roll out, and repeat this step. Wait ten minutes
+    afterwards, or votes and ask-page reads from your network are refused too. Until this is checked the
+    limits (votes, public reads) may be shared by every visitor. With the gate put back, this step can
+    again be done by posting 11 wrong passwords to `/api/gate` in the same way; the 11th must answer 429.
 20. **Sign in with Google still works** on the hosted site (the 2026-10-10 change added framing
     headers and checks on every request that the account still exists; the tests cover this only
     against the Auth emulator).
@@ -386,10 +429,65 @@ Phases D to F (run after step 8, signed in with a fresh photo and try-on if step
     appears (nothing has been published), and no card appears that you did not ask for. In the logs the
     housekeeping call answers 200 with `"arrivalsStarted":0` and `"emailsSent":0`. After a day, `spendLog`
     has no lines marked `unrequested`.
-22. **The unsubscribe page answers without the password.** In a private window with no password cookie,
-    open `$APP_URL/unsubscribe/not-a-real-token`. It answers with the same plain page it gives any token,
-    without going to `/gate`. Any other path in the private window (for example `$APP_URL/lists`) still
-    goes to `/gate`.
+22. **The unsubscribe page answers every token alike.** In a private window, open
+    `$APP_URL/unsubscribe/not-a-real-token`. It answers with the same plain page it gives any token, and
+    the response carries `noindex`, no caching and no referrer. (With the gate put back, any other path in
+    the private window, for example `$APP_URL/lists`, goes to `/gate`.)
+
+The redesign (ADR 0006; PRD §22.1 rows 33 to 40). Run each on `https://trailroom.ai` and on `$APP_URL`:
+
+23. **The hero is in the first paint.** In a private window (no `tr_hp` cookie), open the site. The first thing painted is the hero with its two photographs, the same pink wrap top
+    on both sides, with "AI-generated preview" beside it, and the feed is not pushed down afterwards.
+    The divider glides once; reload and it glides again once, never twice. Then add a photo and
+    reload in the same window: the hero is gone from the first paint, with no flash of it. In the
+    browser's storage the cookie `tr_hp` is `1`. After "Delete everything" the hero is back.
+    The category row is one row of text tabs and nothing else (no tiles, no "Start with these"
+    box, no DEMO chip); the demo-catalogue notice is still at the foot.
+24. **The heart saves to Favourites as a guest.** In a private window,
+    not signed in, tap the heart on a card: it fills at once, a toast says it is saved and offers
+    **Change**, and no account sheet appeared. Open **Lists**: Favourites is there and holds the
+    piece. Tap the heart again: it empties. Tap a heart, then **Change**: as a guest this opens the
+    account sheet. Then sign in with Google: Favourites arrives in the account with the piece in it
+    (try it with a Google account that already exists, and with a new one).
+25. **The reveal, after a real try-on.** Signed in, start a real try-on and wait. When it finishes the
+    stage opens on near-black: the label's photograph is wiped into your Front render, the other
+    poses rise in under it with the AI caption visible, and one button opens the result. Tap
+    anywhere before the end: it jumps to the end state. Open the same try-on again from You: it goes
+    straight to the result with no stage (it is remembered per browser, so a private window
+    shows it once more). With the system setting "reduce motion" on, the render crossfades in
+    instead of wiping.
+26. **The hold control.** On the result, press and hold **Hold to see the label's photo**: the image
+    swaps to the label's photograph while it is held and returns on release. On a phone, check the
+    page does not scroll or select text while holding. On desktop, check images in the grid scrub
+    with the mouse pointer, the left and right arrow keys work on a focused carousel, and no arrows,
+    "Model shot" chip or count chips are drawn on any photograph. "On you" appears only on your own
+    renders.
+
+## Custom domain (`trailroom.ai`)
+
+**What was done, by the owner, on 2026-10-11.** `trailroom.ai` was connected to the App Hosting backend
+`trailroom` (Firebase console, App Hosting, the backend's Domains tab). The DNS is at Namecheap and holds
+the records the console asked for: an A record, a TXT record named `fah-claim`, and an `_acme-challenge_...`
+CNAME for the certificate. The old static Firebase Hosting site, `trailroom-ai`, no longer holds the
+domain. A `resend._domainkey` DNS record already exists for email; email is deferred by the owner and
+nothing is sent.
+
+**What the app does about it.** `PUBLIC_ORIGINS` in `apps/web/apphosting.yaml` lists
+`https://trailroom.ai` and `https://www.trailroom.ai` (commit `fb4d8d6`), so a share link is built on the
+address the person is using when it is one of these, and falls back to `INTERNAL_AUDIENCE` otherwise.
+
+**The `hosted.app` address must keep working.** The Cloud Workflow and the Scheduler job call
+`$APP_URL`, and `INTERNAL_AUDIENCE` is that address (step 8). Do not change `INTERNAL_AUDIENCE` or the
+workflow's `APP_URL` to the custom domain, and do not remove the `hosted.app` address.
+
+**Still to do, by the owner.**
+
+- [ ] Confirm the console shows `trailroom.ai` as connected (certificate issued, no pending record).
+      Check that `https://trailroom.ai` opens the site (with the gate off) and `https://www.trailroom.ai` too if it is meant to.
+- [ ] Add `trailroom.ai` (and `www.trailroom.ai` if used) to Authentication, Settings, Authorised
+      domains (step 11). Until then Google sign-in fails on the new address.
+- [ ] Run smoke test steps 20 and 23 to 26 on `https://trailroom.ai`, and 1 to 4 and 14 once there,
+      because the vote page link is built on the address the asker is using.
 
 ## If the first build fails
 
@@ -421,11 +519,26 @@ Three things could not be checked locally.
   without calling the model.
 - **Secret value:** `firebase apphosting:secrets:set`, then a rollout (top of this file).
 - **Workflow change:** re-run step 9.
-- **Rules or indexes:** re-run step 4.
+- **Rules or indexes:** re-run step 4 (`firebase deploy --only firestore:indexes,firestore:rules --project virtual-tryon-tejas`).
+- **A catalogue image:** re-run step 3 for the changed file, then roll out.
 
 ## What this deploy is not
 
-It is behind a password for you and a few consenting friends. Before anyone else gets the
-password, the list in `docs/decisions/0004-m2-m3-ahead-of-m1.md` ("Owed before the password gate
-comes off") applies: M1's real quality checks, the live-selfie face match, a BIPA review, a legal
-view on AI disclosure without an in-pixel label, and Vertex AI in place of the API key.
+After the next rollout the password is gone and this is open to the public (PRD §22.1 row 41, ADR 0004
+amendment of 2026-10-11). The owner went ahead knowing that the list in
+`docs/decisions/0004-m2-m3-ahead-of-m1.md` ("Owed before the password gate comes off") is mostly
+still open. The things that matter most:
+
+- **M1 is unfinished.** The QA gate is structural only: it cannot tell whether a render looks like the
+  person or changed their body.
+- **Strangers can spend the render budget.** Anyone can start a guest session. The cost is bounded by
+  `DAILY_CAP_USD` (5) and the per-person limits, but the budget can be used up, after which real
+  visitors are told the service is at capacity until the next UTC day.
+- **Anyone can upload a photograph of anyone**, another person or a minor included. The only safeguard
+  is the consent line under the upload control; no check is performed, and the product claims none.
+- **The attempt limits are in memory per instance**, and the proxy-hop check (step 19) has not been run on the hosted site.
+- **No legal review** (the consent wording, renders shown to friends on vote pages, the retention of account renders).
+- Also open from the ADR list: App Check or a per-device guest limit, Cloud Armor, upload safety filters, the live-selfie face match (deferred), a BIPA review, and Vertex AI in place of the API key.
+- **The site can be indexed by search engines.** Only the ask and unsubscribe pages say otherwise.
+
+To close the site again, see "The password gate".

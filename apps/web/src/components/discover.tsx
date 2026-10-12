@@ -4,9 +4,6 @@ import { useState } from "react";
 import {
   catalog,
   DEMO_CATALOG_NOTICE,
-  SHOP_CATEGORIES,
-  catalogUrl,
-  startWithThese,
   type ShopCategory,
 } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
@@ -16,73 +13,20 @@ import { ArrivalsShelf, useArrivals } from "./arrivals-shelf";
 import { useMe } from "./me-provider";
 import { ProductCard } from "./product-card";
 import { ProofSlider } from "./proof-slider";
-import { CategoryTile } from "./ui/category-tile";
-import { Chip, FilterChip } from "./ui/chip";
 
 type Filter = "all" | ShopCategory;
 const FILTERS: Filter[] = ["all", "apparel", "jewellery", "accessories"];
 
-function StartRow() {
-  const items = startWithThese();
-  return (
-    <section
-      aria-labelledby="start-title"
-      className="mx-4 mb-6 rounded-lg border border-line py-3.5 md:mx-0"
-    >
-      <div className="flex items-start gap-2.5 px-4 pb-3">
-        <Chip tone="accent" upper className="mt-0.5 flex-none">
-          {copy.discover.demoChip}
-        </Chip>
-        <div>
-          <h2
-            id="start-title"
-            className="text-[15px] leading-5 font-semibold tracking-[-0.01em] text-ink"
-          >
-            {copy.discover.startTitle}
-          </h2>
-          <p className="text-[13px] leading-[18px] text-ink-700">
-            {copy.discover.startNote}
-          </p>
-        </div>
-      </div>
-      <ul
-        aria-label={copy.discover.startLabel}
-        className="no-scrollbar m-0 flex list-none gap-3 overflow-x-auto px-4"
-      >
-        {items.map((item) => (
-          <li key={item.id} className="w-[132px] flex-none md:w-[148px]">
-            <Link
-              href={`/item/${item.id}`}
-              data-testid="start-item"
-              className="block text-left"
-            >
-              <span className="relative block aspect-[4/5] overflow-hidden rounded-md bg-canvas">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={catalogUrl(item.photos[0]!.file)}
-                  alt=""
-                  className="size-full object-cover"
-                  style={{ objectPosition: item.photos[0]!.focus }}
-                />
-                <Chip className="absolute bottom-[7px] left-[7px] !px-2 !py-[3px] !text-[10px]">
-                  {copy.card.photos(item.photos.length)}
-                </Chip>
-              </span>
-              <span className="mt-[7px] block text-[10px] leading-[14px] font-semibold tracking-[0.08em] text-ink-600 uppercase">
-                {item.label}
-              </span>
-              <span className="block truncate text-[13px] leading-[18px] text-ink">
-                {item.name}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-export function Discover() {
+/**
+ * `serverHasPhoto` is the `tr_hp` cookie as the server read it. Until the client knows who this
+ * is, the hero follows the cookie (so a new visitor's first paint is the hero and a returning
+ * one's is the feed); after that it follows the truth.
+ */
+export function Discover({
+  serverHasPhoto = false,
+}: {
+  serverHasPhoto?: boolean;
+}) {
   const { loaded, photoCount } = useMe();
   const [filter, setFilter] = useState<Filter>("all");
   // Read after useArrivals: it registers the pieces it learns about, so the feed includes them.
@@ -90,59 +34,48 @@ export function Discover() {
   const all = catalog();
   const shown =
     filter === "all" ? all : all.filter((i) => i.shopCategory === filter);
+  const hero = loaded ? photoCount === 0 : !serverHasPhoto;
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] pb-12 md:px-10">
-      {loaded && photoCount === 0 ? (
-        <ProofSlider uploadHref={paths.upload} />
+    <div className="mx-auto w-full max-w-[1760px] pb-14 md:px-10">
+      {hero ? (
+        <div className="md:-mx-10">
+          <ProofSlider uploadHref={paths.upload} />
+        </div>
       ) : null}
 
-      <div className="px-4 pt-3.5 md:flex md:items-end md:gap-5 md:border-b md:border-line-soft md:px-0 md:pt-7 md:pb-[18px]">
-        <h1 className="sr-only">{copy.discover.title}</h1>
-        <div aria-hidden="true" className="hidden md:block md:flex-1" />
-        <div
-          role="group"
-          aria-label={copy.discover.categoriesLabel}
-          className="hidden flex-none gap-1.5 md:flex"
-        >
-          {FILTERS.map((f) => (
-            <FilterChip
+      <h1 className="sr-only">{copy.discover.title}</h1>
+      <div
+        role="group"
+        aria-label={copy.discover.categoriesLabel}
+        className="no-scrollbar flex gap-5 overflow-x-auto px-4 pt-5 md:px-0 md:pt-8"
+      >
+        {FILTERS.map((f) => {
+          const on = filter === f;
+          return (
+            <button
               key={f}
-              selected={filter === f}
-              onClick={() => setFilter(f)}
+              type="button"
+              aria-pressed={on}
               data-filter={f}
+              onClick={() => setFilter(f)}
+              className={`relative flex-none py-2.5 text-[15px] leading-5 md:text-[17px] md:leading-6 ${
+                on ? "font-semibold text-ink" : "text-ink-600"
+              } transition-transform duration-150 ease-brand active:scale-[.97] motion-reduce:transition-none`}
             >
               {copy.discover.categories[f]}
-            </FilterChip>
-          ))}
-        </div>
-        <div className="md:hidden">
-          <p className="mb-2 text-[11px] leading-[15px] font-semibold tracking-[0.1em] text-ink-600 uppercase">
-            {copy.discover.lookingFor}
-          </p>
-          <div
-            role="group"
-            aria-label={copy.discover.categoriesLabel}
-            className="mb-3.5 flex gap-2"
-          >
-            {SHOP_CATEGORIES.map((c) => (
-              <CategoryTile
-                key={c.id}
-                label={copy.discover.categories[c.id]!}
-                file={c.file}
-                focus={c.focus}
-                selected={filter === c.id}
-                onClick={() => setFilter(filter === c.id ? "all" : c.id)}
-              />
-            ))}
-          </div>
-        </div>
+              {on ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 bottom-0 h-0.5 bg-ink"
+                />
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="md:mt-5">
-        <ArrivalsShelf data={arrivals} />
-        <StartRow />
-      </div>
+      <ArrivalsShelf data={arrivals} />
 
       {shown.length === 0 ? (
         <p className="px-4 py-10 text-[15px] leading-6 text-ink-700 md:px-0">
@@ -152,17 +85,17 @@ export function Discover() {
         <ul
           aria-label={copy.discover.gridLabel}
           data-testid="feed"
-          className="m-0 flex list-none flex-col gap-[26px] p-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] md:gap-x-5 md:gap-y-8"
+          className="m-0 mt-5 feed-grid grid list-none gap-y-9 p-0 md:mt-8 md:gap-x-6 md:gap-y-12"
         >
-          {shown.map((item) => (
+          {shown.map((item, i) => (
             <li key={item.id}>
-              <ProductCard item={item} />
+              <ProductCard item={item} first={i === 0} />
             </li>
           ))}
         </ul>
       )}
 
-      <p className={`mt-8 px-4 md:px-0 ${caption}`}>{DEMO_CATALOG_NOTICE}</p>
+      <p className={`mt-10 px-4 md:px-0 ${caption}`}>{DEMO_CATALOG_NOTICE}</p>
       <Link href="/credits" className={`${btnLink} px-4 md:px-0`}>
         {copy.discover.creditsLink}
       </Link>

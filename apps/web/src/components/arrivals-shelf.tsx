@@ -19,6 +19,7 @@ import type { ArrivalsBody } from "../server/arrivals";
 import { useMe } from "./me-provider";
 import { TryOnButton } from "./tryon-button";
 import { Chip } from "./ui/chip";
+import { FadeImg } from "./ui/fade-img";
 
 /** Loads the shelf for a visitor who already has a session; browsing never creates one. */
 export function useArrivals(): ArrivalsBody | null {
@@ -61,15 +62,14 @@ function Tile({
   const onYou = Boolean(poseSetId && render.url);
   return (
     <li
-      className="w-[156px] flex-none md:w-[200px]"
+      className="w-[200px] flex-none md:w-[260px]"
       data-testid="arrival-tile"
       data-item={item.id}
       data-on-you={onYou ? "true" : undefined}
     >
       <Link href={`/item/${item.id}`} className="block text-left">
-        <span className="relative block aspect-[3/4] overflow-hidden rounded-md bg-canvas md:aspect-[4/5]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <span className="relative block aspect-[3/4] overflow-hidden rounded-md bg-surface">
+          <FadeImg
             src={onYou ? render.url! : catalogUrl(photo.file)}
             alt={
               onYou
@@ -79,22 +79,23 @@ function Tile({
             className="size-full object-cover"
             style={{ objectPosition: onYou ? "50% 30%" : photo.focus }}
           />
-          <Chip
-            upper
-            className="absolute top-2 left-2"
-            data-testid="arrival-chip"
-          >
-            {onYou ? copy.card.onYou : copy.arrivals.shelf}
-          </Chip>
+          {onYou ? (
+            <Chip
+              className="absolute top-2.5 left-2.5"
+              data-testid="arrival-chip"
+            >
+              {copy.card.onYou}
+            </Chip>
+          ) : null}
         </span>
-        <span className="mt-[7px] block text-[10px] leading-[14px] font-semibold tracking-[0.08em] text-ink-600 uppercase">
+        <span className="mt-2.5 flex items-baseline gap-3 text-[15px] leading-5 text-ink">
+          <span className="min-w-0 flex-1 truncate">{item.name}</span>
+          <span className="flex-none tabular-nums">
+            {copy.item.price(item.priceUsd)}
+          </span>
+        </span>
+        <span className="block truncate text-[13px] leading-[18px] text-ink-600">
           {item.label}
-        </span>
-        <span className="block truncate text-[13px] leading-[18px] text-ink">
-          {item.name}
-        </span>
-        <span className="block text-[13px] leading-[18px] text-ink tabular-nums">
-          {copy.item.price(item.priceUsd)}
         </span>
       </Link>
       {onYou ? (
@@ -210,22 +211,22 @@ export function ArrivalsShelf({ data }: { data: ArrivalsBody | null }) {
       aria-labelledby="arrivals-title"
       data-testid="arrivals"
       data-mode={arrives ? "on-you" : "label"}
-      className="mx-4 mb-6 rounded-lg border border-line py-3.5 md:mx-0"
+      className="mt-8 md:mt-12"
     >
-      <div className="px-4 pb-3">
+      <div className="px-4 pb-4 md:px-0">
         <h2
           id="arrivals-title"
-          className="text-[15px] leading-5 font-semibold tracking-[-0.01em] text-ink"
+          className="text-[20px] leading-7 font-semibold tracking-[-0.02em] text-ink md:text-[24px] md:leading-8"
         >
           {arrives ? copy.arrivals.onYouTitle : copy.arrivals.title}
         </h2>
-        <p className="text-[13px] leading-[18px] text-ink-700">
+        <p className="text-[14px] leading-5 text-ink-600">
           {arrives ? copy.arrivals.onYouNote : copy.arrivals.note}
         </p>
       </div>
       <ul
         ref={listRef}
-        className="no-scrollbar m-0 flex list-none gap-3 overflow-x-auto px-4"
+        className="no-scrollbar m-0 flex list-none gap-4 overflow-x-auto px-4 md:gap-6 md:px-0"
       >
         {ordered.map((item) => (
           <Tile

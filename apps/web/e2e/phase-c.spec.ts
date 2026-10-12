@@ -223,21 +223,24 @@ for (const size of SIZES) {
       expect(tryOnCalls).toEqual([]);
       expect((await listDocs("spendLog")).length).toBe(spendBefore);
 
-      // Gallery: the counter, thumbnails that jump, a swipe; caption directly under it.
-      const counter = page.getByTestId("counter");
-      await expect(counter).toHaveText("Front · 1/4");
-      await expect(page.getByTestId("state-chip")).toBeVisible();
+      // Gallery: the On you chip only (no counter), thumbnails that jump, a swipe; caption
+      // directly under it.
+      await expect(page.getByTestId("counter")).toHaveCount(0);
+      await expect(page.getByTestId("state-chip")).toHaveText("On you");
+      const thumb = (pose: string) =>
+        page.locator(`[data-testid=pose-thumb][data-pose=${pose}]`);
+      await expect(thumb("front")).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByTestId("dot")).toHaveCount(4);
       await expect(page).toHaveScreenshot(`result-${size.name}.png`, {
         mask: [page.locator("nextjs-portal"), page.getByTestId("toast")],
       });
       await shot(page, "result-first-pose", size.name);
       await page.getByRole("button", { name: "Seated" }).click();
-      await expect(counter).toHaveText("Seated · 4/4");
+      await expect(thumb("seated")).toHaveAttribute("aria-pressed", "true");
       await gallery.evaluate((el) =>
         el.scrollTo({ left: el.clientWidth * 2, behavior: "instant" }),
       );
-      await expect(counter).toHaveText("Walking · 3/4");
+      await expect(thumb("walking")).toHaveAttribute("aria-pressed", "true");
       await shot(page, "result-third-pose", size.name);
       const gb = (await gallery.boundingBox())!;
       const cb = (await page.getByTestId("ai-caption").boundingBox())!;
@@ -274,7 +277,11 @@ for (const size of SIZES) {
       const onYou = page.locator("article[data-item=vest][data-on-you=true]");
       await expect(onYou).toBeVisible();
       await expect(onYou.getByTestId("state-chip")).toHaveText("On you");
-      await expect(onYou.getByTestId("count-chip")).toHaveText("↔ 4 poses");
+      await expect(onYou.getByTestId("count-chip")).toHaveCount(0);
+      await expect(onYou.getByTestId("card-ai")).toHaveText(
+        "AI-generated preview",
+      );
+      await expect(onYou.getByTestId("dot")).toHaveCount(4);
       await expect(onYou.locator("img").first()).toHaveAttribute(
         "src",
         /^blob:/,

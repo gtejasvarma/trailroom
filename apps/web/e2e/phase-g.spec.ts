@@ -40,7 +40,8 @@ for (const size of SIZES) {
       ).toBeVisible();
       const tile = shelf.locator(`[data-item="${piece.id}"]`);
       await expect(tile).toBeVisible();
-      await expect(tile.getByTestId("arrival-chip")).toHaveText("New in");
+      // No chip on a label photograph: only the person's own renders carry "On you".
+      await expect(tile.getByTestId("arrival-chip")).toHaveCount(0);
       // With the buffer off the card never claims to be on the person.
       await expect(tile).not.toHaveAttribute("data-on-you", "true");
       await expect(shelf.getByText(/on you/i)).toHaveCount(0);

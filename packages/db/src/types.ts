@@ -116,6 +116,9 @@ export interface PoseSetDoc {
 /** At most this many lists per person, and pieces per list. */
 export const MAX_LISTS = 30;
 export const MAX_LIST_ITEMS = 12;
+/** The default list every person (guests too) can save to with one tap; it has its own cap and is not counted in MAX_LISTS. */
+export const MAX_FAVOURITES = 200;
+export const FAVOURITES_NAME = "Favourites";
 /** An ask carries 1 to this many pieces, and at most this many asks are live per person. */
 export const MAX_ASK_ITEMS = 4;
 export const MAX_LIVE_ASKS = 20;
@@ -133,6 +136,11 @@ export interface ListDoc {
   name: string;
   /** Catalogue ids, unique, in the order added. */
   itemIds: string[];
+  /** "favourites" marks the one default list a person has: it cannot be renamed or deleted. */
+  kind?: "favourites";
+  /** Only on a guest's Favourites: it expires with the guest, and sign-in clears both. */
+  isGuest?: boolean;
+  expiresAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

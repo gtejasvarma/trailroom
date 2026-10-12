@@ -5,6 +5,11 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { auth, bucket, firestore } from "./app";
 import { getConsent } from "./consent";
+import {
+  deleteListsForUser,
+  favouritesIdFor,
+  unionIntoFavourites,
+} from "./lists";
 import { assertSegment, photoPath, renderPath } from "./paths";
 import { poseSetIdFor } from "./poseSets";
 import {
@@ -17,6 +22,7 @@ import {
   type ConsentDoc,
   type FollowsDoc,
   type JobDoc,
+  type ListDoc,
   type PhotoDoc,
   type PhotosDoc,
   type PoseSetDoc,
@@ -26,6 +32,8 @@ export interface MergeResult {
   photos: number;
   tryOns: { jobId: string; poseSetId: string; itemId: string }[];
   follows: number;
+  /** Pieces from the guest's Favourites that joined the account's. */
+  favourites: number;
   /**
    * What stayed with the guest: photos over the account's cap, and try-ons still rendering (or
    * whose photo stayed). When either is above zero the guest sign-in is kept, so the 48-hour
@@ -65,6 +73,7 @@ export async function mergeGuestInto(
     photos: 0,
     tryOns: [],
     follows: 0,
+    favourites: 0,
     stayed: { photos: 0, tryOns: 0 },
   };
 
@@ -254,6 +263,15 @@ export async function mergeGuestInto(
     result.follows = labels.length;
   }
 
+  // Favourites: the union, up to the cap. The guest's list is deleted below.
+  const guestFav = await db
+    .collection("lists")
+    .doc(favouritesIdFor(guestUid))
+    .get();
+  const guestFavIds = (guestFav.data() as ListDoc | undefined)?.itemIds ?? [];
+  if (guestFavIds.length > 0)
+    result.favourites = await unionIntoFavourites(accountUid, guestFavIds);
+
   // Only now delete what was moved from the guest. A photo still needed by a set that stays
   // (still rendering) stays too.
   const movedSetIds = new Set(movedSets.map((s) => s.id));
@@ -283,6 +301,7 @@ export async function mergeGuestInto(
     await db.collection("consents").doc(guestUid).delete();
   }
   if (labels.length > 0) await db.collection("follows").doc(guestUid).delete();
+  if (guestFav.exists) await deleteListsForUser(guestUid);
 
   // Only a guest with nothing left behind loses its sign-in; otherwise the purge removes it.
   result.stayed = {

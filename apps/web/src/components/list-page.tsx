@@ -18,8 +18,10 @@ export function ListPage({ listId }: { listId: string }) {
   const say = useToast();
   const { loaded: meLoaded, isGuest, tryOns } = useMe();
   const { loaded, lists, askFor, rename, removePiece, remove } = useLists();
-  const list = lists.find((l) => l.id === listId);
-  const ask = askFor(listId);
+  const list = lists.find((l) =>
+    listId === "favourites" ? l.kind === "favourites" : l.id === listId,
+  );
+  const ask = list ? askFor(list.id) : undefined;
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -120,16 +122,18 @@ export function ListPage({ listId }: { listId: string }) {
               {copy.lists.pieces(n)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setName(list.name);
-              setRenaming(true);
-            }}
-            className="min-h-11 flex-none text-[14px] font-semibold text-accent"
-          >
-            {copy.listPage.rename}
-          </button>
+          {list.kind === "favourites" ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                setName(list.name);
+                setRenaming(true);
+              }}
+              className="min-h-11 flex-none text-[14px] font-semibold text-accent"
+            >
+              {copy.listPage.rename}
+            </button>
+          )}
         </div>
       )}
       {error ? (
@@ -170,71 +174,83 @@ export function ListPage({ listId }: { listId: string }) {
       )}
 
       <div className="mx-auto max-w-[480px]">
-        {n === 0 ? (
-          <Button size="lg" disabled className="w-full">
-            {copy.listPage.askNone}
-          </Button>
-        ) : (
-          <ButtonLink
-            href={`/lists/${list.id}/share`}
-            size="lg"
-            data-testid="ask-button"
-            className="w-full"
+        {isGuest ? (
+          <p
+            data-testid="guest-note"
+            className="text-center text-[14px] leading-5 text-ink-600"
           >
-            {n === 1 ? copy.listPage.askOne : copy.listPage.askMany}
-          </ButtonLink>
-        )}
-        <p className="mt-3 text-center text-[12px] leading-[17px] text-ink-600">
-          {copy.listPage.askNote}
-        </p>
-        {ask && ask.state === "live" ? (
-          <p className="mt-2 text-center">
-            <Link
-              href={`/asks/${ask.askId}`}
-              data-testid="see-votes"
-              className="inline-flex min-h-11 items-center text-[14px] font-medium text-accent"
-            >
-              {copy.listPage.seeVotes}
-            </Link>
+            {copy.lists.guestFavouritesNote}
           </p>
-        ) : null}
-
-        <div className="mt-6 border-t border-line-soft pt-4">
-          {confirming ? (
-            <div role="group" aria-label={copy.listPage.delete}>
-              <p className="mb-3 text-[14px] leading-5 text-ink-700">
-                {copy.listPage.deleteQuestion(list.name)}
+        ) : (
+          <>
+            {n === 0 ? (
+              <Button size="lg" disabled className="w-full">
+                {copy.listPage.askNone}
+              </Button>
+            ) : (
+              <ButtonLink
+                href={`/lists/${list.id}/share`}
+                size="lg"
+                data-testid="ask-button"
+                className="w-full"
+              >
+                {n === 1 ? copy.listPage.askOne : copy.listPage.askMany}
+              </ButtonLink>
+            )}
+            <p className="mt-3 text-center text-[12px] leading-[17px] text-ink-600">
+              {copy.listPage.askNote}
+            </p>
+            {ask && ask.state === "live" ? (
+              <p className="mt-2 text-center">
+                <Link
+                  href={`/asks/${ask.askId}`}
+                  data-testid="see-votes"
+                  className="inline-flex min-h-11 items-center text-[14px] font-medium text-accent"
+                >
+                  {copy.listPage.seeVotes}
+                </Link>
               </p>
-              <div className="flex gap-2.5">
-                <Button
-                  size="md"
-                  onClick={() => void destroy()}
-                  className="flex-1"
-                  data-testid="confirm-delete"
-                >
-                  {copy.listPage.deleteConfirm}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={() => setConfirming(false)}
-                  className="flex-1"
-                >
-                  {copy.listPage.keep}
-                </Button>
+            ) : null}
+          </>
+        )}
+        {list.kind === "favourites" ? null : (
+          <div className="mt-6 border-t border-line-soft pt-4">
+            {confirming ? (
+              <div role="group" aria-label={copy.listPage.delete}>
+                <p className="mb-3 text-[14px] leading-5 text-ink-700">
+                  {copy.listPage.deleteQuestion(list.name)}
+                </p>
+                <div className="flex gap-2.5">
+                  <Button
+                    size="md"
+                    onClick={() => void destroy()}
+                    className="flex-1"
+                    data-testid="confirm-delete"
+                  >
+                    {copy.listPage.deleteConfirm}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="md"
+                    onClick={() => setConfirming(false)}
+                    className="flex-1"
+                  >
+                    {copy.listPage.keep}
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              data-testid="delete-list"
-              className="min-h-11 text-[14px] font-medium text-danger"
-            >
-              {copy.listPage.delete}
-            </button>
-          )}
-        </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                data-testid="delete-list"
+                className="min-h-11 text-[14px] font-medium text-danger"
+              >
+                {copy.listPage.delete}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

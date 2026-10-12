@@ -9,8 +9,14 @@ import { createJob, getJob } from "./jobs";
 import { getRender, getPhotoBytes, publishRender, putPhoto } from "./storage";
 import { getConsent, recordConsent } from "./consent";
 import { getFollows, setFollow } from "./follows";
-import { deleteAllForUser, listExpiredGuestUids } from "./users";
-import { MAX_PHOTOS } from "./types";
+import { deleteAllForUser, listExpiredGuestUids, promoteGuest } from "./users";
+import {
+  changeListFor,
+  favouritesIdFor,
+  getListFor,
+  listListsForUser,
+} from "./lists";
+import { MAX_FAVOURITES, MAX_PHOTOS } from "./types";
 
 const G = "guest1";
 const A = "acct1";
@@ -87,6 +93,7 @@ describe("mergeGuestInto", () => {
       photos: 1,
       tryOns: [{ jobId, poseSetId: newId, itemId: "item-a" }],
       follows: 1,
+      favourites: 0,
       stayed: { photos: 0, tryOns: 0 },
     });
 
@@ -134,6 +141,7 @@ describe("mergeGuestInto", () => {
       photos: 0,
       tryOns: [],
       follows: 0,
+      favourites: 0,
       stayed: { photos: 0, tryOns: 0 },
     });
     expect(await listPhotos(A)).toHaveLength(1);
@@ -229,5 +237,84 @@ describe("mergeGuestInto", () => {
     await deleteAllForUser(G);
     expect(await getPhotoBytes(G, pid)).toBeNull();
     expect(await listPhotos(G)).toEqual([]);
+  });
+
+  describe("Favourites", () => {
+    const saveGuest = (itemId: string) =>
+      changeListFor(G, favouritesIdFor(G), { add: itemId }, new Date(), true);
+
+    it("a guest's Favourites join the account's (union), and the guest's list is gone", async () => {
+      await saveGuest("p1");
+      await saveGuest("p2");
+      await changeListFor(A, favouritesIdFor(A), { add: "p2" });
+      await changeListFor(A, favouritesIdFor(A), { add: "p3" });
+      const r = await mergeGuestInto(G, A);
+      expect(r.favourites).toBe(1);
+      const fav = await getListFor(A, favouritesIdFor(A));
+      expect(fav!.list.itemIds).toEqual(["p2", "p3", "p1"]);
+      expect(fav!.list.isGuest).toBeFalsy();
+      expect(await listListsForUser(G)).toEqual([]);
+      // Running it again changes nothing.
+      expect((await mergeGuestInto(G, A)).favourites).toBe(0);
+    });
+
+    it("creates the account's Favourites when it has none, and stops at the cap", async () => {
+      await saveGuest("p1");
+      await mergeGuestInto(G, A);
+      expect((await getListFor(A, favouritesIdFor(A)))!.list.itemIds).toEqual([
+        "p1",
+      ]);
+
+      await auth().createUser({ uid: "guest2" });
+      const full = Array.from(
+        { length: MAX_FAVOURITES - 1 },
+        (_, i) => `q${i}`,
+      );
+      await firestore()
+        .collection("lists")
+        .doc(favouritesIdFor(A))
+        .update({ itemIds: full });
+      await changeListFor(
+        "guest2",
+        favouritesIdFor("guest2"),
+        { add: "x1" },
+        new Date(),
+        true,
+      );
+      await changeListFor(
+        "guest2",
+        favouritesIdFor("guest2"),
+        { add: "x2" },
+        new Date(),
+        true,
+      );
+      expect((await mergeGuestInto("guest2", A)).favourites).toBe(1);
+      expect(
+        (await getListFor(A, favouritesIdFor(A)))!.list.itemIds,
+      ).toHaveLength(MAX_FAVOURITES);
+    });
+
+    it("a guest with only Favourites expires with the guest; promoteGuest keeps them", async () => {
+      await saveGuest("p1");
+      const doc = (await getListFor(G, favouritesIdFor(G)))!.list;
+      expect(doc.isGuest).toBe(true);
+      expect(doc.expiresAt).not.toBeNull();
+      const later = new Date(doc.expiresAt!.toMillis() + 1000);
+      expect(await listExpiredGuestUids(later)).toEqual([G]);
+      expect(await listExpiredGuestUids(new Date())).toEqual([]);
+
+      await promoteGuest(G);
+      const kept = (await getListFor(G, favouritesIdFor(G)))!.list;
+      expect(kept.isGuest).toBe(false);
+      expect(kept.expiresAt).toBeNull();
+      expect(await listExpiredGuestUids(later)).toEqual([]);
+    });
+
+    it("the purge (deleteAllForUser) removes a guest's Favourites", async () => {
+      await saveGuest("p1");
+      await deleteAllForUser(G);
+      expect(await listListsForUser(G)).toEqual([]);
+      expect(await getListFor(G, favouritesIdFor(G))).toBeNull();
+    });
   });
 });

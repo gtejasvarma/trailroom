@@ -23,6 +23,14 @@ export function readGateConfig(
   return { password, secret };
 }
 
+/**
+ * The owner's switch to open the site: GATE=off, exactly. Anything else (absent, empty, another
+ * spelling) leaves the password gate on, so a typo can never open the site by accident.
+ */
+export function gateIsOff(env: Record<string, string | undefined>): boolean {
+  return env.GATE === "off";
+}
+
 const encoder = new TextEncoder();
 
 async function sha256(input: string): Promise<Uint8Array> {

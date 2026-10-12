@@ -6,6 +6,9 @@ import {
   changeListFor,
   createListFor,
   deleteListFor,
+  favouritesIdFor,
+  blankFavourites,
+  isFavourites,
   getListFor,
   listListsForUser,
   revokeAsksForList,
@@ -18,6 +21,8 @@ import type { User } from "./auth";
 export interface ListBody {
   id: string;
   name: string;
+  /** "favourites" is the default list: it cannot be renamed or deleted. */
+  kind?: "favourites";
   itemIds: string[];
   createdAt: string;
   updatedAt: string;
@@ -26,6 +31,7 @@ export interface ListBody {
 export const listBody = (l: ListWithId): ListBody => ({
   id: l.id,
   name: l.list.name,
+  ...(isFavourites(l.list) ? { kind: "favourites" as const } : {}),
   itemIds: l.list.itemIds,
   createdAt: l.list.createdAt.toDate().toISOString(),
   updatedAt: l.list.updatedAt.toDate().toISOString(),
@@ -51,12 +57,25 @@ function guard(user: User) {
   return user.isGuest ? err("account_required") : null;
 }
 
+/**
+ * The person's lists with Favourites first. Before the first save Favourites is not stored yet:
+ * it is shown empty under its permanent id, and the first save into that id creates it. A guest
+ * has only Favourites.
+ */
 export async function getLists(
   user: User,
 ): Promise<Result<{ lists: ListBody[] }>> {
-  const g = guard(user);
-  if (g) return g;
-  return ok({ lists: (await listListsForUser(user.uid)).map(listBody) });
+  const mine = await listListsForUser(user.uid);
+  const fav =
+    mine.find((l) => isFavourites(l.list)) ??
+    ({
+      id: favouritesIdFor(user.uid),
+      list: blankFavourites(user.uid, user.isGuest),
+    } satisfies ListWithId);
+  const rest = mine.filter((l) => l.id !== fav.id);
+  return ok({
+    lists: [fav, ...(user.isGuest ? [] : rest)].map(listBody),
+  });
 }
 
 export async function createList(
@@ -82,11 +101,14 @@ export async function createList(
 
 export async function changeList(
   user: User,
-  id: string,
+  rawId: string,
   body: unknown,
 ): Promise<Result<{ list: ListBody }>> {
-  const g = guard(user);
-  if (g) return g;
+  // "favourites" is the alias a client uses before it knows its own id (a first save).
+  const id = rawId === "favourites" ? favouritesIdFor(user.uid) : rawId;
+  // A guest may save to Favourites and nothing else.
+  if (user.isGuest && id !== favouritesIdFor(user.uid))
+    return err("account_required");
   if (!isObject(body)) return err("invalid_request");
   const change: { name?: string; add?: string; remove?: string } = {};
   if (body.name !== undefined) {
@@ -103,9 +125,10 @@ export async function changeList(
     change.remove = body.remove;
   }
   if (Object.keys(change).length === 0) return err("invalid_request");
-  const r = await changeListFor(user.uid, id, change);
+  const r = await changeListFor(user.uid, id, change, new Date(), user.isGuest);
   if (!r.ok) {
     if (r.error === "list_full") return err("list_full");
+    if (r.error === "protected") return err("invalid_request");
     return err("not_found");
   }
   return ok({ list: listBody(r.value) });
@@ -118,7 +141,9 @@ export async function deleteList(
 ): Promise<Result<{ deleted: true }>> {
   const g = guard(user);
   if (g) return g;
-  if (!(await getListFor(user.uid, id))) return err("not_found");
+  const found = await getListFor(user.uid, id);
+  if (!found) return err("not_found");
+  if (isFavourites(found.list)) return err("invalid_request");
   await revokeAsksForList(user.uid, id);
   await deleteListFor(user.uid, id);
   return ok({ deleted: true as const });

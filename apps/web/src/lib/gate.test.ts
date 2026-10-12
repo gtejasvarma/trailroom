@@ -172,3 +172,13 @@ describe("attempt limiter", () => {
     expect(l.blocked("k5000")).toBe(true);
   });
 });
+
+describe("gateIsOff", () => {
+  it("is off only for the exact value", async () => {
+    const { gateIsOff } = await import("./gate");
+    expect(gateIsOff({ GATE: "off" })).toBe(true);
+    for (const v of [undefined, "", "OFF", "Off", " off", "false", "0", "no"]) {
+      expect(gateIsOff({ GATE: v })).toBe(false);
+    }
+  });
+});

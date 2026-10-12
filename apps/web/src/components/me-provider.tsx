@@ -19,6 +19,7 @@ import { ApiError, api, apiFetch } from "../lib/api";
 import { signOutNow } from "../lib/account";
 import { copy } from "../lib/copy";
 import { getFirebaseAuth, peekUser } from "../lib/firebase";
+import { setPhotoCookie } from "../lib/photo-cookie";
 import type { OutfitSummary } from "../server/outfits";
 import type { TryOnSummary } from "../server/try-ons";
 import { useToast } from "./ui/toast";
@@ -97,6 +98,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
       const user = await peekUser();
       if (!alive.current) return;
       if (!user) {
+        setPhotoCookie(false);
         setPhotoCount(0);
         setIsGuest(true);
         if (followsSettled(epoch)) setFollows(new Set());
@@ -113,6 +115,7 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
               api.outfits().then((r) => r.outfits),
             ]);
         if (!alive.current) return;
+        setPhotoCookie(me.photoCount > 0);
         setPhotoCount(me.photoCount);
         setIsGuest(me.isGuest);
         if (followsSettled(epoch)) setFollows(new Set(me.follows));

@@ -126,7 +126,7 @@ describe("catalogue", () => {
   });
 
   it("only catalogue photo names are servable", () => {
-    expect(catalogFiles()).toHaveLength(28);
+    expect(catalogFiles()).toHaveLength(29);
     expect(isCatalogFile("../items.ts")).toBe(false);
     expect(isCatalogFile("commons-parka.jpg")).toBe(false);
     expect(isCatalogFile("p12144990.jpg")).toBe(false);

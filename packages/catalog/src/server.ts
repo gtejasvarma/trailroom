@@ -4,7 +4,12 @@
 // imports Firebase. Kept out of the main entry so client bundles never import node:fs.
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { catalog, PROOF_MODEL_FILE, getItem } from "./index";
+import {
+  catalog,
+  PROOF_MODEL_FILE,
+  PROOF_ON_PERSON_FILE,
+  getItem,
+} from "./index";
 
 // Resolved from process.cwd() (not import.meta.url: Turbopack would try to bundle the directory
 // as an asset). Only dev, tests and scripts ever read it; production reads Cloud Storage and
@@ -35,6 +40,7 @@ export function catalogFiles(): string[] {
     ...new Set([
       ...catalog().flatMap((i) => i.photos.map((p) => p.file)),
       PROOF_MODEL_FILE,
+      PROOF_ON_PERSON_FILE,
     ]),
   ];
 }

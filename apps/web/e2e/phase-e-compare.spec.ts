@@ -119,11 +119,12 @@ test.describe("desktop 1440x900", () => {
     await expect(page.getByTestId("toast")).toContainText(
       "Created Side by side",
     );
-    await expect(sheet.getByTestId("list-choice")).toHaveAttribute(
-      "data-in",
-      "true",
-    );
-    await expect(sheet.getByTestId("list-choice")).toContainText("2 pieces");
+    await expect(
+      sheet.locator("[data-testid=list-choice]:not([data-kind=favourites])"),
+    ).toHaveAttribute("data-in", "true");
+    await expect(
+      sheet.locator("[data-testid=list-choice]:not([data-kind=favourites])"),
+    ).toContainText("2 pieces");
     await sheet.getByRole("button", { name: "Done" }).click();
     await expect(sheet).toBeHidden();
 

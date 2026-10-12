@@ -6,7 +6,7 @@ export type ButtonVariant = "filled" | "outline" | "quiet";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full font-medium leading-none transition-transform duration-150 ease-brand active:scale-[.98] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-2 rounded-full font-medium leading-none transition-transform duration-[160ms] ease-brand active:scale-[.97] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:cursor-not-allowed";
 const variants: Record<ButtonVariant, string> = {
   filled:
     "bg-ink text-canvas active:bg-ink-800 disabled:bg-ink-500 font-semibold",

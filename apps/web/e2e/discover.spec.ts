@@ -70,20 +70,25 @@ for (const size of SIZES) {
       const proof = page.getByTestId("proof");
       await expect(proof).toBeVisible();
       await expect(proof).toContainText(
-        "Maya uploaded one photo. Now every piece here comes back on her body, in four poses.",
+        "One photo, and every piece here comes back on your body in four poses.",
       );
-      await expect(proof.getByText("On her photo")).toBeVisible();
       await expect(
-        proof.getByText(phone ? "Model shot" : "Label’s photo"),
+        proof.getByText("On her photo", { exact: true }),
       ).toBeVisible();
+      // The on-her side is a render, so the AI label sits beside it.
+      await expect(proof.getByTestId("proof-ai")).toContainText(
+        "AI-generated preview",
+      );
+      await expect(proof.getByText("Label’s photo")).toBeVisible();
       const range = page.getByTestId("proof-range");
-      await expect(range).toHaveValue("52");
+      // The divider glides from 78% to the middle once the pictures have loaded.
+      await expect(range).toHaveValue("50", { timeout: 10_000 });
       await range.focus();
       await page.keyboard.press("ArrowRight");
       await page.keyboard.press("ArrowRight");
-      await expect(range).toHaveValue("54");
+      await expect(range).toHaveValue("52");
       await page.keyboard.press("ArrowLeft");
-      await expect(range).toHaveValue("53");
+      await expect(range).toHaveValue("51");
       await expect(
         proof.getByRole("link", { name: "Upload your picture" }),
       ).toHaveAttribute("href", "/upload");
@@ -101,19 +106,15 @@ for (const size of SIZES) {
       await expect(page.getByText("Nothing here yet.")).toBeVisible();
       await page.getByRole("button", { name: "Apparel" }).click();
       await expect(cards).toHaveCount(10);
-      if (!phone) {
-        await page.getByRole("button", { name: "Everything" }).click();
-        await expect(cards).toHaveCount(12);
-      }
+      await page.getByRole("button", { name: "Everything" }).click();
+      await expect(cards).toHaveCount(12);
     });
 
-    test("a card's photos advance and the count chip is right", async ({
-      page,
-    }) => {
+    test("a card's photos advance by dots, with no chips", async ({ page }) => {
       await page.goto("/");
       const jump = page.locator("article[data-item=jump]");
-      await expect(jump.getByTestId("count-chip")).toHaveText("↔ 4 photos");
-      await expect(jump.getByTestId("state-chip")).toHaveText("Model shot");
+      await expect(jump.getByTestId("count-chip")).toHaveCount(0);
+      await expect(jump.getByTestId("state-chip")).toHaveCount(0);
       await expect(jump.getByTestId("dot")).toHaveCount(4);
       const active = jump.locator("[data-testid=dot][data-active=true]");
       await expect(active).toHaveCount(1);
@@ -122,16 +123,25 @@ for (const size of SIZES) {
           .getByTestId("frames")
           .evaluate((el) => el.scrollTo({ left: el.clientWidth * 2 }));
       } else {
-        await jump.hover();
-        await jump.getByRole("button", { name: "Next photo" }).click();
-        await jump.getByRole("button", { name: "Next photo" }).click();
+        // A fine pointer scrubs: the third of four zones shows the third photo, and leaving
+        // returns to the first.
+        await jump.scrollIntoViewIfNeeded();
+        const box = (await jump.getByTestId("frames").boundingBox())!;
+        await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2);
       }
       await expect(jump.locator("[data-testid=dot]").nth(2)).toHaveAttribute(
         "data-active",
         "true",
       );
+      if (!phone) {
+        await page.mouse.move(2, 2);
+        await expect(jump.locator("[data-testid=dot]").nth(0)).toHaveAttribute(
+          "data-active",
+          "true",
+        );
+      }
       const coat = page.locator("article[data-item=coat]");
-      await expect(coat.getByTestId("count-chip")).toHaveText("↔ 1 photo");
+      await expect(coat.getByTestId("count-chip")).toHaveCount(0);
       await expect(coat.getByTestId("dot")).toHaveCount(0);
     });
 
@@ -145,7 +155,7 @@ for (const size of SIZES) {
         "Coats, dresses and tailoring from independent labels",
       ])
         await expect(main.getByText(text)).toHaveCount(0);
-      // The only visible heading before the grid belongs to the proof slider or the start row.
+      // The only visible heading before the grid belongs to the proof slider.
       const visibleH1 = await main
         .getByRole("heading", { level: 1 })
         .evaluateAll(
@@ -154,11 +164,7 @@ for (const size of SIZES) {
         );
       expect(visibleH1).toBe(0);
       await expect(page.getByTestId("item-card")).toHaveCount(12);
-      if (phone) {
-        await page.getByRole("button", { name: "Jewellery" }).click();
-        await expect(page.getByTestId("item-card")).toHaveCount(2);
-        await expect(main.getByText("Earrings and necklaces")).toHaveCount(0);
-      } else {
+      {
         await page.getByRole("button", { name: "Jewellery" }).click();
         await expect(page.getByTestId("item-card")).toHaveCount(2);
         await expect(
@@ -291,16 +297,14 @@ for (const size of SIZES) {
         "Washed chambray",
       );
       const gallery = page.getByTestId("gallery");
-      if (phone) {
-        await expect(gallery.getByTestId("count-chip")).toHaveText(
-          "↔ 4 photos",
-        );
-      } else {
-        await expect(
-          gallery.getByRole("button", { name: /^Show photo/ }),
-        ).toHaveCount(4);
-        await gallery.getByRole("button", { name: "Next photo" }).click();
-        await expect(gallery.getByText("2 / 4")).toBeVisible();
+      await expect(gallery.getByTestId("count-chip")).toHaveCount(0);
+      if (!phone) {
+        // The strip selects the photo; there are no arrows or counter on the picture.
+        const thumbs = gallery.getByRole("button", { name: /^Show photo/ });
+        await expect(thumbs).toHaveCount(4);
+        await thumbs.nth(1).click();
+        await expect(thumbs.nth(1)).toHaveAttribute("aria-current", "true");
+        await expect(gallery.getByText("2 / 4")).toHaveCount(0);
       }
       await expect(
         page.getByRole("heading", { name: "More from MARCHAND" }),
@@ -408,8 +412,13 @@ for (const size of SIZES) {
       for (const [name, path] of shots) {
         await page.goto(path);
         await page.addStyleTag({ content: HIDE_DEV_BADGE });
-        if (name === "discover")
+        if (name === "discover") {
           await expect(page.getByTestId("proof")).toBeVisible();
+          // The divider has finished gliding to the middle.
+          await expect(page.getByTestId("proof-range")).toHaveValue("50", {
+            timeout: 10_000,
+          });
+        }
         await settle(page);
         await page.screenshot({
           path: join(RUNS_DIR, `${name}-${size.name}.png`),

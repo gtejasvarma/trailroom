@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { GATE_COOKIE, readGateConfig, verifyGateCookie } from "@/lib/gate";
+import {
+  GATE_COOKIE,
+  gateIsOff,
+  readGateConfig,
+  verifyGateCookie,
+} from "@/lib/gate";
 import {
   isExempt,
   isPublicAskPath,
@@ -8,6 +13,13 @@ import {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // With the gate off the password page has nothing to ask, so it leads home.
+  if (pathname === "/gate" && gateIsOff(process.env)) {
+    const home = request.nextUrl.clone();
+    home.pathname = "/";
+    home.search = "";
+    return NextResponse.redirect(home);
+  }
   if (isExempt(pathname)) {
     const res = NextResponse.next();
     if (isPublicAskPath(pathname) || isPublicUnsubscribePath(pathname)) {
@@ -19,6 +31,9 @@ export async function middleware(request: NextRequest) {
     }
     return res;
   }
+
+  // The gate is switched off (GATE=off): everything is public.
+  if (gateIsOff(process.env)) return NextResponse.next();
 
   const config = readGateConfig(process.env);
   const ok =

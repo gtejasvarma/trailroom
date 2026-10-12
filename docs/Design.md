@@ -4,7 +4,7 @@ Design system for **trailroom.ai**. Read this before writing any UI. Derive ever
 
 **North star:** the feeling of hanging out at a mall with friends, trying on outfits. Every tradeoff in this file is made in service of that.
 
-**Precedence, as of Oct 7 2026.** This file is the token, type and motion system. Layouts, flows and component shapes come from the two aligned prototypes, `mocks/Trailroom Prototype.dc.html` (mobile) and `mocks/Trailroom Desktop.dc.html` (desktop), with images in `mocks/assets/` and reference screenshots in `mocks/screens/`; their verbatim source is at `archive/prototypes-2026-10-07/` for provenance. Where this file and the prototypes disagree, the prototypes win, subject to `docs/PRD.md` §22.1. The passages below that used to disagree have been changed to match: sheets are allowed wherever the prototype uses them (Rule 2 and §10); an account is needed to open a guest's render (§2 step 5 and §10); Buy is the filled action on the result (§8); renders carry a caption beside them and nothing drawn on them (§2.1).
+**Precedence, as of Oct 7 2026.** This file is the token, type and motion system. Layouts, flows and component shapes come from the two aligned prototypes, `mocks/Trailroom Prototype.dc.html` (mobile) and `mocks/Trailroom Desktop.dc.html` (desktop), with images in `mocks/assets/` and reference screenshots in `mocks/screens/`; their verbatim source is at `archive/prototypes-2026-10-07/` for provenance. Where this file and the prototypes disagree, the prototypes win, subject to `docs/PRD.md` §22.1. The passages below that used to disagree have been changed to match: sheets are allowed wherever the prototype uses them (Rule 2 and §10); an account is needed to open a guest's render (§2 step 5 and §10); Buy is the filled action on the result (§8); renders carry a caption beside them and nothing drawn on them (§2.1). **Exception, 2026-10-11:** the redesign (ADR 0006, PRD §22.1 rows 33 to 40) departs from the prototypes for the home page's hero and category row, what sits on an image, the heart and Favourites, the image size and the reveal; for those, this file's §7 and §8 and the ADR win.
 
 ---
 
@@ -23,7 +23,7 @@ The user is deciding whether a rust dress works on them. A saturated surround sh
 
 ### Rule 2 — Place, layer, interrupt
 
-A mall is continuous and peripheral. You never dismiss a friend to look at a jacket. So:
+A mall is continuous and peripheral. You never dismiss a friend to look at a jacket. So: *(the reveal, §7, is the one full-viewport layer added after the prototypes: it follows a try-on the person asked for and can be left at any moment.)*
 
 | Pattern | Definition | Use it? |
 |---|---|---|
@@ -221,13 +221,19 @@ Elevation maps to importance, not nesting depth. `--elev-8` appears once per scr
 | `--dur-fast` | `150ms` |
 | `--dur` | `250ms` |
 | `--dur-slow` | `400ms` |
+| `--ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` (things entering: strong start, soft landing) |
+| `--ease-in-out` | `cubic-bezier(0.77, 0, 0.175, 1)` (things already on screen that move: the hero divider, the reveal wipe) |
 
-- **Tap feedback:** `scale(.98)` over `--dur-fast`.
+- **Press feedback:** every pressable thing (buttons, tabs, the heart) scales to `0.97` on press, over about `--dur-fast`, and returns on release. Nothing scales up on hover.
+- **Hover is for fine pointers only.** A hover effect (an underline, the carousel scrub) responds to a mouse and is never the only way to reach something; touch gets none of it.
+- **Which easing:** `--ease-out` for things entering (a card, the heart's pop, the poses rising in the reveal); `--ease-in-out` for things already on screen that move (the hero divider's glide, the reveal's wipe); `--ease` for everything else. Never an ease-in on an entrance.
 - **Card entry:** opacity `0→1` + `translateY(8px→0)` over `--dur-slow`, 50ms stagger, once per card.
 - **Catalog → result:** shared-element transition on the garment image. This is what replaces a modal — it makes the result a *place* you travelled to, not a layer that appeared.
-- **Result reveal:** crossfade at `scale(1.02)→1` over `--dur-slow`. The payoff frame gets the longest duration in the system.
+- **The reveal** (ADR 0006): the first sight of a finished try-on, once per job per browser, for a signed-in person. A full-viewport stage on `--ink`: the label's photograph, the person's Front render wiped over it from the left with a white edge (the hero slider's language: the model's photo becomes you), then the other poses rise in with the AI caption, then one button. About 2.2 seconds, skippable at any point by a tap, click, Escape, Enter or Space; nothing advances on its own after the end state. This is the payoff frame and the longest motion in the system. Later visits go straight to the result.
+- **The hero:** no entrance animation. The divider glides once per page load (from 78% to the middle, `--ease-in-out`) to show that it moves, and any touch of the slider cancels the glide.
+- **Dots, not arrows:** a carousel's position is shown by small dots; the dots animate, nothing else does. On desktop a mouse pointer scrubs through the frames.
 - **Rack dock fill:** the new card slides in from the right over `--dur`. No badge bounce, no toast.
-- `prefers-reduced-motion: reduce` drops all transforms, keeps opacity.
+- `prefers-reduced-motion: reduce` drops all transforms and keeps opacity: press feedback does not scale, the heart does not pop, the poses do not rise, and the reveal's wipe becomes a crossfade of the render over the label's photograph.
 
 ---
 
@@ -237,24 +243,25 @@ Elevation maps to importance, not nesting depth. `--elev-8` appears once per scr
 
 The primary action is **Try it on**, not Buy. If the card sells buying, we're a store with a filter attached.
 
-**A card starts with its image.** No label row, avatar or Follow button above it (PRD §22.1 row 20, owner review of Phase A): the label name is small plain text under the image, in Label style, with the piece name below. Following a label lives on the product and label pages. Discover carries no heading or sentence above the grid that changes with the filter (row 19); the chips or category tiles stand alone.
+**A card starts with its image.** No label row, avatar or Follow button above it (PRD §22.1 row 20, owner review of Phase A): the piece name and price sit under the image, with the label's name in small plain text below them. Following a label lives on the product and label pages. Discover carries no heading or sentence above the grid that changes with the filter (row 19). Its filter is one quiet row of text tabs (Everything, Apparel, Jewellery, Accessories; the selected one in `--ink` with a 2px underline), the same on phone and desktop; the category photo tiles, bordered chips and the boxed "Start with these" section were removed in the 2026-10-11 redesign (PRD §22.1 row 34, ADR 0006).
 
 ```
 ┌─────────────────┐
-│                 │  3:4 garment image, --radius-lg, no border
-│                 │
+│                 │  garment image, no border: 4:5 full-bleed on a phone,
+│                 │  3:4 with --radius-md on desktop; a heart top-right
 │                 │
 ├─────────────────┤
-│ BRAND           │  Label style
-│ Item name       │  Body small, --ink-700, 1 line, truncate
-│ $128            │  Price style
-│ ┌─────────────┐ │
-│ │ Try it on   │ │  full-width pill, --ink fill, white text
-│ └─────────────┘ │
+│ Item name  $128 │  name 15/20 --ink, 1 line, truncate; price right-aligned
+│ Label · Only 2  │  13/18 --ink-600; the stock line only when stock is low
+│       [Try it on]  one compact pill, --ink fill, white text
 └─────────────────┘
 ```
 
-Save (heart) is a 44×44 tap target top-right of the image, white icon with `drop-shadow(0 1px 2px rgba(0,0,0,.35))` so it survives dark and light garments. No solid chips on top of the image.
+A card is the image, the name and price, the label (with the stock line only when stock is low) and one compact action. On desktop the grid is 2 columns, 3 from 1100px and 4 from 1700px; on a phone it is one full-bleed column (PRD §22.1 row 37). The image is the product, so nothing competes with it.
+
+**What sits on an image.** The heart, the dots, and, on the person's own renders only, the "On you" chip. No "Model shot" chip, no photo or pose counts, no visible arrows (previous and next buttons exist for keyboard users and appear only when focused). A card showing a render also carries the AI caption directly beneath the image; the home page hero carries it too (PRD §22.1 rows 35 and 39).
+
+**Save (heart).** One tap saves the piece to Favourites; a toast offers "Change". It sits top-right of the image as a white disc (`canvas` at 90%, `--elev-1`) with an `--ink` heart, so it survives dark and light garments and never uses the accent beside a garment. It is 44×44, the minimum tap target. The heart pops once when a person saves (`--ease-out`, 180ms), never on unsave and never on first paint.
 
 **Curation shelves** carry a stated reason in Label style above the row: `BECAUSE YOU SAVED THE LINEN SHIRT` / `OUTSIDE YOUR USUAL`. A recommender that explains itself is the closest single-player thing we have to a friend handing you something.
 
@@ -338,7 +345,7 @@ The shared artifact must be **votable without installing**: web view, no auth, o
   transition: transform var(--dur-fast) var(--ease),
               background var(--dur-fast) var(--ease);
 }
-.btn-primary:active   { transform: scale(.98); background: var(--ink-800); }
+.btn-primary:active   { transform: scale(.97); background: var(--ink-800); }
 .btn-primary:disabled { background: var(--ink-500); box-shadow: none; }
 ```
 
@@ -363,6 +370,8 @@ Secondary: `--canvas` fill, `1px solid var(--line)`, `--ink` text. Tertiary: bar
 ```
 
 ### Filter chip
+
+*Discover no longer uses chips; its filter is the row of text tabs described under "Catalog card". The chip stays defined here for the places that still use it.*
 
 32px, `--radius-pill`, `--line` border, `--ink-700` text at 14/500. Selected: `--accent-tint` fill, `--accent` border and text.
 
@@ -412,7 +421,9 @@ Claims must be verifiable in the panel. State the mechanism, not the vibe: *your
 | `Buy` as a catalogue or feed card's primary action | Makes us a store with a filter attached. (On the result screen Buy is the filled action by decision, PRD §22.1 row 13) |
 | Download as the primary result action | Leaks the image with no return path |
 | Borders around try-on cards | Competes with the garment silhouette |
-| A label row or Follow button above a listing card's image; a heading that changes with the filter | Pushes the garment down and repeats the chip (PRD §22.1 rows 19, 20) |
+| A label row or Follow button above a listing card's image; a heading that changes with the filter | Pushes the garment down and repeats the tab (PRD §22.1 rows 19, 20) |
+| A chip, count or arrow on a photograph beyond "On you" and the heart | Competes with the garment (PRD §22.1 row 35) |
+| A hero that appears after the feed has painted | Moves what the person was looking at; the server decides from the `tr_hp` cookie (PRD §22.1 row 33) |
 | Tap targets under 44px | Phone-first product |
 | Poll with one option | "Do you like this?" gets left on read |
 
@@ -456,6 +467,8 @@ Claims must be verifiable in the panel. State the mechanism, not the vibe: *your
   /* motion */
   --ease:cubic-bezier(.2,0,0,1);
   --dur-fast:150ms; --dur:250ms; --dur-slow:400ms;
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --ease-in-out:cubic-bezier(0.77,0,0.175,1);
 }
 
 @media (min-width:768px){

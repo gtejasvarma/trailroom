@@ -138,3 +138,50 @@ catalogue images, 2026-10-07) and is not owed.
 
 The deployed product makes no quality claim the eval has not earned. Anyone reading the code or a
 demo should be told that the gate is structural, not perceptual, until M1 lands.
+
+## Amendment — 2026-10-11: the password comes off
+
+**Decided by the owner, Tejas, on 2026-10-11:** the shared password is removed from the site, in the
+same release as the redesign (PRD §22.1 row 41). He was told what was still owed before the gate came
+off, and chose to go ahead. This is a decision about risk, not a claim that the list above is done.
+
+**How it is built.** `GATE` is `"off"` in `apps/web/apphosting.yaml`. `gateIsOff` in
+`apps/web/src/lib/gate.ts` is true only for exactly `off`; any other value, or removing the entry, leaves
+the password gate on. With it off, `apps/web/src/middleware.ts` lets every path through, `/gate` leads
+home and `POST /api/gate` leads home. `/api/internal/*` is unchanged (OIDC in its own handlers). The ask
+and unsubscribe paths keep their own `noindex`, no-store and no-referrer headers; the rest of the site
+is now indexable by search engines and nothing was added to prevent it. Local development and the test
+suites still run with the gate on. It takes effect at the next manual rollout, not before.
+
+**How to reverse it.** The gate code, the `GATE_PASSWORD` and `GATE_COOKIE_SECRET` secrets and the gate
+tests all stay. Change `GATE` to anything but `off` (or delete the entry) and run one rollout
+(`docs/DEPLOY.md`, "The password gate"). The "Known and not fixed" notes above about a person behind the
+password then apply again.
+
+**What was open when it came off, accepted by the owner and not done.** Every box in "Owed before the
+password gate comes off" above is still unchecked, with these notes:
+
+- M1's exit gate and the real scorers. The QA gate is structural only: it cannot tell whether a render
+  looks like the person or changed their body. The build plan had said this gated the password coming
+  off. M1 is now the most urgent open item (BUILD_PLAN §12.4).
+- App Check or a per-device guest limit, and Cloud Armor. Anyone can start a guest session and spend from
+  the day's render budget. The cost is bounded by `DAILY_CAP_USD` (5) and the per-person limits, but
+  strangers can use the budget up, after which real visitors are told the service is at capacity until
+  the next UTC day.
+- Upload safety filters. Anyone can upload a photograph of anyone, a minor included. The only safeguard is
+  the consent line under the upload control; no check is performed, and the product makes no claim that
+  one is.
+- The attempt limits are in memory per instance, and the proxy-hop check (`TRUSTED_PROXY_HOPS`, DEPLOY
+  smoke test step 19, now done through the public ask page's miss limit) has not been run on the hosted
+  site. It is required straight after the rollout.
+- No legal review has happened: the consent wording (a line, not a tick), renders shown to friends on
+  vote pages, and the retention of account renders; BIPA has not been reviewed by anyone qualified.
+- The live-selfie face match (deferred, PRD §22.1 row 3), Vertex AI in place of the API key, the three
+  follow-ups of ADR 0001, automatic rollouts on push (rollouts are still manual) and the old Firebase
+  Hosting site are also unchanged.
+- One box can be read as met: real try-ons have been generated on the hosted site since this list was
+  written (the 2026-10-09 note above is out of date). The full end-to-end suite has not been confirmed
+  green after the final Phase C fix.
+
+The hard rules in `CLAUDE.md` are not weakened by this: no copy may claim a check the product does not
+perform, and no render ships that failed QA.

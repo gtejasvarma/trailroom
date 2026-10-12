@@ -207,11 +207,12 @@ for (const size of SIZES) {
       await list.getByTestId("new-list-name").fill("Weekend");
       await list.getByRole("button", { name: "Create list and add" }).click();
       await expect(page.getByTestId("toast")).toContainText("Created Weekend");
-      await expect(list.getByTestId("list-choice")).toHaveAttribute(
-        "data-in",
-        "true",
-      );
-      await expect(list.getByTestId("list-choice")).toContainText("2 pieces");
+      await expect(
+        list.locator("[data-testid=list-choice]:not([data-kind=favourites])"),
+      ).toHaveAttribute("data-in", "true");
+      await expect(
+        list.locator("[data-testid=list-choice]:not([data-kind=favourites])"),
+      ).toContainText("2 pieces");
       await list.getByRole("button", { name: "Done" }).click();
       await expect(list).toBeHidden();
 

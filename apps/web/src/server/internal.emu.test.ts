@@ -475,10 +475,21 @@ describe("purge", () => {
       1,
     );
     expect(young!.log.state).toBe("reserved");
-    const day = (
-      await firestore().collection("spend").doc(utcDay(new Date())).get()
-    ).data()!;
-    expect(day).toMatchObject({
+    // Each reservation is booked to the UTC day it was made on, so just after midnight UTC the
+    // 20-minute-old one sits in yesterday's document: add up the days both could be on.
+    const days = [
+      ...new Set([
+        utcDay(new Date(Date.now() - 20 * 60_000)),
+        utcDay(new Date()),
+      ]),
+    ];
+    const totals = { pendingMicros: 0, committedMicros: 0 };
+    for (const d of days) {
+      const doc = (await firestore().collection("spend").doc(d).get()).data();
+      totals.pendingMicros += doc?.pendingMicros ?? 0;
+      totals.committedMicros += doc?.committedMicros ?? 0;
+    }
+    expect(totals).toEqual({
       pendingMicros: 100_000,
       committedMicros: 100_000,
     });

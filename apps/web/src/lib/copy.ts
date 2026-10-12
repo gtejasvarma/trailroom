@@ -79,6 +79,12 @@ export const copy = {
     unfollowed: (label: string) => `Unfollowed ${label}.`,
     followFailed: "We could not update that just now, so try again.",
     dismiss: "Dismiss",
+    savedFavourites: "Saved to Favourites",
+    removedFavourites: "Removed from Favourites",
+    changeLists: "Change",
+    undo: "Undo",
+    favouritesFull:
+      "Favourites holds up to 200 pieces, so remove one before saving another.",
     addedTo: (list: string) => `Added to ${list}`,
     removedFrom: (list: string) => `Removed from ${list}`,
     createdList: (list: string) => `Created ${list}`,
@@ -97,7 +103,6 @@ export const copy = {
   discover: {
     title: "Discover",
     gridLabel: "Pieces",
-    lookingFor: "What are you looking for",
     categoriesLabel: "Categories",
     categories: {
       all: "Everything",
@@ -106,32 +111,24 @@ export const copy = {
       accessories: "Accessories",
     } as Record<string, string>,
     emptyCategory: "Nothing here yet. Check back soon.",
-    startTitle: "Start with these",
-    startNote: "Pieces the label photographed four ways. Try any of them on.",
-    demoChip: "Demo",
-    startLabel: "Pieces to start with",
-    proofTitle: "Drag to see the difference",
+    proofTitle: "Stop guessing how it looks on you",
     proofBody:
-      "Maya uploaded one photo. Now every piece here comes back on her body, in four poses.",
-    proofTitleDesktop: "Stop guessing how it looks on you",
-    proofBodyDesktop:
-      "Drag the divider. One photo and every piece here comes back on your body, in four poses. Private to you.",
+      "One photo, and every piece here comes back on your body in four poses. Private to you.",
     proofOnHer: "On her photo",
-    proofModel: "Model shot",
-    proofModelDesktop: "Label’s photo",
+    proofModel: "Label’s photo",
+    proofHandle: "Move the divider",
     proofSlider: "Compare the label’s photo with the same piece on Maya",
-    proofModelAlt: "The label’s photograph of the piece",
-    proofOnPersonAlt: "The same piece, rendered on Maya’s photo",
+    proofModelAlt: "The label’s photograph of a pink wrap top",
+    proofOnPersonAlt: "The same pink wrap top, rendered on Maya’s photo",
+    proofAi:
+      "On her photo: an AI-generated preview, made here from a single photo.",
     upload: "Upload your picture",
     creditsLink: "Photo credits",
   },
   card: {
     carousel: "carousel",
     slide: "slide",
-    modelShot: "Model shot",
     onYou: "On you",
-    photos: (n: number) => `↔ ${n} ${n === 1 ? "photo" : "photos"}`,
-    poses: (n: number) => `↔ ${n} ${n === 1 ? "pose" : "poses"}`,
     frameLabel: (name: string, i: number, n: number) =>
       `${name}, photo ${i} of ${n}`,
     framesLabel: (name: string) => `Photos of ${name}`,
@@ -139,8 +136,8 @@ export const copy = {
     prev: "Previous photo",
     next: "Next photo",
     buy: (price: string) => `Buy ${price}`,
-    addToList: "Add to a list",
-    saveToList: "Saved to a list. Change lists",
+    saveFavourite: "Save to Favourites",
+    savedFavourite: "Saved. Change lists",
     openLabel: (name: string) => `Open ${name}`,
     follow: "Follow",
     following: "Following",
@@ -158,7 +155,6 @@ export const copy = {
     breadcrumb: "Breadcrumb",
     galleryLabel: "Photos",
     thumb: (i: number) => `Show photo ${i}`,
-    photoCount: (i: number, n: number) => `${i} / ${n}`,
     notePhoto: "One photo of you, then every piece here renders on it.",
     pairsWith: "Goes with",
     viewLabel: (name: string) => `View ${name}`,
@@ -173,6 +169,7 @@ export const copy = {
   },
   lists: {
     title: "Lists",
+    favourites: "Favourites",
     intro:
       "Save anything you’re weighing up into a list, then ask friends what they think. One piece or five, they vote in one tap each.",
     create: "New list",
@@ -196,6 +193,8 @@ export const copy = {
     gridLabel: "Your lists",
     loading: "Loading your lists",
     guestNote: "Sign in to save pieces into lists, then ask friends which one.",
+    guestFavouritesNote: "Create an account to keep your Favourites.",
+    favouritesHint: "Tap the heart on any piece to save it here.",
     loadFailed: "We could not load your lists just now, so try again.",
     retry: "Try again",
     unread: (n: number) => `${n} new ${Number(n) === 1 ? "ask" : "asks"}`,
@@ -554,9 +553,10 @@ export const copy = {
     thumbsLabel: "Choose a pose",
     galleryLabel: "Your poses",
     onYou: "On you",
-    counter: (pose: string, i: number, n: number) =>
-      n > 1 ? `${pose} · ${i}/${n}` : pose,
-    onYouPose: (pose: string) => `On you · ${pose}`,
+    holdToCompare: "Hold to see the label’s photo",
+    labelsPhoto: "Label’s photo",
+    labelsPhotoAlt: (name: string, label: string) =>
+      `${label}’s own photograph of ${name}`,
     dot: (i: number) => `Show pose ${i}`,
     aiCaption: "AI-generated preview",
     expectation: EXPECTATION_LINE,
@@ -564,7 +564,6 @@ export const copy = {
       "Three of four poses are shown. One could not be rendered well enough to show.",
     buy: (price: string, label: string) => `Buy ${price} at ${label}`,
     addToList: "Add to a list",
-    saveToList: "Save to a list",
     outfit: "Build the outfit",
     outfitSub: "Have a look, then decide",
     // The desktop prototype words the same row differently.
@@ -845,6 +844,16 @@ export const copy = {
     failed: "We could not do that just now, so try again.",
     tooMany: "Too many tries from here. Wait a few minutes and try again.",
     home: "Back to Trailroom",
+  },
+  reveal: {
+    dialog: (name: string) => `Your try-on of ${name}`,
+    labelPhotoAlt: (name: string, label: string) =>
+      `${label}’s own photograph of ${name}`,
+    renderAlt: (name: string, label: string) =>
+      `AI-generated preview of ${name} by ${label} on you, front pose`,
+    onYouCaption: (name: string) => `${name} on you`,
+    seeAll: (n: number) => (n > 1 ? `See all ${n} poses` : "See your try-on"),
+    thumbAlt: (name: string, pose: string) => `${name}, ${pose} pose`,
   },
   arrivals: {
     title: "New from labels you follow",

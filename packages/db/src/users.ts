@@ -7,7 +7,7 @@ import {
 } from "./asks";
 import { deleteArrivals } from "./arrivals";
 import { deleteEmailDataForUser } from "./email";
-import { deleteListsForUser } from "./lists";
+import { clearGuestListExpiry, deleteListsForUser } from "./lists";
 import { deletePurchasesForUser } from "./purchases";
 import { assertSegment } from "./paths";
 import { deleteAllPhotoDocs } from "./photos";
@@ -105,6 +105,7 @@ export async function promoteGuest(uid: string): Promise<number> {
     n++;
   }
   if (n > 0) await batch.commit();
+  n += await clearGuestListExpiry(uid);
   return n;
 }
 
@@ -120,7 +121,7 @@ export async function listExpiredGuestUids(
   const db = firestore();
   const cutoff = Timestamp.fromDate(now);
   const uids = new Set<string>();
-  for (const name of ["photos", "jobs"] as const) {
+  for (const name of ["photos", "jobs", "lists"] as const) {
     const snap = await db
       .collection(name)
       .where("isGuest", "==", true)

@@ -1,6 +1,6 @@
 // Shared class strings. Every colour is a Design.md §11 token via the Tailwind theme.
 const base =
-  "inline-flex min-h-12 items-center justify-center gap-2 text-[16px] font-medium transition-transform duration-150 ease-brand active:scale-[.98] motion-reduce:transition-none motion-reduce:active:scale-100";
+  "inline-flex min-h-12 items-center justify-center gap-2 text-[16px] font-medium transition-transform duration-[160ms] ease-brand active:scale-[.97] motion-reduce:transition-none motion-reduce:active:scale-100";
 
 /** One filled button per screen. */
 export const btnPrimary = `${base} rounded-full bg-ink px-6 text-canvas shadow-1 active:bg-ink-800 disabled:bg-ink-500 disabled:shadow-none`;

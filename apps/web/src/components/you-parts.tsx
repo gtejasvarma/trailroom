@@ -32,7 +32,10 @@ export function SectionLabel({
 export function YouHeader() {
   const { who, tryOns } = useMe();
   const { lists } = useLists();
-  const c = youCounts(tryOns, lists.length);
+  const c = youCounts(
+    tryOns,
+    lists.filter((l) => l.kind !== "favourites").length,
+  );
   const stats: [string, number, string][] = [
     ["stat-tryons", c.tryOnsKept, copy.you.statTryOns],
     ["stat-week", c.thisWeek, copy.you.statWeek],
