@@ -87,6 +87,7 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 | `workflows/render-pose-set.yaml` | M3: the Cloud Workflow that drives the graph in production by calling `/api/internal/pipeline/*`. |
 | `firestore.rules`, `storage.rules` | Clients read their own job, pose set and consent; they write nothing; Storage is closed to clients. Lists, asks (with votes), inbox entries, purchases, published pieces and their events, arrivals, and email preferences, sent-keys and unsubscribe tokens are server-only, with explicit denies. |
 | `docs/SYSTEM.md` | How the whole system works, for explaining it to someone: the system diagram, the layers, auth, a try-on step by step, the quality gate, the data design, caching, cost and the weak points. Keep it true when the architecture changes. |
+| `docs/IDEAS.md` | The owner's directions under consideration, logged with an assessment and a recommendation. Not decisions: those are PRD §22.1. |
 | `docs/DEPLOY.md` | The manual deploy runbook. Read before changing anything deploy-related. |
 | `packages/render-eval/` | M1: the eval harness. `npm run eval:generate -- --dry-run` plans a run; drop `--dry-run` to generate into `runs/<run>/`. |
 | `fixtures/` | Eval inputs: `manifest.json` (committed), `CONSENT.md`, images (git-ignored; repo is public). See ADR 0002. |
