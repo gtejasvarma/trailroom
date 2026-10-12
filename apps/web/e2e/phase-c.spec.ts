@@ -11,10 +11,10 @@ import {
   exhaustBudget,
   expect,
   listDocs,
-  pickThreeLabels,
   setScript,
   test,
   tryOnFromScratch,
+  uploadFirst,
   uploadFirstAsGuest,
   waitForGuestReady,
   waitForResult,
@@ -331,7 +331,7 @@ for (const size of SIZES) {
       await expect(page.getByTestId("job-chip")).toHaveCount(0);
     });
 
-    test("upload first as a guest: sheet, sign in, pick three labels, starters, try-on opens the result", async ({
+    test("upload first as a guest: sheet, sign in, straight to the starters, one tap starts the try-on", async ({
       page,
     }) => {
       await uploadFirstAsGuest(page);
@@ -345,25 +345,38 @@ for (const size of SIZES) {
       await shot(page, "account-sheet-upload", size.name);
       await continueWithGoogle(page);
 
-      // Pick three labels: one step, no email, no "Step 1 of 2".
-      await expect(page).toHaveURL(/\/upload\/labels$/);
+      // No label step: the starters are next. Nothing about labels, steps or email.
+      await expect(page).toHaveURL(/\/upload\/done$/);
       await expect(
-        page.getByRole("heading", { name: "Pick three labels" }),
+        page.getByRole("heading", { name: "Your photo is in" }),
       ).toBeVisible();
-      await expect(
-        page.getByText("Whatever they add shows up in Discover."),
-      ).toBeVisible();
+      await expect(page.getByText(/pick three labels/i)).toHaveCount(0);
       await expect(page.getByText(/step \d of/i)).toHaveCount(0);
       await expect(page.getByText(/e-?mail/i)).toHaveCount(0);
-      await shot(page, "pick-three-labels", size.name);
-      await pickThreeLabels(page);
       await expect(page.getByTestId("starter")).toHaveCount(4);
+      // Dresses and full-length pieces first.
+      await expect(page.getByTestId("starter").first()).toContainText(
+        "Chambray wide-leg jumpsuit",
+      );
+      await shot(page, "starters", size.name);
 
-      // A starter: the try-on completes and opens the result directly (no sheet).
-      await page.getByTestId("starter").first().click();
+      // One tap on a starter: the try-on starts with the photo just added (no sheet) and opens
+      // the result.
+      await page.getByTestId("starter-try").first().click();
       await expect(page).toHaveURL(/\/try-on\//);
+      await expect(page.getByRole("dialog")).toHaveCount(0);
       await waitForResult(page);
       await expect(page.getByRole("dialog")).toHaveCount(0);
+    });
+
+    test("the old label step is gone: its URL leads to the starters, and nothing was followed", async ({
+      page,
+    }) => {
+      await uploadFirst(page);
+      await page.goto("/upload/labels");
+      await expect(page).toHaveURL(/\/upload\/done$/);
+      await expect(page.getByTestId("starter")).toHaveCount(4);
+      expect(await listDocs("follows")).toHaveLength(0);
     });
 
     test("upload first, not now: back on Discover with the photo kept", async ({
@@ -410,7 +423,11 @@ for (const size of SIZES) {
       await shot(page, "fail-not-yet", size.name);
 
       // render_failed: Try again, Use a different photo, the closest three.
-      setScript([blocked("walking"), blocked("seated")]);
+      setScript([
+        blocked("walking"),
+        blocked("seated"),
+        blocked("three-quarter"),
+      ]);
       await page.goto("/");
       await tryOnFromScratch(page, "Knit button vest");
       await expect(failure).toHaveAttribute("data-kind", "render_failed", {

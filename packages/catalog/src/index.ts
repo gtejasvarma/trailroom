@@ -35,9 +35,19 @@ export function itemsByLabel(slug: string): CatalogItem[] {
   return allItems().filter((i) => i.labelSlug === slug);
 }
 
-/** "Start with these": render-ready pieces that have four label photographs. */
+/**
+ * "Start with these": render-ready pieces that have four label photographs. Dresses and
+ * full-length pieces (the "dress" prompt category) come first, then the rest; each group by
+ * readiness (desc) then id, so the order is deterministic.
+ */
 export function startWithThese(): CatalogItem[] {
-  return CATALOG.filter((i) => isRenderReady(i) && i.photos.length === 4);
+  const rank = (i: CatalogItem) => (i.category === "dress" ? 0 : 1);
+  return CATALOG.filter((i) => isRenderReady(i) && i.photos.length === 4).sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      b.readiness - a.readiness ||
+      a.id.localeCompare(b.id),
+  );
 }
 
 /** The first photograph of a label's first piece: the label's avatar. */

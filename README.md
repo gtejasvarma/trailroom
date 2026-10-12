@@ -4,21 +4,16 @@ Try fashion products without leaving your couch. One photo of you, and every pie
 from the labels you follow comes back on your body — in four poses (Front, Three-quarter,
 Walking, Seated) — before you buy.
 
-**Where it stands (2026-10-11).** The demonstration on Friday 9 October has passed. V0 (Phases A, B
-and C) is built and live (deployed behind a password; see below) at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`,
-and real try-ons have been generated there. **The owner decided on 2026-10-11 to remove the shared password in the same release as the redesign:** `GATE` is `"off"` in `apps/web/apphosting.yaml`, and from the next manual rollout the site is open to anyone and can be indexed by search engines. That was accepted with the eval (M1), a guest-abuse control, upload safety filters and the legal review still open; putting the password back is changing `GATE` and one rollout (`docs/DEPLOY.md`, "The password gate"; `docs/decisions/0004-m2-m3-ahead-of-m1.md`, amendment of 2026-10-11). Phases A to G, the fixes of a security review and a redesign of
-2026-10-11 are built, tested and on `main`; A to D are deployed, and the rest waits on one manual rules-and-indexes
-deploy and one manual rollout. The domain `trailroom.ai` was connected to the same App Hosting backend on
-2026-10-11 (the `hosted.app` address keeps working); two steps remain with the owner (`docs/DEPLOY.md`, "Custom domain").
+**Where it stands (2026-10-11).** The demonstration on Friday 9 October has passed. Phases A to G, the fixes of a security review and a redesign of 2026-10-11 are built, tested, on `main` and **rolled out** (commit `9d5694d`, completed 2026-10-11). **The site is live and public at `https://trailroom.ai`, with no password** (the `hosted.app` address, `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app`, keeps working and must). The owner removed the shared password in the same release as the redesign: `GATE` is `"off"` in `apps/web/apphosting.yaml` and the site can be indexed by search engines. That was accepted with the eval (M1), a guest-abuse control, upload safety filters and the legal review still open; putting the password back is changing `GATE` and one rollout (`docs/DEPLOY.md`, "The password gate"; `docs/decisions/0004-m2-m3-ahead-of-m1.md`, amendment of 2026-10-11). Real try-ons have been generated on the hosted site. Whether `trailroom.ai` has been added to Firebase Authentication's authorised domains (Google sign-in needs it) is not recorded here; check `docs/DEPLOY.md`, "Custom domain".
 The redesign (`docs/decisions/0006-redesign-departs-from-the-prototypes.md`) follows the owner's review of the live
 site and departs from the prototypes in six places, listed below.
+**Two more changes, asked for by the owner on 2026-10-11, are on `main` after that commit and are not rolled out:** the "Pick three labels" step is gone (after uploading and signing up a person lands on "Your photo is in", four pieces to try on, one tap each; following stays on label and product pages), and the QA gate has a face check (a small Python service, `services/face-match/`, compares the face in each render with the person's photo; a poor match is not shown) with a new set rule: a four-pose try-on completes with two or three poses and fails with none or one. The face service is **not deployed yet**, so the check is off on the hosted site; its match score is uncalibrated (`docs/decisions/0007-face-check-in-the-qa-gate.md`).
 Phase G (the follow loop) ships with two switches, both off because they are undecided: email (nothing is sent
 or shown) and the "arrives on you" buffer (nothing is rendered that a person did not ask for). Its checkpoint
 is not met: nothing has been published on the hosted site, the buffer has never run with the real image model,
 and no real email has been sent. Phase H (hardening) is partly done; the rest is not started.
 
-What a visitor can do (open to the public from the next rollout; behind the password until then; the parts marked "redesign" are on `main` and wait for the
-rollout): a new visitor's first screen is the hero, a slider between a label's photograph of a piece and a real
+What a visitor can do (the site is open to the public; the parts marked "redesign" were rolled out with `9d5694d`): a new visitor's first screen is the hero, a slider between a label's photograph of a piece and a real
 render of the same piece on a fictional test person, labelled as an AI-generated preview; a visitor who already
 has a photo goes straight to the feed (redesign). Browse Discover, which is one row of text tabs (Everything,
 Apparel, Jewellery, Accessories) over large photographs, a column on a phone and two to four on a wide screen,
@@ -34,8 +29,7 @@ use You (phone) and Studio (desktop) with real counts and "Delete everything"; c
 pieces on a wide screen; "Buy", which opens a demonstration checkout that takes no payment; and "Wear it
 with", which renders two pieces together as one outfit image (the Front view) (in the current catalogue only the coat
 pairs with anything); see a "New from labels you follow" section at the top of Discover when a followed label has published a piece (none has on the hosted site yet; pieces are published by a script, `scripts/publish-piece.ts`). **No email is sent or promised.** Jewellery and accessories cannot be tried on yet.
-**Not done:** the quality checks of the eval (M1), so the gate is structural only and cannot tell whether a render looks like the person; that is now the most urgent open item, because the password is gone. **Next:** the manual
-rules-and-indexes deploy and rollout of E, F and G and the redesign; the owner's two decisions (whether to send email, and whether to switch the
+**Not done:** the quality checks of the eval (M1). The gate is structural except for the new face check, which is off until its service is deployed and is uncalibrated; it still cannot tell whether a render changed a person's body or got the garment right. That is the most urgent open item, because the password is gone. **Next:** the owner deploys the face-match service (`docs/DEPLOY.md`, "The face-match service") and rolls out the two 2026-10-11 changes; the owner's two decisions (whether to send email, and whether to switch the
 buffer on) and, for email, a provider key and sending address; then the rest of hardening (Phase H)
 (`docs/BUILD_PLAN.md` §12).
 
@@ -58,12 +52,14 @@ The last command previews the app at `http://localhost:3000`; the gate password 
 |---|---|
 | `docs/PRD.md` | **The PRD** (v0.7), one consistent document. §22 holds the decisions and their reasoning; §19 is the register of the original mock-vs-PRD audit. |
 | `docs/Design.md` | **The design system of record.** Colour, type, space, motion, components, anti-patterns. Derive every value from §11 and do not invent tokens. |
-| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H; V0 = A to C and D are live; E, F, G and the 2026-10-11 redesign are built and await rollout). |
+| `docs/BUILD_PLAN.md` | How the PRD becomes shipped code. §12 is the current plan (Phases A to H; A to G and the 2026-10-11 redesign are rolled out; the label-step removal and the face check await a rollout). |
+| `docs/SYSTEM.md` | How the whole system works, with diagrams: start here to understand or explain it. |
 | `docs/DEPLOY.md` | The manual deploy runbook (Tejas runs it; agents do not deploy). |
 | `docs/decisions/` | ADRs — one file per irreversible call (infra, vendor, architecture, scope). |
 | `specs/` | Units of work — one spec file per increment being built. |
 | `mocks/` | The two aligned, runnable prototypes (the visual specification, except for the six parts the 2026-10-11 redesign changed, ADR 0006), their images and screenshots, and two reference files. |
 | `packages/`, `apps/web/`, `workflows/` | The render chokepoint, database layer, pipeline, catalogue, eval harness, and the Next.js app. |
+| `services/face-match/` | The face check the QA gate calls: a small private Python service (not deployed yet; `docs/decisions/0007-face-check-in-the-qa-gate.md`). |
 | `archive/` | Superseded documents and mocks, and the verbatim source of the two linked prototype artifacts. Provenance, not guidance. |
 
 ## Running the prototypes

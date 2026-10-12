@@ -286,7 +286,7 @@ export function ResultView({ job, item }: { job: JobView; item: CatalogItem }) {
               className="mt-3 text-[14px] leading-5 text-ink-700"
               data-testid="partial-line"
             >
-              {copy.result.partial}
+              {copy.result.partial(n, job.poseOrder.length)}
             </p>
           ) : null}
         </div>

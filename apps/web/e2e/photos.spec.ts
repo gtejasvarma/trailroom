@@ -11,7 +11,6 @@ import {
   continueWithGoogle,
   expect,
   PHOTO,
-  pickThreeLabels,
   test,
   uploadFirst,
   waitForResult,
@@ -152,23 +151,23 @@ for (const size of SIZES) {
         page.getByRole("button", { name: "Choose another" }),
       ).toBeVisible();
       await page.getByRole("button", { name: "Use this photo" }).click();
-      // A guest is asked for an account first, then picks three labels, then the starters.
+      // A guest is asked for an account first, then lands on the starters.
       await expect(page.getByRole("dialog")).toBeVisible();
       await continueWithGoogle(page);
-      await pickThreeLabels(page);
+      await expect(page).toHaveURL(/\/upload\/done$/);
       await expect(
         page.getByRole("heading", { name: "Your photo is in" }),
       ).toBeVisible();
       await expect(
         page.getByText(
-          "Pick anything below and it comes back on you, in four poses.",
+          "Choose a piece to try on. It comes back on you, in four poses.",
         ),
       ).toBeVisible();
       await expect(page.getByTestId("starter")).toHaveCount(4);
       await expect(
-        page.getByRole("link", { name: "Browse everything instead" }),
+        page.getByRole("link", { name: "Browse the whole catalogue" }),
       ).toBeVisible();
-      await page.getByTestId("starter").first().click();
+      await page.getByTestId("starter-try").first().click();
       await expect(page).toHaveURL(/\/try-on\//);
       await waitForResult(page);
     });

@@ -1,4 +1,4 @@
-import { FieldPath, Timestamp } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./app";
 import { assertSegment } from "./paths";
 import { deleteJobInternal, setJobInternal } from "./jobInternals";
@@ -58,6 +58,19 @@ export async function updateJob(jobId: string, patch: JobPatch): Promise<void> {
     }
   }
   await jobs().doc(assertSegment("jobId", jobId)).update(data);
+}
+
+/** Adds one check id to `qaSkipped` (a set union, safe under parallel poses). */
+export async function addQaSkipped(
+  jobId: string,
+  check: string,
+): Promise<void> {
+  await jobs()
+    .doc(assertSegment("jobId", jobId))
+    .update({
+      qaSkipped: FieldValue.arrayUnion(check),
+      updatedAt: Timestamp.now(),
+    });
 }
 
 /**

@@ -13,6 +13,7 @@ import {
   renderPose,
 } from "@trailroom/pipeline";
 import { logError } from "@trailroom/render";
+import { faceMatchTokenProvider } from "./face-match-auth";
 import { requireWorkflowsCaller } from "./oidc";
 import { routeFor, type NodeInput, type NodeName } from "./internal-routes";
 
@@ -25,7 +26,9 @@ const json = (body: unknown, status: number) =>
 const NODES: Record<NodeName, (input: any) => Promise<unknown>> = {
   prepare,
   renderPose,
-  qaPose,
+  // The face-match service is private: the app presents a Google-signed token for its URL.
+  qaPose: (input) =>
+    qaPose(input, { faceMatchToken: faceMatchTokenProvider() }),
   publishPose,
   failPose,
   finalizeSet,

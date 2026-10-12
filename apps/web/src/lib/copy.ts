@@ -416,10 +416,10 @@ export const copy = {
   },
   starters: {
     title: "Your photo is in",
-    sub: "Pick anything below and it comes back on you, in four poses.",
-    kicker: "Start with one of these",
+    sub: "Choose a piece to try on. It comes back on you, in four poses.",
+    listLabel: "Pieces to try on first",
     tryOn: "Try it on",
-    browse: "Browse everything instead",
+    browse: "Browse the whole catalogue",
     photoAlt: "Your photo",
     tryLabel: (name: string) => `Try on ${name}`,
   },
@@ -560,8 +560,12 @@ export const copy = {
     dot: (i: number) => `Show pose ${i}`,
     aiCaption: "AI-generated preview",
     expectation: EXPECTATION_LINE,
-    partial:
-      "Three of four poses are shown. One could not be rendered well enough to show.",
+    // Some poses did not come out well enough to show (two or three of four are shown). The line
+    // says how many, and nothing about why.
+    partial: (shown: number, total: number) => {
+      const missing = total - shown;
+      return `${cap(word(shown))} of ${word(total)} poses are shown. ${cap(word(missing))} could not be rendered well enough to show.`;
+    },
     buy: (price: string, label: string) => `Buy ${price} at ${label}`,
     addToList: "Add to a list",
     outfit: "Build the outfit",
@@ -606,17 +610,6 @@ export const copy = {
     popupClosed: "The sign-in window was closed, so try again.",
     photoAlt: "Your photo",
     tileAlt: "Your first pose, small preview",
-  },
-  welcome: {
-    title: "Pick three labels",
-    sub: "Whatever they add shows up in Discover.",
-    picked: "Selected",
-    pickMore: (n: number) => `Pick ${n} more`,
-    done: "Done",
-    saving: "Saving",
-    error: "We could not save that just now, so try again.",
-    rowLabel: (name: string) => name,
-    pieces: (n: number) => `${n} ${n === 1 ? "piece" : "pieces"}`,
   },
   tryOns: {
     title: "Your try-ons",

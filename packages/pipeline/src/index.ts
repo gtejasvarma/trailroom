@@ -1,6 +1,7 @@
 export * from "./types";
 export * from "./policy";
 export * from "./qa";
+export * from "./face-match";
 export * from "./errors";
 export * from "./nodes";
 export * from "./inline";

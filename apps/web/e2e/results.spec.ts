@@ -1,8 +1,10 @@
 import {
   card,
+  continueWithGoogle,
   exhaustBudget,
   expect,
   listDocs,
+  realReveal,
   setScript,
   test,
   tryOnFromScratch,
@@ -38,10 +40,49 @@ test("partial set: three images, the three-of-four line, no broken tile", async 
   ).toHaveCount(0);
 });
 
-test("failed set: honest failure with retry, a different photo, and three alternatives", async ({
+test("partial set, two poses: two images, the two-of-four line, the reveal counts two", async ({
   page,
 }) => {
+  // Two poses are not shown (as when the face check refuses them); the other two are.
   setScript([twice("walking"), twice("seated")]);
+  await realReveal(page);
+  await tryOnFromScratch(page, "Knit button vest");
+  // A guest sees the account sheet first; signing in opens the reveal.
+  await expect(page.getByRole("dialog")).toBeVisible({ timeout: 30_000 });
+  await continueWithGoogle(page);
+  const reveal = page.getByTestId("reveal");
+  await expect(reveal).toBeVisible({ timeout: 30_000 });
+  // It plays by itself to the end state (pressing Escape could close it if it got there first).
+  await expect(reveal).toHaveAttribute("data-step", "4", { timeout: 20_000 });
+  await expect(page.getByTestId("reveal-thumb")).toHaveCount(1); // the first wipes in, one rises
+  await expect(
+    page.getByRole("button", { name: "See all 2 poses" }),
+  ).toBeVisible();
+  await page.getByTestId("reveal-continue").click();
+  await expect(page.getByTestId("pose-gallery")).toBeVisible();
+
+  await expect(page.getByTestId("partial-line")).toHaveText(
+    "Two of four poses are shown. Two could not be rendered well enough to show.",
+  );
+  await expect(page.getByTestId("pose-thumb")).toHaveCount(2);
+  await expect(page.getByTestId("dot")).toHaveCount(2);
+  await expect(page.locator("img[data-render]")).toHaveCount(2);
+  for (const pose of ["front", "three-quarter"]) {
+    await expect(
+      page.locator(`[data-testid=pose-thumb][data-pose="${pose}"]`),
+    ).toHaveCount(1);
+  }
+  for (const pose of ["walking", "seated"]) {
+    await expect(
+      page.locator(`[data-testid=pose-thumb][data-pose="${pose}"]`),
+    ).toHaveCount(0);
+  }
+});
+
+test("failed set (three of four poses fail): honest failure with retry, a different photo, and three alternatives", async ({
+  page,
+}) => {
+  setScript([twice("walking"), twice("seated"), twice("three-quarter")]);
   await tryOnFromScratch(page, "Knit button vest");
   const failedUrl = page.url();
 
@@ -75,7 +116,7 @@ test("failed set: honest failure with retry, a different photo, and three altern
 });
 
 test("try again re-posts and lands on a fresh job", async ({ page }) => {
-  setScript([twice("walking"), twice("seated")]);
+  setScript([twice("walking"), twice("seated"), twice("three-quarter")]);
   await tryOnFromScratch(page, "Knit button vest");
   const screen = page.getByTestId("honest-failure");
   await expect(screen).toHaveAttribute("data-kind", "render_failed", {

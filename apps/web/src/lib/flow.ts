@@ -11,8 +11,6 @@ export const paths = {
   upload: "/upload",
   /** "Your photo is in": the starters screen after an upload-first upload. */
   starters: "/upload/done",
-  /** "Pick three labels": once, right after a new account is made with no render yet. */
-  welcome: "/upload/labels",
   tryOns: "/you/try-ons",
   item: (id: string) => `/item/${id}`,
   /** Upload for one piece; on success it goes straight into the try-on. */

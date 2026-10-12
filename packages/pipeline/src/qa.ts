@@ -1,15 +1,22 @@
-// The QA gate. This build's gate is STRUCTURAL, not perceptual: it can tell that an image is a
-// usable, non-degenerate, new picture, but not that it is the same person, wearing the right
-// garment, with unaltered proportions. Those are M1's scorers (PRD §10.3); they have slots below,
-// registered as `skipped` so the job doc and status line never pass this gate off as the real one.
+// The QA gate. This build's gate is mostly STRUCTURAL: it can tell that an image is a usable,
+// non-degenerate, new picture. The one perceptual check it has is IDENTITY: a face-match service
+// says whether the face in the render is the face in the person's photo, and a probability below
+// the owner's minimum fails the pose. When that service is not configured, or cannot judge, the
+// check is `skipped` and the job doc says so. The rest (proportion, garment, artifacts, cross-pose)
+// are M1's scorers (PRD §10.3); they have slots below, registered as `skipped` so the job doc and
+// status line never pass this gate off as the real one.
 import sharp from "sharp";
+import { logError } from "@trailroom/render";
+import type { FaceMatchFn } from "./face-match";
+import { DEFAULT_FACE_MATCH_MIN } from "./face-match";
 import type { ReasonCode, Verdict } from "./types";
 
 export type CheckLevel = "image" | "set";
 export type CheckResult =
-  | { status: "pass" }
-  | { status: "fail"; reason: ReasonCode }
-  | { status: "skipped" };
+  | { status: "pass"; probability?: number }
+  | { status: "fail"; reason: ReasonCode; probability?: number }
+  /** `note` says why the check could not judge. */
+  | { status: "skipped"; note?: string };
 
 export interface Decoded {
   width: number;
@@ -24,6 +31,12 @@ export interface CheckContext {
   /** Memoised decodes; null when the bytes are not an image. */
   decodeImage(): Promise<Decoded | null>;
   decodeInput(): Promise<Decoded | null>;
+  /** The face-match call; absent when the identity check is not configured. */
+  faceMatch?: FaceMatchFn;
+  /** Matches below this probability fail the identity check. */
+  faceMatchMin?: number;
+  /** True once an earlier check in this run has already failed the image. */
+  alreadyFailed?: () => boolean;
 }
 
 export interface QaCheck {
@@ -88,8 +101,44 @@ export function meanAbsDiff(a: Decoded, b: Decoded): number {
   return total / a.rgb.length;
 }
 
+/**
+ * What the identity check does when the face-match service is configured but cannot answer
+ * (unreachable, a timeout, an error after the retry). "skip" keeps the product working while a
+ * helper service is cold or down: the pose is judged by the other checks and the job records that
+ * identity did not run. Flip to "fail" to refuse every render whenever the check cannot run.
+ */
+export const IDENTITY_ON_SERVICE_ERROR = "skip" as "skip" | "fail";
+
+export const IDENTITY_CHECK = "identity";
+
 const fail = (reason: ReasonCode): CheckResult => ({ status: "fail", reason });
 const pass: CheckResult = { status: "pass" };
+
+const identityCheck: QaCheck = {
+  id: IDENTITY_CHECK,
+  level: "image",
+  run: async (c) => {
+    if (!c.faceMatch) return { status: "skipped", note: "not_configured" };
+    // Nothing to learn from a face check on an image that already failed.
+    if (c.alreadyFailed?.()) return { status: "skipped", note: "not_run" };
+    let r;
+    try {
+      r = await c.faceMatch(c.personInput, c.image);
+    } catch (e) {
+      logError("face-match unavailable", e);
+      return IDENTITY_ON_SERVICE_ERROR === "fail"
+        ? fail("identity_mismatch")
+        : { status: "skipped", note: "service_unavailable" };
+    }
+    if (!r.personFace) return { status: "skipped", note: "no_face_in_photo" };
+    if (!r.renderFace) return { status: "skipped", note: "no_face_in_render" };
+    const probability = r.probability ?? 0;
+    const min = c.faceMatchMin ?? DEFAULT_FACE_MATCH_MIN;
+    return probability < min
+      ? { status: "fail", reason: "identity_mismatch", probability }
+      : { status: "pass", probability };
+  },
+};
 
 const skipped = (id: string): QaCheck => ({
   id,
@@ -99,7 +148,6 @@ const skipped = (id: string): QaCheck => ({
 
 /** The perceptual checks this gate does not run yet. M1's scorers replace these entries. */
 export const SKIPPED_CHECKS = [
-  "identity",
   "proportion",
   "garment_fidelity",
   "artifacts",
@@ -157,34 +205,57 @@ export const CHECKS: QaCheck[] = [
         : pass;
     },
   },
+  identityCheck,
   ...SKIPPED_CHECKS.map(skipped),
 ];
+
+/** What the identity check did, as recorded on the attempt. */
+export interface IdentityOutcome {
+  status: "pass" | "fail" | "skipped";
+  probability?: number;
+  note?: string;
+}
 
 export interface QaReport {
   verdict: Verdict;
   reasons: ReasonCode[];
+  /** Present only when a face-match service was supplied; absent means the check was off. */
+  identity?: IdentityOutcome;
 }
 
 /** Runs every image-level check; set-level checks are run by whoever holds the whole set. */
 export async function checkImage(input: {
   image: Buffer;
   personInput: Buffer;
+  faceMatch?: FaceMatchFn;
+  faceMatchMin?: number;
 }): Promise<QaReport> {
   let img: Promise<Decoded | null> | undefined;
   let inp: Promise<Decoded | null> | undefined;
+  const reasons: ReasonCode[] = [];
   const ctx: CheckContext = {
     image: input.image,
     personInput: input.personInput,
     decodeImage: () => (img ??= decode(input.image)),
     decodeInput: () => (inp ??= decode(input.personInput)),
+    faceMatch: input.faceMatch,
+    faceMatchMin: input.faceMatchMin,
+    alreadyFailed: () => reasons.length > 0,
   };
-  const reasons: ReasonCode[] = [];
+  let identity: IdentityOutcome | undefined;
   for (const check of CHECKS) {
     if (check.level !== "image") continue;
     const res = await check.run(ctx);
+    if (check.id === IDENTITY_CHECK && input.faceMatch) {
+      identity = { status: res.status };
+      if ("probability" in res && res.probability !== undefined) {
+        identity.probability = Math.round(res.probability * 1000) / 1000;
+      }
+      if ("note" in res && res.note) identity.note = res.note;
+    }
     if (res.status === "fail" && !reasons.includes(res.reason)) {
       reasons.push(res.reason);
     }
   }
-  return { verdict: reasons.length === 0 ? "pass" : "fail", reasons };
+  return { verdict: reasons.length === 0 ? "pass" : "fail", reasons, identity };
 }

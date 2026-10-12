@@ -101,7 +101,7 @@ export const SCREENS: Screen[] = [
     go: async (page) => {
       await uploadFirst(page);
     },
-    primary: "main button:visible",
+    primary: "[data-testid=starter-try]",
   },
   {
     name: "which photo sheet",
@@ -158,16 +158,6 @@ export const SCREENS: Screen[] = [
       await settle(page);
     },
     primary: "dialog button",
-  },
-  {
-    name: "pick three labels",
-    go: async (page) => {
-      await uploadFirstAsGuest(page);
-      await continueWithGoogle(page);
-      await expect(page).toHaveURL(/\/upload\/labels$/);
-      await expect(page.getByTestId("label-picks")).toBeVisible();
-    },
-    primary: "[data-testid=label-picks] button",
   },
   {
     name: "result",

@@ -125,6 +125,21 @@ describe("catalogue", () => {
     ).toEqual(["blouse", "coord", "jump", "maxi", "vest"]);
   });
 
+  it("start with these: dresses and full-length pieces first, then by readiness", () => {
+    const list = startWithThese();
+    expect(list.map((i) => i.id)).toEqual([
+      "jump",
+      "maxi",
+      "coord",
+      "blouse",
+      "vest",
+    ]);
+    const firstOther = list.findIndex((i) => i.category !== "dress");
+    expect(list.slice(firstOther).every((i) => i.category !== "dress")).toBe(
+      true,
+    );
+  });
+
   it("only catalogue photo names are servable", () => {
     expect(catalogFiles()).toHaveLength(29);
     expect(isCatalogFile("../items.ts")).toBe(false);

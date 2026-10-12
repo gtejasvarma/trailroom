@@ -1,15 +1,19 @@
 "use client";
-// "Your photo is in": the screen after an upload-first upload. Four render-ready pieces, each
-// starting a try-on with the default photo, and a way back to browsing.
+// "Your photo is in": the first thing a new member sees after an upload-first sign-up. A few
+// render-ready pieces (dresses and full-length pieces first) shown large like the Discover cards;
+// one "Try it on" per piece starts the try-on with the photo they just added (the default photo),
+// with no "Which photo?" step. A quiet link leads to the whole catalogue.
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { catalogUrl, startWithThese } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
 import { messageOf, paths, startTryOnPath } from "../lib/flow";
 import { usePhotos } from "../lib/use-photos";
-import { alertStyle, h1, labelStyle, page } from "../lib/ui";
+import { alertStyle, btnLink, h1 } from "../lib/ui";
 import { PhotoThumb } from "./photo-thumb";
-import { ButtonLink } from "./ui/button";
+import { Button } from "./ui/button";
+import { PhotoFrames } from "./ui/photo-frames";
 
 export function StartersScreen() {
   const router = useRouter();
@@ -35,8 +39,8 @@ export function StartersScreen() {
   }
 
   return (
-    <div className={`${page} max-w-[720px]`}>
-      <div className="mb-5 flex items-center gap-3.5">
+    <div className="mx-auto w-full max-w-[1200px] px-4 py-6 md:px-8 md:py-10">
+      <div className="mb-6 flex items-center gap-3.5 md:mb-8">
         {def ? (
           <PhotoThumb
             src={def.thumbUrl}
@@ -52,52 +56,56 @@ export function StartersScreen() {
         </div>
       </div>
       {error ? (
-        <p role="alert" className={`mb-3 ${alertStyle}`}>
+        <p role="alert" className={`mb-4 ${alertStyle}`}>
           {error}
         </p>
       ) : null}
-      <p className={`mb-3 ${labelStyle}`}>{copy.starters.kicker}</p>
       <ul
         data-testid="starters"
-        className="m-0 mb-6 grid list-none grid-cols-2 gap-x-3 gap-y-5 p-0 md:grid-cols-4"
+        aria-label={copy.starters.listLabel}
+        className="m-0 mb-8 grid list-none grid-cols-2 gap-x-3 gap-y-8 p-0 md:grid-cols-4 md:gap-x-6"
       >
         {items.map((item) => (
-          <li key={item.id}>
-            <button
-              type="button"
-              data-testid="starter"
+          <li key={item.id} data-testid="starter" className="flex flex-col">
+            <PhotoFrames
+              name={item.name}
+              frames={item.photos.map((p) => ({
+                src: catalogUrl(p.file),
+                alt: copy.item.imageAlt(item.name, item.label, p.label),
+                focus: p.focus,
+              }))}
+              aspect="aspect-[3/4]"
+              rounded="rounded-md"
+            />
+            <div className="flex-1">
+              <div className="flex items-baseline gap-2 pt-3">
+                <span className="min-w-0 flex-1 text-[15px] leading-5 text-ink">
+                  {item.name}
+                </span>
+                <span className="flex-none text-[15px] leading-5 text-ink tabular-nums">
+                  {copy.item.price(item.priceUsd)}
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-[13px] leading-[18px] text-ink-600">
+                {item.label}
+              </p>
+            </div>
+            <Button
+              size="md"
               disabled={busy !== null || !def}
               onClick={() => void start(item.id)}
-              className="block w-full text-left disabled:opacity-60"
+              data-testid="starter-try"
+              className="mt-3 w-full md:w-auto md:self-start md:px-6"
             >
-              <span className="mb-2 block aspect-[3/4] overflow-hidden rounded-lg bg-canvas">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={catalogUrl(item.photos[0]!.file)}
-                  alt=""
-                  className="size-full object-cover"
-                  style={{ objectPosition: item.photos[0]!.focus }}
-                />
-              </span>
-              <span className="block text-[15px] leading-5 text-ink">
-                {item.name}
-              </span>
-              <span className="block text-[15px] leading-5 font-semibold text-accent">
-                {busy === item.id ? copy.photo.starting : copy.starters.tryOn}
-                <span className="sr-only"> {item.name}</span>
-              </span>
-            </button>
+              {busy === item.id ? copy.photo.starting : copy.starters.tryOn}
+              <span className="sr-only"> {item.name}</span>
+            </Button>
           </li>
         ))}
       </ul>
-      <ButtonLink
-        href={paths.catalogue}
-        variant="outline"
-        size="lg"
-        className="w-full"
-      >
+      <Link href={paths.catalogue} className={btnLink}>
         {copy.starters.browse}
-      </ButtonLink>
+      </Link>
     </div>
   );
 }

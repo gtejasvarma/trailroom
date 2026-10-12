@@ -1,6 +1,13 @@
 import sharp from "sharp";
-import { beforeAll, describe, expect, it } from "vitest";
-import { checkImage, CHECKS, SKIPPED_CHECKS } from "./qa";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  checkImage,
+  CHECKS,
+  IDENTITY_CHECK,
+  IDENTITY_ON_SERVICE_ERROR,
+  SKIPPED_CHECKS,
+} from "./qa";
+import type { FaceMatchFn, FaceMatchResult } from "./face-match";
 
 async function make(
   w: number,
@@ -108,9 +115,8 @@ describe("checkImage", () => {
 });
 
 describe("check registry", () => {
-  it("registers the five M1 slots as skipped", async () => {
+  it("registers the four remaining M1 slots as skipped; identity is a real check", async () => {
     expect([...SKIPPED_CHECKS]).toEqual([
-      "identity",
       "proportion",
       "garment_fidelity",
       "artifacts",
@@ -124,5 +130,81 @@ describe("check registry", () => {
     expect(CHECKS.find((c) => c.id === "cross_pose_consistency")!.level).toBe(
       "set",
     );
+    expect(IDENTITY_CHECK).toBe("identity");
+    // With no service supplied it is skipped, exactly as before.
+    expect(
+      await CHECKS.find((c) => c.id === IDENTITY_CHECK)!.run({} as never),
+    ).toEqual({
+      status: "skipped",
+      note: "not_configured",
+    });
+  });
+});
+
+describe("the identity check", () => {
+  const face =
+    (r: Partial<FaceMatchResult>): FaceMatchFn =>
+    async () => ({
+      personFace: true,
+      renderFace: true,
+      distance: 0.6,
+      probability: 0.5,
+      ...r,
+    });
+  const run = (faceMatch: FaceMatchFn, min = 0.1, image = good) =>
+    checkImage({ image, personInput: person, faceMatch, faceMatchMin: min });
+
+  it("fails a match below the minimum with identity_mismatch", async () => {
+    expect(await run(face({ probability: 0.05 }))).toEqual({
+      verdict: "fail",
+      reasons: ["identity_mismatch"],
+      identity: { status: "fail", probability: 0.05 },
+    });
+  });
+  it("passes at or above the minimum", async () => {
+    expect((await run(face({ probability: 0.1 }))).identity).toEqual({
+      status: "pass",
+      probability: 0.1,
+    });
+    expect((await run(face({ probability: 0.9 }))).verdict).toBe("pass");
+  });
+  it("uses the minimum it is given", async () => {
+    expect((await run(face({ probability: 0.3 }), 0.5)).verdict).toBe("fail");
+  });
+  it("skips, with a note, when a face is missing on either side", async () => {
+    expect(await run(face({ personFace: false, probability: null }))).toEqual({
+      verdict: "pass",
+      reasons: [],
+      identity: { status: "skipped", note: "no_face_in_photo" },
+    });
+    expect(
+      (await run(face({ renderFace: false, probability: null }))).identity,
+    ).toEqual({
+      status: "skipped",
+      note: "no_face_in_render",
+    });
+  });
+  it("skips when the service cannot be reached (the policy constant says skip)", async () => {
+    expect(IDENTITY_ON_SERVICE_ERROR).toBe("skip");
+    const down: FaceMatchFn = async () => {
+      throw new Error("connect ECONNREFUSED");
+    };
+    expect(await run(down)).toEqual({
+      verdict: "pass",
+      reasons: [],
+      identity: { status: "skipped", note: "service_unavailable" },
+    });
+  });
+  it("does not call the service for an image that already failed", async () => {
+    const calls = vi.fn(face({}));
+    const image = await make(300, 400, textured(90));
+    const r = await run(calls, 0.1, image);
+    expect(calls).not.toHaveBeenCalled();
+    expect(r.reasons).toEqual(["too_small"]);
+  });
+  it("leaves identity out of the report when no service is supplied", async () => {
+    expect(
+      (await checkImage({ image: good, personInput: person })).identity,
+    ).toBeUndefined();
   });
 });

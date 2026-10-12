@@ -5,7 +5,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
-import { expect, test, uploadFirst } from "./helpers";
+import { expect, followLabels, test, uploadFirst } from "./helpers";
 import { SIZES, noHScroll, serious, settle } from "./e-helpers";
 import { publishViaScript } from "./g-helpers";
 
@@ -28,7 +28,8 @@ for (const size of SIZES) {
     test("a new piece from a followed label arrives as the label's photo, with no email anywhere", async ({
       page,
     }) => {
-      await uploadFirst(page); // an account; the first three labels are followed
+      await uploadFirst(page);
+      await followLabels(page); // an account that follows three labels
       const piece = publishViaScript();
       await page.goto("/");
 

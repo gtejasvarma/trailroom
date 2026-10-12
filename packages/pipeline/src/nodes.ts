@@ -4,6 +4,7 @@
 import { getItem } from "@trailroom/catalog";
 import {
   addPoseToSet,
+  addQaSkipped,
   deleteJob,
   deletePoseSet,
   dropArrivalCards,
@@ -47,7 +48,17 @@ import {
   nextStepForPose,
   routeSet,
 } from "./policy";
-import { checkImage, SKIPPED_CHECKS } from "./qa";
+import {
+  createFaceMatchClient,
+  faceMatchConfigFromEnv,
+  type FaceMatchTokenFn,
+} from "./face-match";
+import {
+  checkImage,
+  IDENTITY_CHECK,
+  SKIPPED_CHECKS,
+  type IdentityOutcome,
+} from "./qa";
 import type {
   FailJobInput,
   FailJobOutput,
@@ -164,13 +175,20 @@ async function garmentsAndPrompt(
   };
 }
 
-/** Marks the job rendering and records which QA checks this build does not run. */
+/**
+ * Marks the job rendering and records which QA checks this build does not run. Identity is on
+ * that list unless the face-match service is configured; a pose that is published without the
+ * identity check having judged it adds it back (see qaPose), so the list stays true per job.
+ */
 export async function prepare(input: PrepareInput): Promise<PrepareOutput> {
   const job = await mustJob(input.jobId);
   if (job.status === "queued") {
     await updateJob(input.jobId, {
       status: "rendering",
-      qaSkipped: [...SKIPPED_CHECKS],
+      qaSkipped: [
+        ...(faceMatchConfigFromEnv() ? [] : [IDENTITY_CHECK]),
+        ...SKIPPED_CHECKS,
+      ],
     });
   }
   return { poses: job.poseOrder, maxAttempts: MAX_ATTEMPTS };
@@ -342,8 +360,18 @@ const REASON_FOR_OUTCOME: Record<
   capacity: "capacity",
 };
 
+export interface QaPoseDeps {
+  /** A Google-signed ID token for the face-match service URL (the app injects it). */
+  faceMatchToken?: FaceMatchTokenFn;
+  /** Test seam for the face-match call. */
+  fetchImpl?: typeof fetch;
+}
+
 /** Runs the gate on the staged image and records the verdict; replays return the record. */
-export async function qaPose(input: PoseAttemptInput): Promise<QaPoseOutput> {
+export async function qaPose(
+  input: PoseAttemptInput,
+  deps: QaPoseDeps = {},
+): Promise<QaPoseOutput> {
   const { jobId, pose, attempt } = input;
   const job = await mustJob(jobId);
   const rec = attemptRecord(job, pose, attempt);
@@ -364,6 +392,7 @@ export async function qaPose(input: PoseAttemptInput): Promise<QaPoseOutput> {
 
   let verdict: "pass" | "fail";
   let reasons: ReasonCode[];
+  let identity: IdentityOutcome | undefined;
   if (rec.outcome !== "rendered") {
     verdict = "fail";
     reasons = [REASON_FOR_OUTCOME[rec.outcome]];
@@ -376,12 +405,28 @@ export async function qaPose(input: PoseAttemptInput): Promise<QaPoseOutput> {
     if (!staged || !person) {
       throw new Error(`missing staged render or photo for ${pose} #${attempt}`);
     }
-    ({ verdict, reasons } = await checkImage({
+    const face = faceMatchConfigFromEnv();
+    ({ verdict, reasons, identity } = await checkImage({
       image: staged.data,
       personInput: person.data,
+      faceMatch: face
+        ? createFaceMatchClient({
+            url: face.url,
+            getToken: deps.faceMatchToken,
+            fetchImpl: deps.fetchImpl,
+          })
+        : undefined,
+      faceMatchMin: face?.min,
     }));
+    // A pose that will be published without the identity check having judged it: the job says
+    // so. Written before the attempt record, so a replay after a crash cannot lose it.
+    if (verdict === "pass" && identity?.status !== "pass") {
+      await addQaSkipped(jobId, IDENTITY_CHECK);
+    }
   }
-  await setAttemptRecord(jobId, pose, attempt, { qa: { verdict, reasons } });
+  await setAttemptRecord(jobId, pose, attempt, {
+    qa: { verdict, reasons, ...(identity ? { identity } : {}) },
+  });
   await setPoseState(jobId, pose, { reasons });
   return { verdict, reasons, next: nextStepForPose({ attempt, verdict }) };
 }

@@ -16,16 +16,27 @@ Favourites, the image size and the reveal of a finished try-on no longer follow 
 six, the ADR and the rows are the specification.** The prototypes were not edited, so they show the old version
 of those parts. The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
 **The demonstration was Friday 9 October 2026 and has passed. V0 (Phases A, B and C) is built and deployed**
-(behind the password when deployed) at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` (`a5b7918`, `f3ab209`,
-`2f11325`), and real try-ons have been generated on the hosted site. On 2026-10-11 the owner connected
-`trailroom.ai` to the same App Hosting backend (`docs/DEPLOY.md`, "Custom domain"); the `hosted.app`
-address must keep working, because the Workflow and Scheduler call it.
-**Phases A to G, the security fixes and the redesign are built and on `main`** (`328725a` lists, asks and the public
-vote page; `0ef59a4` You and Studio, Compare, Buy; `1c52f77` outfits; `4ea213f` the fixes of the security review of
-D to F; `a05f1ce` the follow loop; the redesign of 2026-10-11 on top of `fb4d8d6`). A to D are deployed. E, F, G, the
-security fixes and the redesign wait on one manual rules-and-indexes deploy and one manual rollout by Tejas
-(`docs/DEPLOY.md`); the redesign adds one composite index (`lists`: `isGuest`, `expiresAt`) and no rules change.
-**The password comes off at that rollout** (owner's decision, 2026-10-11; PRD §22.1 row 41; ADR 0004, amendment): `GATE` is `"off"` in `apps/web/apphosting.yaml`, and after the rollout the site is open to anyone and indexable by search engines. This was accepted with the following still open and not done: M1 (the QA gate is structural and cannot tell whether a render looks like the person or changed their body), strangers using up the day's render budget (bounded by `DAILY_CAP_USD` of 5 and the per-person limits; real visitors are then told the service is at capacity until the next UTC day), anyone uploading a photograph of anyone including a minor (only the consent line, no check), in-memory per-instance attempt limits with the proxy-hop check not yet run on the hosted site (DEPLOY smoke test step 19, required straight after the rollout), and no legal review. M1 is now the most urgent open item. The gate code, its secrets and its tests stay; local development and the test suites run with the gate on (they do not set `GATE`); only exactly `GATE=off` opens the site, so putting the password back is changing `GATE` (or deleting the entry) and one rollout (`docs/DEPLOY.md`, "The password gate"). `/api/internal/*` is unchanged (OIDC).
+at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` (`a5b7918`, `f3ab209`,
+`2f11325`), and real try-ons have been generated on the hosted site. **Phases A to G, the security fixes and the redesign
+are built, on `main` and rolled out** (`328725a` lists, asks and the public vote page; `0ef59a4` You and Studio, Compare,
+Buy; `1c52f77` outfits; `4ea213f` the fixes of the security review of D to F; `a05f1ce` the follow loop; the redesign of
+2026-10-11, ADR 0006, `9d5694d`). The rollout of `9d5694d` completed on 2026-10-11 and **the site is live and public: `https://trailroom.ai`
+opens with no password** (owner's decision, 2026-10-11; PRD §22.1 row 41; ADR 0004, amendment). The domain was connected to the same
+App Hosting backend that day (`docs/DEPLOY.md`, "Custom domain"); the `hosted.app` address must keep working, because the
+Workflow and Scheduler call it. `GATE` is `"off"` in `apps/web/apphosting.yaml`, and search engines may index the site. This was accepted with the following still open and not done: M1 (the eval; see below), strangers using up the day's render budget (bounded by `DAILY_CAP_USD` of 5 and the per-person limits; real visitors are then told the service is at capacity until the next UTC day), anyone uploading a photograph of anyone including a minor (only the consent line, no check), in-memory per-instance attempt limits with the proxy-hop check not yet run on the hosted site (DEPLOY smoke test step 19, required straight after the rollout), and no legal review. The gate code, its secrets and its tests stay; local development and the test suites run with the gate on (they do not set `GATE`); only exactly `GATE=off` opens the site, so putting the password back is changing `GATE` (or deleting the entry) and one rollout (`docs/DEPLOY.md`, "The password gate"). `/api/internal/*` is unchanged (OIDC).
+**Two changes asked for by the owner on 2026-10-11 are on `main` after `9d5694d` and are not rolled out** (PRD §22.1 rows 42 and 43):
+1. **No more "Pick three labels".** After uploading from the home page hero and signing up, a person lands directly on the
+   starters screen ("Your photo is in", `/upload/done`): four pieces to try on, dresses and full-length pieces first, one tap
+   each. The label step, its page and its component are removed; `/upload/labels` redirects to the starters. Nobody is made to
+   follow labels; following stays on label and product pages. This departs from the prototypes. A new account follows nothing,
+   so the new-arrivals shelf (and, if ever switched on, the buffer and the new-arrival email) has nothing for it until the person follows a label.
+2. **A face check in the QA gate, and a 2-of-4 set rule** (ADR 0007). The gate's identity slot is a real check: a separate
+   private Python service, `services/face-match/`, compares the face in each render with the person's photo, and a match
+   probability below 50% (`FACE_MATCH_MIN`; first set at 10%, raised by the owner on 2026-10-12) fails the pose with `identity_mismatch`, so the render is never shown. **The service is
+   not deployed yet**: `FACE_MATCH_URL` is unset in production, so the check is skipped there exactly as before (the owner deploys it by hand,
+   `docs/DEPLOY.md`, "The face-match service"). The probability is a convenience mapping of a face distance, not a measured
+   probability, and it is uncalibrated. A four-pose try-on now completes with 2 or 3 passed poses (it needed 3) and fails with 0 or 1,
+   whatever the reason a pose failed; single-pose jobs are unchanged. It is processing of face geometry, and whether the consent line covers it is an open question for the legal review (PRD §22.5 question 11).
 The catalogue's photographs were replaced with sharper ones on 2026-10-11 and the owner copied all 33 files to
 Cloud Storage. **Phase G ships with two switches, both off, because the owner has not decided either:**
 `EMAIL_TRANSPORT` (default `none`: nothing is sent, nothing is recorded, and the product shows no email controls or
@@ -37,13 +48,14 @@ never run with the real image model, and no real email has been sent. Phase H (h
 security review and its fixes); the rest is not started.
 
 Where things stand: M0 is done. M2 + M3 (the pipeline, the Cloud Workflow) are deployed and
-carry over; their original screens and catalogue were replaced in Phases A to C. **M1 (the eval) is unfinished**: the QA gate in `packages/pipeline` is structural
-only, and its identity, proportion, garment and cross-pose checks are empty slots until M1 supplies
-them (ADR 0004). Known issue: `scripts/live-smoke.ts` imports `apps/web/src/server/consent`, which no
+carry over; their original screens and catalogue were replaced in Phases A to C. **M1 (the eval) is unfinished and is now the most urgent open item**: the QA gate in `packages/pipeline` is structural
+except for the identity check (ADR 0007), which exists in the code but runs only once the face-match service is deployed and is
+uncalibrated. Its proportion, garment, artifact and cross-pose checks are empty slots until M1 supplies them (ADR 0004), so
+the gate still cannot tell whether a render changed a person's body or got the garment right. M1 is also what would calibrate the face threshold. Known issue: `scripts/live-smoke.ts` imports `apps/web/src/server/consent`, which no
 longer exists, so it does not run; `scripts/outfit-smoke.ts` is the working live script.
 
 Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at this product — see
-`docs/decisions/0001-reuse-firebase-project.md`). This is production, and from the next rollout the site is open to the public (no password). See Hard rules below.
+`docs/decisions/0001-reuse-firebase-project.md`). This is production, and the site is open to the public (no password). See Hard rules below.
 
 ## Commands
 
@@ -69,14 +81,16 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 | `mocks/support.js`, `mocks/Trailroom Desktop Designer.dc.html`, `mocks/Conversion Audit.dc.html` | The runtime that makes the `.dc.html` files run outside the Claude Design canvas. The Designer file is the reference for the deferred back office; the Audit is a 44-item conversion audit. `support.canvas.js` is the real Claude Design export — reference only, requires `window.React`, won't run standalone. |
 | `packages/render/` | The one chokepoint for image-model calls: model/price table, the prompts (`edit-v1` for one piece, `outfit-v1` for two pieces in one image), the spend ledger interface, and a fake provider for tests (refused in production). |
 | `packages/db/` | The one place that talks to Firestore and Cloud Storage: typed repositories and the Firestore-backed daily spend ledger. `merge.ts` moves a guest's things into an existing Google account at sign-in; `usage.ts` holds the daily try-on counts per uid, which removing a try-on never resets ("Delete everything" removes the sign-in, so the person returns under a new uid with a fresh count). |
-| `packages/pipeline/` | M3: the render graph's nodes, the QA gate, the routing policy, and the inline orchestrator used by local dev and tests. `published-catalog.ts` publishes pieces to Firestore and Cloud Storage and changes their prices; `script-guard.ts` makes operational scripts refuse a real project unless given its exact id. |
+| `packages/pipeline/` | M3: the render graph's nodes, the QA gate, the routing policy (`routeSet`: a four-pose set completes with 2 or 3 passed poses), the client for the face-match service (`face-match.ts`), and the inline orchestrator used by local dev and tests. `published-catalog.ts` publishes pieces to Firestore and Cloud Storage and changes their prices; `script-guard.ts` makes operational scripts refuse a real project unless given its exact id. |
 | `packages/catalog/` | The demo catalogue and the copy rules. `assets/` holds the garment images that get copied to Cloud Storage; `assets/prototype/` holds the prototype's images (cleared by Tejas, ADR 0005) for the Phase A catalogue. |
+| `services/face-match/` | The face check: a private Python 3.11 / FastAPI service (`face_recognition` on dlib) that says whether the face in a render is the face in the person's photo. Not deployed yet; its `README.md` has the API, the privacy notes and the deploy steps. ADR 0007. |
 | `workflows/render-pose-set.yaml` | M3: the Cloud Workflow that drives the graph in production by calling `/api/internal/pipeline/*`. |
 | `firestore.rules`, `storage.rules` | Clients read their own job, pose set and consent; they write nothing; Storage is closed to clients. Lists, asks (with votes), inbox entries, purchases, published pieces and their events, arrivals, and email preferences, sent-keys and unsubscribe tokens are server-only, with explicit denies. |
+| `docs/SYSTEM.md` | How the whole system works, for explaining it to someone: the system diagram, the layers, auth, a try-on step by step, the quality gate, the data design, caching, cost and the weak points. Keep it true when the architecture changes. |
 | `docs/DEPLOY.md` | The manual deploy runbook. Read before changing anything deploy-related. |
 | `packages/render-eval/` | M1: the eval harness. `npm run eval:generate -- --dry-run` plans a run; drop `--dry-run` to generate into `runs/<run>/`. |
 | `fixtures/` | Eval inputs: `manifest.json` (committed), `CONSENT.md`, images (git-ignored; repo is public). See ADR 0002. |
-| `apps/web/` | The product: Next.js on Firebase App Hosting, open to the public from the next rollout (the password gate is switched off by `GATE=off` in `apphosting.yaml`; it was on for Phases A to D, which are deployed; E, F, G and the 2026-10-11 redesign built, awaiting rollout). `src/server/` holds the logic behind the route handlers (`arrivals.ts` the buffer and the new-arrivals shelf, `follow-config.ts` the two switches, `email/` the transports, templates and the email step); all UI strings live in `src/lib/copy.ts`. Outside the password gate, besides `/gate` and the OIDC-checked `/api/internal/*`: the public vote page `/ask/[token]` with the API under `/api/ask/[token]`, and the unsubscribe page `/unsubscribe/[token]` with `POST /api/unsubscribe/[token]` (`src/lib/gate-paths.ts`). |
+| `apps/web/` | The product: Next.js on Firebase App Hosting, live and open to the public at `trailroom.ai` (the password gate is switched off by `GATE=off` in `apphosting.yaml`; it was on for Phases A to D; E, F, G and the 2026-10-11 redesign were rolled out with `9d5694d`; the removal of the label step and the face check are on `main`, not yet rolled out). `src/server/` holds the logic behind the route handlers (`arrivals.ts` the buffer and the new-arrivals shelf, `follow-config.ts` the two switches, `email/` the transports, templates and the email step); all UI strings live in `src/lib/copy.ts`. Outside the password gate, besides `/gate` and the OIDC-checked `/api/internal/*`: the public vote page `/ask/[token]` with the API under `/api/ask/[token]`, and the unsubscribe page `/unsubscribe/[token]` with `POST /api/unsubscribe/[token]` (`src/lib/gate-paths.ts`). |
 | `scripts/` | `hero-proof.ts` renders the home page hero's proof photograph (one real render of a catalogue piece on the fictional test person s01, `edit-v1`, Front, about $0.04, ceiling $0.15; spends money); `upscale-catalog.ts` restores the small pose-set photographs at 896 x 1200 through `packages/render` (about $0.04 each, ceiling $1.50; reads the untouched originals from `runs/upscale/original/`, writes to `runs/upscale/out/`, both git-ignored; spends money); `outfit-smoke.ts` renders real outfits against the image model (spends money); `seed-catalog.ts`; `publish-piece.ts` publishes a piece to a label or changes a published piece's price (emulators by default; a real project only with `--allow-real-project <exact project id>`, and production runs are Tejas's to do by hand); `follow-loop-once.ts` runs the scheduled follow-loop step once against the emulators; `live-smoke.ts` is broken (see above). |
 | `tools/label.html` | Standalone contact-sheet labeler for eval error analysis (BUILD_PLAN §2.2c) — `j`/`k` to navigate, `1`/`0` to label, writes JSONL. Open directly in a browser. |
 | `archive/prototypes-2026-10-07/` | The verbatim extracted source of the two linked prototype artifacts. Provenance only; the aligned versions in `mocks/` are the spec. |
@@ -97,7 +111,7 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
   estimation or any other safeguard unless the code does it; and in V0 no copy promises an email,
   because none is sent. (§22.1 rows 3 and 10.)
 - **No render ships that failed QA.** No "show it anyway" flag, no debug bypass that can reach a user.
-  (Principle 1, §10.3, C6.)
+  An identity mismatch from the face check is a QA failure like any other. (Principle 1, §10.3, C6.)
 - **Every rendered image is shown with a visible AI label beside it**, never drawn on the image
   itself. This covers the home page hero's "on her photo" render and the "on you" card on Discover
   (a gap in this rule was found and closed in the 2026-10-11 redesign). No in-pixel label, for guests or anyone (Tejas, 2026-10-07, overriding PRD §15 — see

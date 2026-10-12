@@ -21,6 +21,10 @@ import {
   WORKFLOWS_SA,
 } from "./oidc-testkit";
 import { makeDriver } from "./workflow-driver";
+import {
+  poseOfFakeRender,
+  startFakeFaceServer,
+} from "../../../../packages/pipeline/src/face-match-testkit";
 
 const key = makeKey();
 const UID = "u-parity";
@@ -114,8 +118,17 @@ const SCENARIOS: [string, FakeRule[], string][] = [
     "complete_partial",
   ],
   [
-    "two poses failing twice (failed set)",
+    "two poses failing twice (partial, two shown)",
     [
+      { pose: "walking", outcome: "blank", times: 5 },
+      { pose: "seated", outcome: "undersized", times: 5 },
+    ],
+    "complete_partial",
+  ],
+  [
+    "three poses failing twice (failed set)",
+    [
+      { pose: "three-quarter", outcome: "blank", times: 5 },
       { pose: "walking", outcome: "blank", times: 5 },
       { pose: "seated", outcome: "undersized", times: 5 },
     ],
@@ -131,8 +144,34 @@ describe("workflow order over the node endpoints == runInline", () => {
     expect(wf).toEqual(inline);
     expect(wf.returned).toBe(status);
     if (status !== "failed")
-      expect(wf.renders.length).toBeGreaterThanOrEqual(3);
+      expect(wf.renders.length).toBeGreaterThanOrEqual(2);
     else expect(wf.renders).toEqual([]);
+  });
+
+  it("with the face check on, a mismatching pose ends the same way under both drivers", async () => {
+    const face = await startFakeFaceServer();
+    process.env.FACE_MATCH_URL = face.url;
+    try {
+      face.answer(async (req) => ({
+        probability:
+          (await poseOfFakeRender(req.render)) === "walking" ? 0.02 : 0.9,
+      }));
+      const inline = await viaInline([], true);
+      await reset();
+      const wf = await viaWorkflow([], true);
+      expect(wf).toEqual(inline);
+      expect(wf.returned).toBe("complete_partial");
+      expect(wf.poseStates.walking.reasons).toEqual(["identity_mismatch"]);
+      expect(wf.renders).toHaveLength(3);
+      expect(wf.job.qaSkipped).not.toContain("identity");
+      // The handler asked for no token: the service is on a local URL.
+      expect(face.requests.every((r) => r.authorization === undefined)).toBe(
+        true,
+      );
+    } finally {
+      delete process.env.FACE_MATCH_URL;
+      await face.close();
+    }
   });
 
   it("capacity mid-set: both end failed(capacity) with nothing published", async () => {

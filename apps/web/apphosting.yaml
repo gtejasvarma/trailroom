@@ -119,6 +119,21 @@ env:
   #   value: "1"
   #   availability:
   #     - RUNTIME
+  # ---- The face check (services/face-match, see its README for the deploy steps). ----
+  # FACE_MATCH_URL is the Cloud Run URL of trailroom-face-match, no trailing slash. Absent or empty
+  # (the default) leaves the identity check skipped, exactly as before the service existed. With it
+  # set, every render's face is compared with the person's own photo before it can be shown, and a
+  # match probability below FACE_MATCH_MIN fails the pose. The app calls the service with a
+  # Google-signed token, so the App Hosting runtime service account needs roles/run.invoker on it.
+  # - variable: FACE_MATCH_URL
+  #   value: https://trailroom-face-match-REPLACE-ME.us-central1.run.app
+  #   availability:
+  #     - RUNTIME
+  # The lowest match probability that still shows (default 0.50, the owner's rule of 2026-10-12).
+  # - variable: FACE_MATCH_MIN
+  #   value: "0.50"
+  #   availability:
+  #     - RUNTIME
   # How email leaves: none (the default) sends nothing, records nothing and hides every email
   # control and sentence in the product. Uncomment and set it when a provider transport exists;
   # "log" is for local dev and tests only and is refused in production.

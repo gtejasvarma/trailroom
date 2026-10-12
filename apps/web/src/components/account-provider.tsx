@@ -1,7 +1,6 @@
 "use client";
 // The one account sheet for the whole app, and what happens after sign-in (the prototype's
-// resumeIntent): reveal opens the result, picknext goes to the post-signup labels (a brand new
-// account) or the starters, list opens the list sheet for the piece, buy opens the buy sheet for it. Dismissing the
+// resumeIntent): reveal opens the result, picknext goes to the starters ("Your photo is in"), list opens the list sheet for the piece, buy opens the buy sheet for it. Dismissing the
 // sheet never loses anything: the photo and try-on stay with the guest session.
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -121,7 +120,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         if (pathname !== paths.tryOn(intent.jobId))
           router.push(paths.tryOn(intent.jobId));
       } else if (reason === "picknext") {
-        router.push(paths.welcome);
+        router.push(paths.starters);
       } else if (reason === "list") {
         // Back where they were, with the list sheet open for the piece they meant to save.
         say(copy.toasts.signedIn);

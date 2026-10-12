@@ -21,6 +21,16 @@ const config: NextConfig = {
     // route's own byte counter still enforces 10 MiB. (Docs: proxyClientMaxBodySize.)
     proxyClientMaxBodySize: "11mb",
   },
+  // The old "Pick three labels" step is gone; its URL leads to "Your photo is in".
+  async redirects() {
+    return [
+      {
+        source: "/upload/labels",
+        destination: "/upload/done",
+        permanent: false,
+      },
+    ];
+  },
   // The public vote page is never indexed, cached or sent as a referrer (its URL is the secret).
   // Its API sets the same headers itself.
   async headers() {

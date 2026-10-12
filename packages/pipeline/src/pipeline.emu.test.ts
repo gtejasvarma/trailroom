@@ -1,5 +1,13 @@
 import sharp from "sharp";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { clearFirestore } from "../../db/src/emu-helpers";
 import { getItem } from "@trailroom/catalog";
 import {
@@ -40,6 +48,11 @@ import {
 } from "./nodes";
 import { loadItemImage } from "./catalog-images";
 import { runInline } from "./inline";
+import {
+  poseOfFakeRender,
+  startFakeFaceServer,
+  type FakeFaceServer,
+} from "./face-match-testkit";
 import {
   clearBucket,
   jobSnapshot,
@@ -144,15 +157,33 @@ describe("runInline", () => {
     expect((await spendLines(j.jobId)).length).toBe(5);
   });
 
-  it("two poses failing twice fails the set and withdraws what had passed", async () => {
-    const j = await makeJob("u-failset");
+  it("two poses failing twice still show the other two: complete_partial", async () => {
+    const j = await makeJob("u-twofail");
     setFakeScript([
       { pose: "walking", outcome: "blank", times: 5 },
       { pose: "seated", outcome: "undersized", times: 5 },
     ]);
     const r = await runInline(j.jobId);
+    expect(r).toEqual({
+      status: "complete_partial",
+      published: ["front", "three-quarter"],
+    });
+    expect((await getPoseSet(j.poseSetId))!.poses).toHaveLength(2);
+    expect(await rendersOf(j)).toHaveLength(2);
+  });
+
+  it("three poses failing twice fails the set and withdraws what had passed", async () => {
+    const j = await makeJob("u-failset");
+    setFakeScript([
+      { pose: "three-quarter", outcome: "blank", times: 5 },
+      { pose: "walking", outcome: "blank", times: 5 },
+      { pose: "seated", outcome: "undersized", times: 5 },
+    ]);
+    const r = await runInline(j.jobId);
     expect(r).toEqual({ status: "failed", published: [] });
-    expect(callsFor("walking") + callsFor("seated")).toBe(4);
+    expect(
+      callsFor("three-quarter") + callsFor("walking") + callsFor("seated"),
+    ).toBe(6);
     const job = (await getJob(j.jobId))!;
     expect(job.status).toBe("failed");
     expect(job.failure?.code).toBe("render_failed");
@@ -686,6 +717,225 @@ describe("invariant", () => {
       }
     },
   );
+});
+
+describe("the face check", () => {
+  let face: FakeFaceServer;
+  /** Poses whose renders the fake service calls a different person, for the first `times` looks. */
+  const mismatch = (poses: string[], times = 99) => {
+    const seen: Record<string, number> = {};
+    face.answer(async (req) => {
+      const pose = await poseOfFakeRender(req.render);
+      seen[pose] = (seen[pose] ?? 0) + 1;
+      return poses.includes(pose) && seen[pose]! <= times
+        ? { probability: 0.03 }
+        : { probability: 0.8 };
+    });
+  };
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+  beforeEach(async () => {
+    face = await startFakeFaceServer();
+    process.env.FACE_MATCH_URL = face.url;
+    delete process.env.FACE_MATCH_MIN;
+    errors.mockClear();
+  });
+  afterEach(async () => {
+    delete process.env.FACE_MATCH_URL;
+    delete process.env.FACE_MATCH_MIN;
+    await face.close();
+  });
+
+  it("a match passes: four published, the job no longer lists identity as skipped", async () => {
+    const j = await makeJob("u-face-ok");
+    mismatch([]);
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("complete");
+    const job = (await getJob(j.jobId))!;
+    expect(job.qaSkipped).not.toContain("identity");
+    expect(job.qaSkipped).toEqual([
+      "proportion",
+      "garment_fidelity",
+      "artifacts",
+      "cross_pose_consistency",
+    ]);
+    expect(job.poses.front!.attempts!["1"]!.qa).toEqual({
+      verdict: "pass",
+      reasons: [],
+      identity: { status: "pass", probability: 0.8 },
+    });
+    expect(face.requests).toHaveLength(4);
+    // No token for a local URL.
+    expect(face.requests.every((q) => q.authorization === undefined)).toBe(
+      true,
+    );
+    expect(await rendersOf(j)).toHaveLength(4);
+  });
+
+  it("a mismatch fails the pose, which is retried once and never published", async () => {
+    const j = await makeJob("u-face-bad");
+    mismatch(["walking"]);
+    const r = await runInline(j.jobId);
+    expect(r).toEqual({
+      status: "complete_partial",
+      published: ["front", "three-quarter", "seated"],
+    });
+    expect(callsFor("walking")).toBe(2);
+    const job = (await getJob(j.jobId))!;
+    expect(job.poses.walking!.status).toBe("failed");
+    expect(job.poses.walking!.reasons).toEqual(["identity_mismatch"]);
+    expect(job.poses.walking!.attempts!["2"]!.qa).toEqual({
+      verdict: "fail",
+      reasons: ["identity_mismatch"],
+      identity: { status: "fail", probability: 0.03 },
+    });
+    expect(await rendersOf(j)).toHaveLength(3);
+    expect((await rendersOf(j)).some((n) => n.includes("walking"))).toBe(false);
+    expect(await listObjects(`staging/${j.jobId}/`)).toEqual([]);
+    // Failed poses still cost: 4 poses plus the walking retry.
+    expect((await spendLines(j.jobId)).length).toBe(5);
+    // The poses that were published were all judged, so identity is not listed as skipped.
+    expect(job.qaSkipped).not.toContain("identity");
+  });
+
+  it("a mismatch on the first look only: the retry passes and the set is complete", async () => {
+    const j = await makeJob("u-face-retry");
+    mismatch(["seated"], 1);
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("complete");
+    expect(callsFor("seated")).toBe(2);
+    expect((await getJob(j.jobId))!.poses.seated!.attempt).toBe(2);
+  });
+
+  it("1 or 2 mismatching poses show the others; 3 or 4 fail the set", async () => {
+    const all = ["front", "three-quarter", "walking", "seated"];
+    for (const n of [1, 2, 3, 4]) {
+      await clearFirestore();
+      await clearBucket();
+      setFakeScript(null);
+      const j = await makeJob(`u-face-n${n}`);
+      mismatch(all.slice(0, n));
+      const r = await runInline(j.jobId);
+      if (n <= 2) {
+        expect(r.status).toBe("complete_partial");
+        expect(r.published).toEqual(all.slice(n));
+        expect(await rendersOf(j)).toHaveLength(4 - n);
+        expect((await getPoseSet(j.poseSetId))!.poses).toEqual(all.slice(n));
+      } else {
+        expect(r).toEqual({ status: "failed", published: [] });
+        const job = (await getJob(j.jobId))!;
+        expect(job.status).toBe("failed");
+        expect(job.failure?.code).toBe("render_failed");
+        expect(await rendersOf(j)).toEqual([]);
+        expect((await getPoseSet(j.poseSetId))!.status).toBe("failed");
+      }
+    }
+  });
+
+  it("a single-pose job (an outfit or an arrival) whose pose mismatches fails", async () => {
+    const j = await makeJob("u-face-single", "blouse", ["front"]);
+    mismatch(["front"]);
+    const r = await runInline(j.jobId);
+    expect(r).toEqual({ status: "failed", published: [] });
+    expect(callsFor("front")).toBe(2);
+    expect(await rendersOf(j)).toEqual([]);
+  });
+
+  it("no face on either side is skipped, not failed; the job says identity did not run", async () => {
+    const j = await makeJob("u-face-none");
+    face.answer(async (req) =>
+      (await poseOfFakeRender(req.render)) === "seated"
+        ? { renderFace: false }
+        : { personFace: false },
+    );
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("complete");
+    const job = (await getJob(j.jobId))!;
+    expect(job.poses.seated!.attempts!["1"]!.qa).toEqual({
+      verdict: "pass",
+      reasons: [],
+      identity: { status: "skipped", note: "no_face_in_render" },
+    });
+    expect(job.poses.front!.attempts!["1"]!.qa!.identity).toEqual({
+      status: "skipped",
+      note: "no_face_in_photo",
+    });
+    expect(job.qaSkipped).toContain("identity");
+  });
+
+  it("a service that errors is skipped after the retry, logged, and the job says so", async () => {
+    const j = await makeJob("u-face-down");
+    face.answer(() => ({ status: 503 }));
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("complete");
+    const job = (await getJob(j.jobId))!;
+    expect(job.poses.front!.attempts!["1"]!.qa).toEqual({
+      verdict: "pass",
+      reasons: [],
+      identity: { status: "skipped", note: "service_unavailable" },
+    });
+    expect(job.qaSkipped).toContain("identity");
+    expect(face.requests).toHaveLength(8); // four poses, each tried twice
+    expect(
+      errors.mock.calls.some((c) =>
+        String(c[0]).startsWith("face-match unavailable"),
+      ),
+    ).toBe(true);
+  });
+
+  it("a service that is not there at all is skipped the same way", async () => {
+    await face.close();
+    const j = await makeJob("u-face-gone");
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("complete");
+    expect((await getJob(j.jobId))!.qaSkipped).toContain("identity");
+  });
+
+  it("switched off (no URL): the service is never called and the job lists identity as skipped", async () => {
+    delete process.env.FACE_MATCH_URL;
+    const j = await makeJob("u-face-off");
+    mismatch(["front", "walking", "seated", "three-quarter"]);
+    const r = await runInline(j.jobId);
+    expect(r.status).toBe("complete");
+    expect(face.requests).toEqual([]);
+    const job = (await getJob(j.jobId))!;
+    expect(job.qaSkipped).toEqual([
+      "identity",
+      "proportion",
+      "garment_fidelity",
+      "artifacts",
+      "cross_pose_consistency",
+    ]);
+    expect(job.poses.front!.attempts!["1"]!.qa).toEqual({
+      verdict: "pass",
+      reasons: [],
+    });
+  });
+
+  it("FACE_MATCH_MIN moves the line", async () => {
+    process.env.FACE_MATCH_MIN = "0.9";
+    const j = await makeJob("u-face-min", "blouse", ["front"]);
+    face.answer(() => ({ probability: 0.8 }));
+    expect((await runInline(j.jobId)).status).toBe("failed");
+  });
+
+  it("qaPose presents the injected token and replays without a second call", async () => {
+    const j = await makeJob("u-face-token", "blouse", ["front"]);
+    await prepare({ jobId: j.jobId });
+    await renderPose({ jobId: j.jobId, pose: "front", attempt: 1 });
+    const faceMatchToken = vi.fn(async () => "tok");
+    const once = await qaPose(
+      { jobId: j.jobId, pose: "front", attempt: 1 },
+      { faceMatchToken },
+    );
+    expect(once.verdict).toBe("pass");
+    expect(face.requests[0]!.authorization).toBe("Bearer tok");
+    expect(faceMatchToken).toHaveBeenCalledWith(face.url);
+    expect(await qaPose({ jobId: j.jobId, pose: "front", attempt: 1 })).toEqual(
+      once,
+    );
+    expect(face.requests).toHaveLength(1);
+  });
 });
 
 it("fixture sanity: photo is stored", async () => {

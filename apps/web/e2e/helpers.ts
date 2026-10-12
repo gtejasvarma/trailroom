@@ -147,30 +147,33 @@ export async function uploadFirstAsGuest(page: Page) {
   ).toBeVisible();
 }
 
-/** Picks three labels on "Pick three labels" and taps Done. Ends on "Your photo is in". */
-export async function pickThreeLabels(page: Page) {
-  await expect(page).toHaveURL(/\/upload\/labels$/);
-  const done = page.getByTestId("labels-done");
-  await expect(done).toBeDisabled();
-  const rows = page.getByTestId("label-picks").getByRole("button");
-  await rows.nth(0).click();
-  await expect(done).toHaveText("Pick 2 more");
-  await rows.nth(1).click();
-  await expect(done).toHaveText("Pick 1 more");
-  await expect(done).toBeDisabled();
-  await rows.nth(2).click();
-  await expect(done).toHaveText("Done");
-  await expect(done).toBeEnabled();
-  await done.click();
-  await expect(page).toHaveURL(/\/upload\/done$/);
-}
-
 /** Upload first, creating an account on the way. Ends on "Your photo is in", signed in. */
 export async function uploadFirst(page: Page) {
   await uploadFirstAsGuest(page);
   await continueWithGoogle(page);
-  await pickThreeLabels(page);
+  await expect(page).toHaveURL(/\/upload\/done$/);
   await expect(page.getByTestId("starter")).toHaveCount(4);
+}
+
+/**
+ * Follows these labels from their label pages (the sign-up no longer asks for any). Ends on the
+ * last label page; the caller goes wherever it needs next.
+ */
+export async function followLabels(
+  page: Page,
+  labels: { slug: string; name: string }[] = [
+    { slug: "ansel-ward", name: "ANSEL WARD" },
+    { slug: "marchand", name: "MARCHAND" },
+    { slug: "loam-studio", name: "LOAM STUDIO" },
+  ],
+) {
+  for (const l of labels) {
+    await page.goto(`/label/${l.slug}`);
+    await page.getByRole("button", { name: `Follow ${l.name}` }).click();
+    await expect(
+      page.getByRole("button", { name: new RegExp(`^Following ${l.name}`) }),
+    ).toBeVisible();
+  }
 }
 
 /** The "Which photo?" sheet that follows Try it on when photos exist: start with the default. */

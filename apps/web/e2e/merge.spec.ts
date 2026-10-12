@@ -25,7 +25,7 @@ async function existingAccount(browser: Browser): Promise<string> {
   await passGate(p);
   await uploadFirstAsGuest(p);
   const email = await continueWithGoogle(p);
-  await expect(p).toHaveURL(/\/upload\/labels$/);
+  await expect(p).toHaveURL(/\/upload\/done$/);
   await ctx.close();
   return email;
 }

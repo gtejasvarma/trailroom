@@ -5,7 +5,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
-import { expect, listDocs, test, uploadFirst } from "./helpers";
+import { expect, followLabels, listDocs, test, uploadFirst } from "./helpers";
 import { SIZES, noHScroll, serious, settle } from "./e-helpers";
 import { publishViaScript, runFollowLoopOnce } from "./g-helpers";
 
@@ -29,6 +29,7 @@ for (const size of SIZES) {
       page,
     }) => {
       await uploadFirst(page);
+      await followLabels(page);
       const piece = publishViaScript();
       const out = JSON.parse(runFollowLoopOnce());
       expect(out.arrivals).toMatchObject({ enabled: true, started: 1 });
@@ -71,6 +72,7 @@ for (const size of SIZES) {
       page,
     }) => {
       await uploadFirst(page);
+      await followLabels(page);
       const piece = publishViaScript();
       // The model refuses the Front pose: the card never appears.
       const { setScript } = await import("./helpers");
@@ -91,6 +93,7 @@ for (const size of SIZES) {
       page,
     }) => {
       await uploadFirst(page);
+      await followLabels(page);
       await page.goto("/you");
       const prefs = page.getByTestId("email-prefs");
       await expect(prefs).toBeVisible();

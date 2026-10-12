@@ -5,13 +5,14 @@ export type { FailureCode, JobStatus, PoseStatus };
 
 export type Verdict = "pass" | "fail";
 
-/** Why an image failed QA. The first five are structural checks; the rest are render outcomes. */
+/** Why an image failed QA. The first five are structural checks, then the identity check; the rest are render outcomes. */
 export type ReasonCode =
   | "undecodable"
   | "too_small"
   | "wrong_aspect"
   | "blank"
   | "copy_of_input"
+  | "identity_mismatch"
   | "blocked"
   | "no_image"
   | "model_error"

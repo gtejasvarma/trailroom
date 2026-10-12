@@ -13,12 +13,18 @@ export function nextStepForPose(input: {
   return input.attempt < MAX_ATTEMPTS ? "retry" : "fail_pose";
 }
 
+/** A set needs this many passed poses (or all of them, when it has fewer poses than this). */
+export const MIN_POSES_PASSED = 2;
+
 /**
- * Set-level routing over N poses (N = number of keys):
- *  - all N passed                    -> complete
- *  - exactly N-1 passed and N >= 3   -> complete_partial (for the four-pose set: one failed)
- *  - anything else                   -> failed (published renders must then be withdrawn)
- * For N < 3 a single miss would leave one or zero images, which is not a set, so it fails.
+ * Set-level routing over N poses (N = number of keys), one rule: the set fails when fewer than
+ * min(MIN_POSES_PASSED, N) poses passed.
+ *  - all N passed                       -> complete
+ *  - fewer than N but at least min(2, N) -> complete_partial (for the four-pose set: 2 or 3 passed)
+ *  - fewer than min(2, N) passed        -> failed (published renders must then be withdrawn)
+ * So a four-pose try-on survives two failed poses (the owner's rule: 1 or 2 failing images
+ * still show the others, 3 or more show the failure screen), while a single-pose job (an outfit
+ * or an arrival) needs its one pose, and a two-pose set needs both.
  * Any status other than "passed" (failed, still pending) counts as not passed.
  * `published` lists the poses that stay published, in input order: the passed ones for a
  * complete or partial set, and none for a failed set (its passed poses are withdrawn).
@@ -32,7 +38,7 @@ export function routeSet(poseStatuses: Record<string, string>): {
   const published = entries.filter(([, s]) => s === "passed").map(([p]) => p);
   const passed = published.length;
   if (n > 0 && passed === n) return { status: "complete", published };
-  if (n >= 3 && passed === n - 1) {
+  if (n > 0 && passed >= Math.min(MIN_POSES_PASSED, n)) {
     return { status: "complete_partial", published };
   }
   return { status: "failed", published: [] };

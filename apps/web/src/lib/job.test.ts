@@ -214,6 +214,15 @@ describe("queueLines", () => {
     expect(queueLines(job("complete_partial", three), "x", true).title).toBe(
       "3 poses, on you",
     );
+    const two = { ...all, seated: "failed", walking: "failed" };
+    expect(queueLines(job("complete_partial", two), "x", true).title).toBe(
+      "2 poses, on you",
+    );
+    expect(queueLines(job("complete_partial", two), "x", false)).toEqual({
+      title: "2 poses, ready",
+      line: "The x on your photo, 2 poses. Create an account to open them.",
+    });
+    expect(statusLine(job("complete_partial", two))).toBe("2 of 4 poses ready");
   });
 });
 

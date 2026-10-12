@@ -58,7 +58,21 @@ export const MAX_PHOTOS = 6;
 export interface AttemptRecord {
   outcome?: "rendered" | "blocked" | "no_image" | "model_error" | "capacity";
   // Free-text detail is NOT stored here: the owner can read this doc. It goes to jobInternals.
-  qa?: { verdict: "pass" | "fail"; reasons: string[] };
+  qa?: {
+    verdict: "pass" | "fail";
+    reasons: string[];
+    /**
+     * What the face check did for this attempt: "pass" and "fail" ran; "skipped" did not judge
+     * (switched off, no face on one side, or the helper service was unavailable) and `note` says
+     * why. Absent when the check was not reached (the attempt never rendered). `probability` is
+     * the service's convenience mapping of face distance, not a measured probability.
+     */
+    identity?: {
+      status: "pass" | "fail" | "skipped";
+      probability?: number;
+      note?: string;
+    };
+  };
 }
 
 export interface PoseState {

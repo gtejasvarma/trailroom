@@ -131,6 +131,15 @@ describe("counts in copy", () => {
     );
     expect(copy.account.pending("reveal", 4)).toBe("Then your 4 poses open.");
   });
+  it("the partial line states how many poses are shown and says nothing about why", () => {
+    expect(copy.result.partial(3, 4)).toBe(
+      "Three of four poses are shown. One could not be rendered well enough to show.",
+    );
+    expect(copy.result.partial(2, 4)).toBe(
+      "Two of four poses are shown. Two could not be rendered well enough to show.",
+    );
+    expect(copy.result.partial(2, 4)).not.toMatch(/face|identity|match|fit/i);
+  });
   it("the render status names the real pose count and number ready", () => {
     expect(copy.status.rendering(2, 4)).toBe(
       "Rendering four poses. 2 of 4 ready.",
