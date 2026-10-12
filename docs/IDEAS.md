@@ -6,6 +6,8 @@ them. Newest entry first.
 
 ## 2026-10-12: where Trailroom goes next
 
+*The recommendation below was written up as full requirements the same day: `docs/PRD_TRY_ON_ANYTHING.md` (a draft for review).*
+
 **Why this came up.** A try-on costs about $0.15 in renders (four poses at about $0.0375). A
 shopper paying $10 a month could cost more than they pay, and the demo catalogue is twelve
 invented pieces, so nobody can try on something they actually want to buy. Both ideas below are
