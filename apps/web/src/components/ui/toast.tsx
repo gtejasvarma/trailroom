@@ -23,8 +23,12 @@ interface ToastState {
 }
 
 const SHOW_MS = 3600;
+export interface ToastOptions {
+  /** How long it stays, in ms (default 3.6s). */
+  ms?: number;
+}
 const ToastContext = createContext<
-  (message: string, action?: ToastAction) => void
+  (message: string, action?: ToastAction, options?: ToastOptions) => void
 >(() => {});
 
 /** `say("Following MARCHAND.")` or `say("Ready", { label: "See it", href: "/try-on/x" })`. */
@@ -35,11 +39,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const counter = useRef(0);
 
-  const say = useCallback((message: string, action?: ToastAction) => {
-    clearTimeout(timer.current);
-    setToast({ message, action, key: ++counter.current });
-    timer.current = setTimeout(() => setToast(null), SHOW_MS);
-  }, []);
+  const say = useCallback(
+    (message: string, action?: ToastAction, options?: ToastOptions) => {
+      clearTimeout(timer.current);
+      setToast({ message, action, key: ++counter.current });
+      timer.current = setTimeout(() => setToast(null), options?.ms ?? SHOW_MS);
+    },
+    [],
+  );
   useEffect(() => () => clearTimeout(timer.current), []);
   const value = useMemo(() => say, [say]);
 
@@ -52,7 +59,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 bottom-20 z-50 flex justify-center md:bottom-7"
+        className="pointer-events-none fixed inset-x-4 bottom-20 z-50 flex justify-center md:inset-x-auto md:right-8 md:bottom-7 md:w-[480px]"
       >
         {toast ? (
           <div

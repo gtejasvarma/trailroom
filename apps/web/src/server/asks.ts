@@ -8,6 +8,7 @@ import {
   auth,
   createAskFor,
   getListFor,
+  getPoseSet,
   isAskLive,
   listAsksForUser,
   kindOf,
@@ -110,6 +111,65 @@ export function originOf(
   return forwarded ? forwarded.origin : new URL(own).origin;
 }
 
+/** The asker's name as the vote page shows it. */
+async function askerNameOf(user: User): Promise<string> {
+  let displayName: string | undefined;
+  try {
+    // A guest who linked Google keeps an empty top-level name; the provider record has it.
+    const record = await auth().getUser(user.uid);
+    displayName =
+      record.displayName ??
+      record.providerData.find((p) => p.displayName)?.displayName;
+  } catch {
+    displayName = undefined;
+  }
+  return firstNameOf(displayName);
+}
+
+/**
+ * An ask for one piece the person has tried on, with no list (the mirror's "Ask a friend"). The
+ * try-on named by `poseSetId` is the one frozen into the ask, so what friends see is the very
+ * render the person was looking at. Every other rule is the list ask's: an account only, the
+ * 20-live-asks limit, the question rules, the token handled by createAskFor. The ask has no list:
+ * its `listId` is empty and its `listName` (the vote page's title) is the piece's name.
+ */
+async function createPieceAsk(
+  user: User,
+  request: Request,
+  poseSetId: string,
+  question: string | null,
+): Promise<Result<{ askId: string; url: string }>> {
+  let found;
+  try {
+    found = await getPoseSet(poseSetId);
+  } catch {
+    // An id that is not a valid path segment is no one's try-on.
+    return err("not_found");
+  }
+  if (
+    !found ||
+    found.uid !== user.uid ||
+    kindOf(found) !== "tryon" ||
+    (found.status !== "complete" && found.status !== "complete_partial")
+  )
+    return err("not_found");
+  const item = getItem(found.itemId);
+  // Friends are shown the Front render; a set without one has nothing to show.
+  if (!item || !found.poses.includes("front")) return err("invalid_request");
+  const r = await createAskFor({
+    uid: user.uid,
+    askerFirstName: await askerNameOf(user),
+    listId: "",
+    listName: item.name,
+    question,
+    itemIds: [item.id],
+    poseSetIds: { [item.id]: poseSetId },
+    poseSetJobIds: { [item.id]: found.jobId },
+  });
+  if (!r.ok) return err("ask_limit");
+  return ok({ askId: r.id, url: `${originOf(request)}/ask/${r.token}` }, 201);
+}
+
 export async function createAsk(
   user: User,
   request: Request,
@@ -117,10 +177,19 @@ export async function createAsk(
 ): Promise<Result<{ askId: string; url: string }>> {
   if (user.isGuest) return err("account_required");
   if (typeof body !== "object" || body === null) return err("invalid_request");
-  const { listId, itemIds, question } = body as Record<string, unknown>;
-  if (typeof listId !== "string") return err("invalid_request");
+  const { listId, itemIds, question, poseSetId } = body as Record<
+    string,
+    unknown
+  >;
   const q = cleanQuestion(question);
   if (q === undefined) return err("invalid_request");
+  // One piece, no list: { poseSetId, question? }.
+  if (listId === undefined && poseSetId !== undefined) {
+    if (typeof poseSetId !== "string" || itemIds !== undefined)
+      return err("invalid_request");
+    return createPieceAsk(user, request, poseSetId, q);
+  }
+  if (typeof listId !== "string") return err("invalid_request");
   const list = await getListFor(user.uid, listId);
   if (!list) return err("not_found");
   if (
@@ -154,19 +223,9 @@ export async function createAsk(
     poseSetJobIds[id] = found?.poseSet.jobId ?? null;
   }
 
-  let displayName: string | undefined;
-  try {
-    // A guest who linked Google keeps an empty top-level name; the provider record has it.
-    const record = await auth().getUser(user.uid);
-    displayName =
-      record.displayName ??
-      record.providerData.find((p) => p.displayName)?.displayName;
-  } catch {
-    displayName = undefined;
-  }
   const r = await createAskFor({
     uid: user.uid,
-    askerFirstName: firstNameOf(displayName),
+    askerFirstName: await askerNameOf(user),
     listId: list.id,
     listName: list.list.name,
     question: q,

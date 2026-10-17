@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { getLabel, itemsByLabel, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
+import { BUY_ENABLED } from "../lib/flags";
 import { Gallery } from "./gallery";
 import { PieceTile } from "./piece-tile";
 import { TryOnButton } from "./tryon-button";
@@ -105,15 +106,17 @@ export function ProductView({ item }: { item: CatalogItem }) {
             {copy.item.notePhoto}
           </p>
           <div className="mt-2.5 flex flex-col gap-2.5 md:mt-5">
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => buy(item.id)}
-              data-testid="buy"
-              className="min-h-[46px] w-full"
-            >
-              {copy.card.buy(price)}
-            </Button>
+            {BUY_ENABLED ? (
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => buy(item.id)}
+                data-testid="buy"
+                className="min-h-[46px] w-full"
+              >
+                {copy.card.buy(price)}
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               size="md"

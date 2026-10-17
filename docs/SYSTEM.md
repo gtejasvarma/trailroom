@@ -184,8 +184,12 @@ sequenceDiagram
   and the tiles fill in as each pose passes. A slow poll of the API is the fallback.
 - **Images are fetched through the API,** with the token. Cloud Storage is closed to browsers
   entirely.
-- **The first sight of a finished try-on is a reveal:** the label's photograph wipes into the
-  person's own render, once per try-on, then the result opens.
+- **The result of a finished try-on is the mirror** (decided 17 October 2026, being built; ADR 0008):
+  the first time it is opened the picture comes into focus and she turns all the way round once on her
+  own, then the person drags to turn her through Stand, Turn, Walk and Sit. Under the picture are the
+  three choices, Not for me, Ask a friend and Love it, and the details. Buy is hidden for now. Until the
+  mirror is on `main` the build still shows the earlier reveal, in which the label's photograph wipes
+  into the person's own render.
 
 ## The quality gate
 

@@ -136,6 +136,8 @@ export const copy = {
     prev: "Previous photo",
     next: "Next photo",
     buy: (price: string) => `Buy ${price}`,
+    // The on-you card's action while Buy is switched off (BUY_ENABLED): it opens the mirror.
+    seeOnYou: "See it on you",
     saveFavourite: "Save to Favourites",
     savedFavourite: "Saved. Change lists",
     openLabel: (name: string) => `Open ${name}`,
@@ -554,13 +556,8 @@ export const copy = {
       `AI-generated preview of ${name} by ${label}, ${pose} pose`,
     thumbAlt: (name: string, pose: string) => `${name}, ${pose} pose`,
     thumbsLabel: "Choose a pose",
-    galleryLabel: "Your poses",
-    onYou: "On you",
-    holdToCompare: "Hold to see the label’s photo",
-    labelsPhoto: "Label’s photo",
     labelsPhotoAlt: (name: string, label: string) =>
       `${label}’s own photograph of ${name}`,
-    dot: (i: number) => `Show pose ${i}`,
     aiCaption: "AI-generated preview",
     expectation: EXPECTATION_LINE,
     // Some poses did not come out well enough to show (two or three of four are shown). The line
@@ -579,6 +576,45 @@ export const copy = {
     outfitRowLabel: "Pieces that make an outfit with this one",
     pairOpen: (name: string) => `See the ${lower(name)} with this piece`,
     addAnother: "Add another",
+  },
+  // The mirror: the signed-in person's result (mirror.tsx). Pose names are verbs.
+  mirror: {
+    back: "Your try-ons",
+    group: (name: string) => `Your try-on of ${name}`,
+    poseVerbs: {
+      front: "Stand",
+      "three-quarter": "Turn",
+      walking: "Walk",
+      seated: "Sit",
+    } as Record<string, string>,
+    // The picture area announces the pose it is on.
+    announce: (pose: string, i: number, n: number) => `${pose}, ${i} of ${n}`,
+    keysHint: "Left and Right arrow keys turn.",
+    hint: "Drag to turn. Hold to see the model.",
+    onLabelModel: "On the label’s model",
+    // The AI label, beside the picture: never drawn on it.
+    nameLine: (label: string, price: string) =>
+      `${label}, ${price}. AI-generated preview.`,
+    wideNote: "Drag across the picture to turn, hold to see the model.",
+    choicesLabel: "What do you think?",
+    notForMe: "Not for me",
+    askFriend: "Ask a friend",
+    loveIt: "Love it",
+    loved: "Loved",
+    removed: "Removed from your try-ons.",
+    removeFailed: "We could not remove that just now, so try again.",
+    gone: "Not this one.",
+    nextUp: (name: string) => `Next up is the ${lower(name)}.`,
+    backToDiscover: "Back to Discover.",
+    askQuestion: (name: string) => `What do you think of the ${lower(name)}?`,
+    askCopied: "Link copied. They vote in one tap, no app needed.",
+    askSent: "Sent.",
+    askFailed: "We could not make the link just now, so try again.",
+    askShareTitle: (name: string) => `${name} on Trailroom`,
+    favouritesAdded: "Added to Favourites.",
+    favouritesRemoved: "Removed from Favourites.",
+    showLabelPhoto: "See the label’s photo",
+    showingLabelPhoto: "Seeing the label’s photo",
   },
   // The account sheet, by reason (the prototype's gateCopy), minus "ask", which is not built yet.
   account: {
@@ -837,16 +873,6 @@ export const copy = {
     failed: "We could not do that just now, so try again.",
     tooMany: "Too many tries from here. Wait a few minutes and try again.",
     home: "Back to Trailroom",
-  },
-  reveal: {
-    dialog: (name: string) => `Your try-on of ${name}`,
-    labelPhotoAlt: (name: string, label: string) =>
-      `${label}’s own photograph of ${name}`,
-    renderAlt: (name: string, label: string) =>
-      `AI-generated preview of ${name} by ${label} on you, front pose`,
-    onYouCaption: (name: string) => `${name} on you`,
-    seeAll: (n: number) => (n > 1 ? `See all ${n} poses` : "See your try-on"),
-    thumbAlt: (name: string, pose: string) => `${name}, ${pose} pose`,
   },
   arrivals: {
     title: "New from labels you follow",

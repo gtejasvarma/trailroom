@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { catalogUrl, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
+import { BUY_ENABLED } from "../lib/flags";
 import { isFinished, type JobView } from "../lib/job";
 import { outfitPieces, outfitTitle } from "../lib/outfit";
 import { paths } from "../lib/flow";
@@ -194,14 +195,16 @@ function Result({
               {total}
             </span>
           </p>
-          <Button
-            size="lg"
-            data-testid="buy-outfit"
-            onClick={() => buy(ids)}
-            className="mt-3.5 w-full"
-          >
-            {copy.outfit.buy}
-          </Button>
+          {BUY_ENABLED ? (
+            <Button
+              size="lg"
+              data-testid="buy-outfit"
+              onClick={() => buy(ids)}
+              className="mt-3.5 w-full"
+            >
+              {copy.outfit.buy}
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             size="md"

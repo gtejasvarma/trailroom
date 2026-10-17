@@ -13,6 +13,7 @@ Phase G (the follow loop) ships with two switches, both off because they are und
 or shown) and the "arrives on you" buffer (nothing is rendered that a person did not ask for). Its checkpoint
 is not met: nothing has been published on the hosted site, the buffer has never run with the real image model,
 and no real email has been sent. Phase H (hardening) is partly done; the rest is not started.
+**Being built, decided by the owner on 2026-10-17, not on `main`:** the result of a finished try-on becomes **the mirror** (`docs/decisions/0008-the-mirror.md`; PRD §22.1 rows 45 and 46): a light screen around the picture that comes into focus, turns once on its own and then turns as the person drags, with the choices Not for me, Ask a friend and Love it. It replaces the reveal described below. **Buy is hidden everywhere behind one switch until the owner turns it back on**, and the demonstration checkout with it.
 
 What a visitor can do (the site is open to the public; the parts marked "redesign" were rolled out with `9d5694d`): a new visitor's first screen is the hero, a slider between a label's photograph of a piece and a real
 render of the same piece on a fictional test person, labelled as an AI-generated preview; a visitor who already

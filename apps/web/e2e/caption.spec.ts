@@ -59,19 +59,25 @@ test("AI caption sits beside every queue tile, never over it", async ({
   await noLabelOverRender(page);
 });
 
-test("on the result the caption is directly under the gallery and does not overlap it", async ({
+test("on the result the AI label is beside the picture, never on it", async ({
   page,
 }) => {
   await tryOnFromScratch(page, "Knit button vest");
   await waitForResult(page);
   const gallery = page.getByTestId("pose-gallery");
   const caption = page.getByTestId("ai-caption");
-  await expect(caption).toHaveText("AI-generated preview");
+  await expect(caption).toHaveText(/AI-generated preview\.$/);
   const gb = (await gallery.boundingBox())!;
   const cb = (await caption.boundingBox())!;
-  expect(cb.y).toBeGreaterThanOrEqual(gb.y + gb.height - 1);
-  expect(cb.y - (gb.y + gb.height)).toBeLessThan(40);
+  // Not inside the picture's box, whichever side of it the layout puts it on.
+  const overlaps =
+    cb.x < gb.x + gb.width &&
+    gb.x < cb.x + cb.width &&
+    cb.y < gb.y + gb.height &&
+    gb.y < cb.y + cb.height;
+  expect(overlaps).toBe(false);
   await noLabelOverRender(page);
-  // Nothing is drawn on the image: the picture has no text child, only the chips beside it.
+  // Nothing is drawn on the image: no canvas, no text child, just the pictures.
+  await expect(page.locator("canvas")).toHaveCount(0);
   await expect(page.locator("img[data-hero]").first()).toBeVisible();
 });

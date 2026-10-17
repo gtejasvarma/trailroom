@@ -66,7 +66,7 @@ test("happy path: catalogue, photo, sign-in, four tiles, then the result", async
     ).toBeGreaterThan(500);
   }
   await expect(page.getByTestId("ai-caption")).toHaveText(
-    "AI-generated preview",
+    /AI-generated preview\.$/,
   );
   await expect(
     page.getByText("A preview, not a fitting — it can't tell you size or fit."),

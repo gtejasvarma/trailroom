@@ -40,24 +40,23 @@ test("partial set: three images, the three-of-four line, no broken tile", async 
   ).toHaveCount(0);
 });
 
-test("partial set, two poses: two images, the two-of-four line, the reveal counts two", async ({
+test("partial set, two poses: two images, the two-of-four line, the arrival turns through two", async ({
   page,
 }) => {
   // Two poses are not shown (as when the face check refuses them); the other two are.
   setScript([twice("walking"), twice("seated")]);
   await realReveal(page);
-  // The sign-in comes first (an account is required to start), then the render and the reveal.
+  // The sign-in comes first (an account is required to start), then the render and the arrival.
   await tryOnFromScratch(page, "Knit button vest");
-  const reveal = page.getByTestId("reveal");
-  await expect(reveal).toBeVisible({ timeout: 30_000 });
-  // It plays by itself to the end state (pressing Escape could close it if it got there first).
-  await expect(reveal).toHaveAttribute("data-step", "4", { timeout: 20_000 });
-  await expect(page.getByTestId("reveal-thumb")).toHaveCount(1); // the first wipes in, one rises
-  await expect(
-    page.getByRole("button", { name: "See all 2 poses" }),
-  ).toBeVisible();
-  await page.getByTestId("reveal-continue").click();
-  await expect(page.getByTestId("pose-gallery")).toBeVisible();
+  await expect(page.getByTestId("pose-gallery")).toBeVisible({
+    timeout: 40_000,
+  });
+  // It plays by itself to the end state: one turn through the two poses that passed.
+  await expect(page.getByTestId("mirror-stage")).toHaveAttribute(
+    "data-stage",
+    "done",
+    { timeout: 20_000 },
+  );
 
   await expect(page.getByTestId("partial-line")).toHaveText(
     "Two of four poses are shown. Two could not be rendered well enough to show.",

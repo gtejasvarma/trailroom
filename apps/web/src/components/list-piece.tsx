@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { catalogUrl, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
+import { BUY_ENABLED } from "../lib/flags";
 import { paths } from "../lib/flow";
 import { useRenderImage } from "../lib/use-render-image";
 import type { TryOnSummary } from "../server/try-ons";
@@ -100,15 +101,17 @@ export function ListPiece({
       <p className="text-[14px] leading-[19px] text-ink tabular-nums">
         {copy.item.price(item.priceUsd)}
       </p>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => buy(item.id)}
-        data-testid="list-buy"
-        className="mt-2 min-h-9"
-      >
-        {copy.card.buy(copy.item.price(item.priceUsd))}
-      </Button>
+      {BUY_ENABLED ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => buy(item.id)}
+          data-testid="list-buy"
+          className="mt-2 min-h-9"
+        >
+          {copy.card.buy(copy.item.price(item.priceUsd))}
+        </Button>
+      ) : null}
     </article>
   );
 }

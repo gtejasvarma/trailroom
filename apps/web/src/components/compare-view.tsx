@@ -10,6 +10,7 @@ import { getItem, type CatalogItem } from "@trailroom/catalog";
 import { api } from "../lib/api";
 import { compareHref, parseCompareIds, poseFor } from "../lib/compare-ids";
 import { copy } from "../lib/copy";
+import { BUY_ENABLED } from "../lib/flags";
 import { useRenderImage } from "../lib/use-render-image";
 import { useWide } from "../lib/use-wide";
 import { body, btnLink, h1, page } from "../lib/ui";
@@ -110,14 +111,16 @@ function Column({
       >
         {item.stock.line}
       </p>
-      <Button
-        size="md"
-        onClick={() => buy(item.id)}
-        data-testid="compare-buy"
-        className="mt-3.5 min-h-[46px] w-full"
-      >
-        {copy.card.buy(price)}
-      </Button>
+      {BUY_ENABLED ? (
+        <Button
+          size="md"
+          onClick={() => buy(item.id)}
+          data-testid="compare-buy"
+          className="mt-3.5 min-h-[46px] w-full"
+        >
+          {copy.card.buy(price)}
+        </Button>
+      ) : null}
       <Button
         variant="outline"
         size="md"

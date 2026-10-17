@@ -13,6 +13,7 @@ import { useLists } from "./lists-provider";
 import { useMe } from "./me-provider";
 import { PieceThumbs } from "./piece-thumbs";
 import { Button, ButtonLink } from "./ui/button";
+import { BUY_ENABLED } from "../lib/flags";
 import { useBuy } from "./use-buy";
 import { useToast } from "./ui/toast";
 
@@ -163,7 +164,7 @@ export function SentScreen({ askId }: { askId: string }) {
         ))}
       </ul>
 
-      {winner ? (
+      {BUY_ENABLED && winner ? (
         <Button
           size="lg"
           onClick={() => buy(winner.id)}
@@ -204,14 +205,16 @@ export function SentScreen({ askId }: { askId: string }) {
                 >
                   {copy.sent.noLink}
                 </p>
-                <ButtonLink
-                  href={`/lists/${ask.listId}/share`}
-                  variant="outline"
-                  size="md"
-                  className="mt-1"
-                >
-                  {copy.sent.newLink}
-                </ButtonLink>
+                {ask.listId ? (
+                  <ButtonLink
+                    href={`/lists/${ask.listId}/share`}
+                    variant="outline"
+                    size="md"
+                    className="mt-1"
+                  >
+                    {copy.sent.newLink}
+                  </ButtonLink>
+                ) : null}
               </>
             )}
             <button
@@ -232,14 +235,16 @@ export function SentScreen({ askId }: { askId: string }) {
             >
               {copy.sent.switchedOff}
             </p>
-            <ButtonLink
-              href={`/lists/${ask.listId}/share`}
-              variant="outline"
-              size="md"
-              className="mt-1"
-            >
-              {copy.sent.newLink}
-            </ButtonLink>
+            {ask.listId ? (
+              <ButtonLink
+                href={`/lists/${ask.listId}/share`}
+                variant="outline"
+                size="md"
+                className="mt-1"
+              >
+                {copy.sent.newLink}
+              </ButtonLink>
+            ) : null}
           </>
         )}
       </div>

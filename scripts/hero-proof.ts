@@ -1,7 +1,7 @@
 // The hero's proof pair: one real render of a catalogue piece on the fictional test person, so
 // both sides of the home page slider show the same piece. Calls the real image model through the
 // chokepoint with a hard ceiling of $0.15 (one render is about $0.04).
-//   npx tsx scripts/hero-proof.ts [itemId]
+//   npx tsx scripts/hero-proof.ts [itemId] [pose]   (pose: front, three-quarter, walking, seated)
 // The person is fixtures/people/s01 (AI-generated, fictional: fixtures/manifest.json), so no real
 // person's photo leaves here. The render lands in runs/hero-proof/ (git-ignored) for review.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -12,6 +12,8 @@ import { getItem } from "../packages/catalog/src/index";
 import {
   buildPrompt,
   GENERIC_WEARING,
+  POSES,
+  type Pose,
   renderImage,
   SpendMeter,
   type Category,
@@ -30,6 +32,8 @@ process.env.GEMINI_API_KEY = key;
 delete process.env.RENDER_PROVIDER;
 
 const item = getItem(process.argv[2] ?? "blouse");
+const pose = (process.argv[3] ?? "front") as Pose;
+if (!(pose in POSES)) throw new Error(`unknown pose ${pose}`);
 if (!item?.category)
   throw new Error("unknown piece, or one with no prompt category");
 const personFile = [
@@ -53,7 +57,7 @@ const started = Date.now();
 const res = await renderImage({
   model: "nano-banana-2.1",
   prompt: buildPrompt({
-    pose: "front",
+    pose,
     category: item.category as Category,
     wearing: GENERIC_WEARING,
     target: item.promptDescription,
@@ -70,7 +74,7 @@ const res = await renderImage({
   ],
   aspectRatio: "3:4",
   meter,
-  meta: { pose: "front", jobId: "hero-proof", attempt: 1 },
+  meta: { pose, jobId: "hero-proof", attempt: 1 },
 });
 const secs = ((Date.now() - started) / 1000).toFixed(1);
 if (!res.ok) {
@@ -81,7 +85,8 @@ if (!res.ok) {
 }
 const out = join(ROOT, "runs", "hero-proof");
 mkdirSync(out, { recursive: true });
-writeFileSync(join(out, `${item.id}-on-s01.png`), res.image.data);
+const name = pose === "front" ? `${item.id}-on-s01.png` : `${item.id}-on-s01-${pose}.png`;
+writeFileSync(join(out, name), res.image.data);
 console.log(
-  `OK in ${secs}s, cost $${res.costUsd.toFixed(4)}: runs/hero-proof/${item.id}-on-s01.png`,
+  `OK in ${secs}s, cost $${res.costUsd.toFixed(4)}: runs/hero-proof/${name}`,
 );

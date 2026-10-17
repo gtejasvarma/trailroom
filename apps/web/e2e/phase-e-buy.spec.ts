@@ -11,6 +11,10 @@ import {
   waitForGuestReady,
 } from "./helpers";
 import { SIZES, serious, shot, signedInWithTryOns } from "./e-helpers";
+import { BUY_ENABLED } from "../src/lib/flags";
+
+// Buy is switched off (BUY_ENABLED); no-buy.spec.ts covers that state. These cover it switched on.
+test.skip(!BUY_ENABLED, "Buy is switched off");
 
 test.describe.configure({ timeout: 180_000 });
 

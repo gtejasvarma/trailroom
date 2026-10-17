@@ -4,11 +4,12 @@ import { catalogUrl, type CatalogItem } from "@trailroom/catalog";
 import { copy } from "../lib/copy";
 import { paths } from "../lib/flow";
 import { useRenderImages } from "../lib/use-render-image";
-import { Button } from "./ui/button";
+import { Button, ButtonLink } from "./ui/button";
 import { FavouriteHeart } from "./favourite-heart";
 import { PhotoFrames } from "./ui/photo-frames";
 import { TryOnButton } from "./tryon-button";
 import { useMe } from "./me-provider";
+import { BUY_ENABLED } from "../lib/flags";
 import { useBuy } from "./use-buy";
 
 /**
@@ -94,15 +95,26 @@ export function ProductCard({
           </p>
         </div>
         <div className="flex-none">
-          {onYou ? (
-            <Button
-              size="md"
-              onClick={() => buy(item.id)}
-              data-testid="buy"
-              className="!min-h-10 !px-5 !text-[14px]"
-            >
-              {copy.card.buy(price)}
-            </Button>
+          {onYou && mine ? (
+            BUY_ENABLED ? (
+              <Button
+                size="md"
+                onClick={() => buy(item.id)}
+                data-testid="buy"
+                className="!min-h-10 !px-5 !text-[14px]"
+              >
+                {copy.card.buy(price)}
+              </Button>
+            ) : (
+              <ButtonLink
+                href={paths.tryOn(mine.jobId)}
+                size="md"
+                data-testid="see-on-you"
+                className="!min-h-10 !px-5 !text-[14px]"
+              >
+                {copy.card.seeOnYou}
+              </ButtonLink>
+            )
           ) : (
             <TryOnButton
               itemId={item.id}

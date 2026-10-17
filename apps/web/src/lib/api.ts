@@ -41,6 +41,24 @@ export async function apiRaw(
   });
 }
 
+/**
+ * The visible discard, for a page that is going away (pagehide): no async token lookup can finish
+ * by then, so the caller brings a token it fetched earlier, and `keepalive` lets the request
+ * outlive the page. Best effort: the answer is never read.
+ */
+export function removeTryOnOnExit(poseSetId: string, idToken: string): void {
+  try {
+    void fetch(`/api/try-ons/${encodeURIComponent(poseSetId)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${idToken}` },
+      keepalive: true,
+      cache: "no-store",
+    }).catch(() => {});
+  } catch {
+    // Nothing more can be done.
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
@@ -162,6 +180,12 @@ export const api = {
     apiFetch<{ askId: string; url: string }>(
       "/api/asks",
       json({ listId, itemIds, question }),
+    ),
+  /** An ask for one piece the person has tried on, with no list: the try-on named is frozen into it. */
+  createPieceAsk: (poseSetId: string, question?: string) =>
+    apiFetch<{ askId: string; url: string }>(
+      "/api/asks",
+      json({ poseSetId, question }),
     ),
   revokeAsk: (id: string) =>
     apiFetch<{ revoked: true }>(`/api/asks/${id}/revoke`, { method: "POST" }),

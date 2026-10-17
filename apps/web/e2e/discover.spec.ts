@@ -14,6 +14,7 @@ import {
   test,
   waitForResult,
 } from "./helpers";
+import { BUY_ENABLED } from "../src/lib/flags";
 
 const SIZES = [
   { name: "phone", width: 390, height: 844 },
@@ -265,7 +266,7 @@ for (const size of SIZES) {
       }
     });
 
-    test("for a guest, Add to a list and Buy ask for an account; New list is an interim toast", async ({
+    test("for a guest, Add to a list (and Buy, while it is on) ask for an account; New list is an interim toast", async ({
       page,
     }) => {
       await page.goto("/item/jump");
@@ -276,11 +277,15 @@ for (const size of SIZES) {
       await expect(dialog).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(dialog).toBeHidden();
-      await page.getByRole("button", { name: "Buy $268" }).click();
-      await expect(
-        page.getByRole("dialog", { name: "Create an account to buy" }),
-      ).toBeVisible();
-      await page.keyboard.press("Escape");
+      if (BUY_ENABLED) {
+        await page.getByRole("button", { name: "Buy $268" }).click();
+        await expect(
+          page.getByRole("dialog", { name: "Create an account to buy" }),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
+      } else {
+        await expect(page.getByRole("button", { name: /^Buy/ })).toHaveCount(0);
+      }
       await page.goto("/lists");
       await page.getByRole("button", { name: "New list" }).first().click();
       await expect(

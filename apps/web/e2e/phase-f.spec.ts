@@ -13,6 +13,7 @@ import {
   leftoverGuestTryOn,
   waitForGuestReady,
 } from "./helpers";
+import { BUY_ENABLED } from "../src/lib/flags";
 import {
   SIZES,
   noHScroll,
@@ -187,19 +188,23 @@ for (const size of SIZES) {
         await page.setViewportSize({ width: size.width, height: size.height });
       }
 
-      // Buy the outfit: one sheet, a Go to for each piece.
-      await page.getByTestId("buy-outfit").click();
-      const buy = page.getByRole("dialog", { name: "Both pieces, $573" });
-      await expect(buy).toBeVisible();
-      await expect(buy.getByTestId("go-to-label")).toHaveCount(2);
-      await expect(buy.getByTestId("outfit-buy-rows")).toContainText(
-        "Wool car coat",
-      );
-      await expect(buy.getByTestId("outfit-buy-rows")).toContainText(
-        "Bias-cut slip dress",
-      );
-      await buy.getByRole("button", { name: "Keep looking" }).click();
-      await expect(buy).toBeHidden();
+      // Buy the outfit: one sheet, a Go to for each piece (while Buy is switched on).
+      if (BUY_ENABLED) {
+        await page.getByTestId("buy-outfit").click();
+        const buy = page.getByRole("dialog", { name: "Both pieces, $573" });
+        await expect(buy).toBeVisible();
+        await expect(buy.getByTestId("go-to-label")).toHaveCount(2);
+        await expect(buy.getByTestId("outfit-buy-rows")).toContainText(
+          "Wool car coat",
+        );
+        await expect(buy.getByTestId("outfit-buy-rows")).toContainText(
+          "Bias-cut slip dress",
+        );
+        await buy.getByRole("button", { name: "Keep looking" }).click();
+        await expect(buy).toBeHidden();
+      } else {
+        await expect(page.getByTestId("buy-outfit")).toHaveCount(0);
+      }
 
       // Add outfit to a list adds both pieces.
       await page.getByTestId("outfit-to-list").click();
@@ -237,7 +242,7 @@ for (const size of SIZES) {
       page,
     }) => {
       await signedInWithTryOns(page, ["suit"]);
-      await expect(page.getByTestId("buy")).toBeVisible();
+      await expect(page.getByTestId("choice-love")).toBeVisible();
       await expect(page.getByTestId("outfit-row")).toHaveCount(0);
       await expect(page.getByTestId("pair-thumb")).toHaveCount(0);
     });

@@ -6,6 +6,7 @@ import {
   leftoverGuestTryOn,
   waitForGuestReady,
 } from "./helpers";
+import { BUY_ENABLED } from "../src/lib/flags";
 
 // Uses the Auth emulator's fake Google popup. Links the anonymous user in place, so the same
 // renders carry over and open without a re-render.
@@ -41,11 +42,17 @@ test("Continue with Google links the guest and opens the result in place, no re-
   await expect(
     page.getByRole("dialog", { name: "Save to a list" }),
   ).toBeHidden();
-  await page.getByRole("button", { name: /^Buy \$/ }).click();
-  const buy = page.getByRole("dialog", { name: /^Knit button vest, \$\d+$/ });
-  await expect(buy).toBeVisible();
-  await buy.getByRole("button", { name: "Keep looking" }).click();
-  await expect(buy).toBeHidden();
+  if (BUY_ENABLED) {
+    await page.getByRole("button", { name: /^Buy \$/ }).click();
+    const buy = page.getByRole("dialog", {
+      name: /^Knit button vest, \$\d+$/,
+    });
+    await expect(buy).toBeVisible();
+    await buy.getByRole("button", { name: "Keep looking" }).click();
+    await expect(buy).toBeHidden();
+  } else {
+    await expect(page.getByRole("button", { name: /^Buy/ })).toHaveCount(0);
+  }
   await expect(page.getByTestId("outfit-row")).toBeVisible();
   await page
     .getByRole("button", { name: "See the wool car coat with this piece" })

@@ -14,7 +14,7 @@ claim, no email sent, an outfit does not also become two try-ons). **The excepti
 the live site: the home page's first load and hero, the category row, what sits on an image, the heart and
 Favourites, the image size and the reveal of a finished try-on no longer follow the prototypes. For those
 six, the ADR and the rows are the specification.** The prototypes were not edited, so they show the old version
-of those parts. The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
+of those parts. **A seventh part, decided on 2026-10-17: the result screen is the mirror** (ADR 0008, PRD §22.1 rows 45 and 46). It replaces the reveal and the prototypes' result, and the prototypes are no longer the visual specification for it; Design.md §8, "Result screen: the mirror", is. The plan is `docs/BUILD_PLAN.md` §12, Phases A to H.
 **The demonstration was Friday 9 October 2026 and has passed. V0 (Phases A, B and C) is built and deployed**
 at `https://trailroom--virtual-tryon-tejas.us-central1.hosted.app` (`a5b7918`, `f3ab209`,
 `2f11325`), and real try-ons have been generated on the hosted site. **Phases A to G, the security fixes and the redesign
@@ -51,6 +51,7 @@ land on the queue (if the uploaded photo did not carry over, the account's defau
 The guest limit of two starts a day is gone; the signed-in limit is 5 a day. The "Guests get one try-on" screen, its route and the `signup_required`
 error are removed. A try-on a guest made before this rule still shows tiles only and opens after sign-in, for the 48 hours until the guest is purged, so
 the `reveal` reason and the tile-size rule remain. This reverses the earlier rule that a guest renders first and needs an account only to open the result.
+**The mirror is being built (owner's decision, 2026-10-16 and 17; PRD §22.1 rows 45 and 46; ADR 0008). It is not on `main` yet.** The result of a finished try-on becomes a light screen around the picture: it comes into focus, she turns once on her own, and the person drags to turn her (Stand, Turn, Walk, Sit), with a thumbnail per pose, dots, press and hold to see the label's photograph, and three choices, **Not for me / Ask a friend / Love it**; the details sit below or beside, and the dark reveal is replaced. **Buy is hidden everywhere behind one switch until the owner turns it back on** ("For now temporarily hide buy button"), with the demonstration checkout and "Did it arrive?"; journey C10 is paused, not deleted. The boards are in the design canvas at https://claude.ai/artifact/C4pf26WW1oZmSaBtqrHBAT (private to the owner) and in `runs/mirror-canvas/project/`.
 The catalogue's photographs were replaced with sharper ones on 2026-10-11 and the owner copied all 33 files to
 Cloud Storage. **Phase G ships with two switches, both off, because the owner has not decided either:**
 `EMAIL_TRANSPORT` (default `none`: nothing is sent, nothing is recorded, and the product shows no email controls or
@@ -87,10 +88,10 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 | Path | What it is |
 |---|---|
 | `docs/PRD.md` | The PRD (v0.7) — source of truth for product behavior, one consistent document. §22 holds the decisions and their reasoning (§22.1 is the record; §22.2 says which phase built each journey). §6 data model, §13 unit economics, §16 architecture, §17 kill criteria. |
-| `mocks/Trailroom Prototype.dc.html`, `mocks/Trailroom Desktop.dc.html` | **The visual specification, except where ADR 0006 and PRD §22.1 rows 33 to 40 say otherwise.** The aligned, runnable prototypes (mobile, desktop): the target with the §22.1 decisions applied. Open directly in a browser; images in `mocks/assets/`, reference screenshots in `mocks/screens/`. Read the matching screens before writing any UI. They were not edited for the 2026-10-11 redesign, so for the home page (hero, category row), the cards (what sits on an image, the heart, the grid) and the result's first view (the reveal) they show the old version and the ADR wins. |
+| `mocks/Trailroom Prototype.dc.html`, `mocks/Trailroom Desktop.dc.html` | **The visual specification, except where ADR 0006 and PRD §22.1 rows 33 to 40 say otherwise, and except the result screen, which is the mirror (ADR 0008, rows 45 and 46; Design.md §8).** The aligned, runnable prototypes (mobile, desktop): the target with the §22.1 decisions applied. Open directly in a browser; images in `mocks/assets/`, reference screenshots in `mocks/screens/`. Read the matching screens before writing any UI. They were not edited for the 2026-10-11 redesign, so for the home page (hero, category row), the cards (what sits on an image, the heart, the grid) and the result's first view (the reveal) they show the old version and the ADR wins. |
 | `docs/Design.md` | Tokens, type and motion. Derive every value from §11, do not invent tokens. Layouts come from the prototypes (and from ADR 0006 where it departs from them), not from here. |
 | `docs/BUILD_PLAN.md` | §12 is the current plan (Phases A to H) and its three process rules. §1 to §11 are the earlier ladder and the reasoning behind M0 to M3. |
-| `docs/decisions/` | ADRs — one file per irreversible call. Write one when you make a call like this. |
+| `docs/decisions/` | ADRs — one file per irreversible call. Write one when you make a call like this. The latest is 0008, the mirror. |
 | `specs/` | One file per unit of work being built. |
 | `mocks/support.js`, `mocks/Trailroom Desktop Designer.dc.html`, `mocks/Conversion Audit.dc.html` | The runtime that makes the `.dc.html` files run outside the Claude Design canvas. The Designer file is the reference for the deferred back office; the Audit is a 44-item conversion audit. `support.canvas.js` is the real Claude Design export — reference only, requires `window.React`, won't run standalone. |
 | `packages/render/` | The one chokepoint for image-model calls: model/price table, the prompts (`edit-v1` for one piece, `outfit-v1` for two pieces in one image), the spend ledger interface, and a fake provider for tests (refused in production). |
@@ -143,9 +144,12 @@ Firebase/GCP project: `virtual-tryon-tejas` (reused from an earlier attempt at t
 1. **Colorless surround.** Try-on imagery sits only on `--canvas` (white) or `--ink` (near-black) —
    never a tint or gradient. Accent color (teal) is for state/identity only, never a fill next to a garment.
 2. **Place, layer, interrupt.** Prefer routed screens ("Place") over modals/sheets ("Layer") or
-   system-popups ("Interrupt"). Exceptions: the sheets the prototypes use (§22.1 row 14), the reveal of a
-   finished try-on (ADR 0006; skippable at any point), the OS share sheet, the OS photo picker, and the
-   Google sign-in popup.
+   system-popups ("Interrupt"). Exceptions: the sheets the prototypes use (§22.1 row 14), the OS share
+   sheet, the OS photo picker, and the Google sign-in popup. The result's details are not a sheet and
+   not a routed screen: since 2026-10-17 they sit below the picture on a phone and beside it on desktop
+   (the mirror, ADR 0008), and the dark reveal of ADR 0006 is gone. For the result screen the prototypes
+   no longer win; Design.md §8 does. The colourless surround, the visible AI label, no fit language, 44px
+   targets and reduced motion all still apply to it.
 3. **Low stakes.** Discarding a try-on is a satisfying, visible gesture. Accounts keep try-ons until the
    person removes them; guests who never sign up are purged (§22.1 row 16). Nothing is broadcast without
    an explicit user act.

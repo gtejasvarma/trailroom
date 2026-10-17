@@ -15,6 +15,7 @@ import {
 import { getItem, outfitPairsFor, type CatalogItem } from "@trailroom/catalog";
 import { ApiError, api } from "../lib/api";
 import { copy } from "../lib/copy";
+import { BUY_ENABLED } from "../lib/flags";
 import { paths } from "../lib/flow";
 import { useRenderImage } from "../lib/use-render-image";
 import type { PurchaseBody } from "../server/purchases";
@@ -79,7 +80,8 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!signedIn) {
+    // No Buy, so no purchases and no "Did it arrive?" (see BUY_ENABLED).
+    if (!BUY_ENABLED || !signedIn) {
       setPurchases(null);
       return;
     }
@@ -114,7 +116,7 @@ export function BuyProvider({ children }: { children: React.ReactNode }) {
   // The next time the person is on that piece's result: ask, once.
   const loadedPurchases = purchases !== null;
   useEffect(() => {
-    if (!loadedPurchases) return;
+    if (!BUY_ENABLED || !loadedPurchases) return;
     const m = /^\/try-on\/([^/]+)$/.exec(pathname);
     if (!m) return;
     const itemId = tryOns.find((t) => t.jobId === m[1])?.itemId;

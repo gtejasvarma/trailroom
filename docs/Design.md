@@ -4,7 +4,7 @@ Design system for **trailroom.ai**. Read this before writing any UI. Derive ever
 
 **North star:** the feeling of hanging out at a mall with friends, trying on outfits. Every tradeoff in this file is made in service of that.
 
-**Precedence, as of Oct 7 2026.** This file is the token, type and motion system. Layouts, flows and component shapes come from the two aligned prototypes, `mocks/Trailroom Prototype.dc.html` (mobile) and `mocks/Trailroom Desktop.dc.html` (desktop), with images in `mocks/assets/` and reference screenshots in `mocks/screens/`; their verbatim source is at `archive/prototypes-2026-10-07/` for provenance. Where this file and the prototypes disagree, the prototypes win, subject to `docs/PRD.md` §22.1. The passages below that used to disagree have been changed to match: sheets are allowed wherever the prototype uses them (Rule 2 and §10); an account is needed to open a guest's render (§2 step 5 and §10); Buy is the filled action on the result (§8); renders carry a caption beside them and nothing drawn on them (§2.1). **Exception, 2026-10-11:** the redesign (ADR 0006, PRD §22.1 rows 33 to 40) departs from the prototypes for the home page's hero and category row, what sits on an image, the heart and Favourites, the image size and the reveal; for those, this file's §7 and §8 and the ADR win.
+**Precedence, as of Oct 7 2026.** This file is the token, type and motion system. Layouts, flows and component shapes come from the two aligned prototypes, `mocks/Trailroom Prototype.dc.html` (mobile) and `mocks/Trailroom Desktop.dc.html` (desktop), with images in `mocks/assets/` and reference screenshots in `mocks/screens/`; their verbatim source is at `archive/prototypes-2026-10-07/` for provenance. Where this file and the prototypes disagree, the prototypes win, subject to `docs/PRD.md` §22.1. The passages below that used to disagree have been changed to match: sheets are allowed wherever the prototype uses them (Rule 2 and §10); an account is needed to open a guest's render (§2 step 5 and §10); Buy is the filled action on the result (§8); renders carry a caption beside them and nothing drawn on them (§2.1). **Exception, 2026-10-11:** the redesign (ADR 0006, PRD §22.1 rows 33 to 40) departs from the prototypes for the home page's hero and category row, what sits on an image, the heart and Favourites, the image size and the reveal; for those, this file's §7 and §8 and the ADR win. **Exception, 2026-10-17:** the result screen is the mirror (§8, "The mirror"; ADR 0008; PRD §22.1 rows 45 and 46). The prototypes are no longer its visual specification, the reveal of 2026-10-11 is replaced by the mirror's arrival, and Buy is hidden everywhere until the owner turns it back on.
 
 ---
 
@@ -23,7 +23,7 @@ The user is deciding whether a rust dress works on them. A saturated surround sh
 
 ### Rule 2 — Place, layer, interrupt
 
-A mall is continuous and peripheral. You never dismiss a friend to look at a jacket. So: *(the reveal, §7, is the one full-viewport layer added after the prototypes: it follows a try-on the person asked for and can be left at any moment.)*
+A mall is continuous and peripheral. You never dismiss a friend to look at a jacket. So: *(The reveal of 2026-10-11, a full-viewport layer, is replaced by the mirror, which is a place and not a layer: §8, "The mirror".)*
 
 | Pattern | Definition | Use it? |
 |---|---|---|
@@ -31,7 +31,7 @@ A mall is continuous and peripheral. You never dismiss a friend to look at a jac
 | **Layer** | Floats over content, blocks it, must be dismissed | ❌ By default — replace with inline expansion or a push panel. The sheets listed under the table are the sanctioned exceptions |
 | **Interrupt** | Appears because the *system* decided, not because the user tapped | ❌ No — replace with the rack dock filling in place |
 
-Exceptions, all deliberate: the **OS share sheet** and the **OS photo picker** (system-owned, already trusted); the **Google sign-in popup** inside the account sheet (a redirect would lose the render the person is looking at); and **the sheets the prototypes use** — try-on confirm, list picker, account, buy, "did it arrive", privacy details and pair preview (PRD §22.1 row 14). Any new surface the prototype does not show defaults to a routed screen. Push notification is allowed only when the app is backgrounded — the user already left (and push is not built, PRD §5).
+Exceptions, all deliberate: the **OS share sheet** and the **OS photo picker** (system-owned, already trusted); the **Google sign-in popup** inside the account sheet (a redirect would lose the render the person is looking at); and **the sheets the prototypes use** — try-on confirm, list picker, account, buy, "did it arrive", privacy details and pair preview (PRD §22.1 row 14). Any new surface the prototype does not show defaults to a routed screen. **The result's details are not a sheet (2026-10-17):** description, Wear it with, Add to a list and Compare sit below the picture on a phone and in a column beside it on desktop, so the result needs neither a routed details screen nor a sheet. The preference for routed screens over sheets stands for everything else. Push notification is allowed only when the app is backgrounded — the user already left (and push is not built, PRD §5).
 
 ### Rule 3 — Low stakes
 
@@ -54,7 +54,8 @@ Single-player. Polls are the only social surface. Curation stands in for "a frie
 3. GENERATE       full quality always, with a caption beside it, never on it
                   never a degraded render (see §2.1)
 
-4. RESULT         Buy (filled) · Add to a list · Build the outfit
+4. RESULT         the mirror: turn her; Not for me · Ask a friend · Love it
+                  details below or beside; Buy hidden for now (PRD §22.1 row 46)
                   a guest sees tiles filling in; the full result needs an account
 
 5. SIGN UP        triggered by opening the result, or by buy, list or ask;
@@ -222,18 +223,19 @@ Elevation maps to importance, not nesting depth. `--elev-8` appears once per scr
 | `--dur` | `250ms` |
 | `--dur-slow` | `400ms` |
 | `--ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` (things entering: strong start, soft landing) |
-| `--ease-in-out` | `cubic-bezier(0.77, 0, 0.175, 1)` (things already on screen that move: the hero divider, the reveal wipe) |
+| `--ease-in-out` | `cubic-bezier(0.77, 0, 0.175, 1)` (things already on screen that move: the hero divider, the mirror's turn) |
 
 - **Press feedback:** every pressable thing (buttons, tabs, the heart) scales to `0.97` on press, over about `--dur-fast`, and returns on release. Nothing scales up on hover.
 - **Hover is for fine pointers only.** A hover effect (an underline, the carousel scrub) responds to a mouse and is never the only way to reach something; touch gets none of it.
-- **Which easing:** `--ease-out` for things entering (a card, the heart's pop, the poses rising in the reveal); `--ease-in-out` for things already on screen that move (the hero divider's glide, the reveal's wipe); `--ease` for everything else. Never an ease-in on an entrance.
+- **Which easing:** `--ease-out` for things entering (a card, the heart's pop, the mirror's picture coming into focus); `--ease-in-out` for things already on screen that move (the hero divider's glide, the mirror's turn); `--ease` for everything else. Never an ease-in on an entrance.
 - **Card entry:** opacity `0→1` + `translateY(8px→0)` over `--dur-slow`, 50ms stagger, once per card.
 - **Catalog → result:** shared-element transition on the garment image. This is what replaces a modal — it makes the result a *place* you travelled to, not a layer that appeared.
-- **The reveal** (ADR 0006): the first sight of a finished try-on, once per job per browser, for a signed-in person. A full-viewport stage on `--ink`: the label's photograph, the person's Front render wiped over it from the left with a white edge (the hero slider's language: the model's photo becomes you), then the other poses rise in with the AI caption, then one button. About 2.2 seconds, skippable at any point by a tap, click, Escape, Enter or Space; nothing advances on its own after the end state. This is the payoff frame and the longest motion in the system. Later visits go straight to the result.
+- **The mirror's arrival** (ADR 0008; replaces the reveal of ADR 0006): once per try-on, for a signed-in person, when a finished try-on is first opened. The picture comes into focus (`--dur-slow`, `--ease-out`), then she turns all the way round once on her own through the four poses and settles on Stand (`--ease-in-out`). It plays on the light screen, on `--canvas`; there is no dark stage. Later visits to the same try-on open on Stand with no arrival.
+- **Turning:** a drag across the picture moves through the poses; the picture tilts slightly toward the next pose as the finger moves, and stops softly at the first and last. The thumbnails and dots follow the picture. Tapping a thumbnail goes to that pose.
 - **The hero:** no entrance animation. The divider glides once per page load (from 78% to the middle, `--ease-in-out`) to show that it moves, and any touch of the slider cancels the glide.
 - **Dots, not arrows:** a carousel's position is shown by small dots; the dots animate, nothing else does. On desktop a mouse pointer scrubs through the frames.
 - **Rack dock fill:** the new card slides in from the right over `--dur`. No badge bounce, no toast.
-- `prefers-reduced-motion: reduce` drops all transforms and keeps opacity: press feedback does not scale, the heart does not pop, the poses do not rise, and the reveal's wipe becomes a crossfade of the render over the label's photograph.
+- `prefers-reduced-motion: reduce` drops all transforms and keeps opacity: press feedback does not scale, the heart does not pop, the poses do not rise, and the mirror has no turn: its arrival is a cross-fade and a drag or tap changes the pose by cross-fade, with no tilt.
 
 ---
 
@@ -259,7 +261,7 @@ The primary action is **Try it on**, not Buy. If the card sells buying, we're a 
 
 A card is the image, the name and price, the label (with the stock line only when stock is low) and one compact action. On desktop the grid is 2 columns, 3 from 1100px and 4 from 1700px; on a phone it is one full-bleed column (PRD §22.1 row 37). The image is the product, so nothing competes with it.
 
-**What sits on an image.** The heart, the dots, and, on the person's own renders only, the "On you" chip. No "Model shot" chip, no photo or pose counts, no visible arrows (previous and next buttons exist for keyboard users and appear only when focused). A card showing a render also carries the AI caption directly beneath the image; the home page hero carries it too (PRD §22.1 rows 35 and 39).
+**What sits on an image.** The heart, the dots, and, on the person's own renders on a card only, the "On you" chip (the result has no chip, ADR 0008). No "Model shot" chip, no photo or pose counts, no visible arrows (previous and next buttons exist for keyboard users and appear only when focused). A card showing a render also carries the AI caption directly beneath the image; the home page hero carries it too (PRD §22.1 rows 35 and 39).
 
 **Save (heart).** One tap saves the piece to Favourites; a toast offers "Change". It sits top-right of the image as a white disc (`canvas` at 90%, `--elev-1`) with an `--ink` heart, so it survives dark and light garments and never uses the accent beside a garment. It is 44×44, the minimum tap target. The heart pops once when a person saves (`--ease-out`, 180ms), never on unsave and never on first paint.
 
@@ -311,21 +313,45 @@ Grey, not colored. A colored shimmer next to a garment breaks Rule 1 and reads a
 
 **Perceived latency is the binding constraint on this entire product.** It outranks every other decision in this file.
 
-### Result screen (place)
+### Result screen: the mirror (place)
 
-Full-bleed hero on `--canvas`, 4:5 (the one place 4:5 is allowed; grids stay 3:4), a swipe gallery of the four poses with labelled thumbnails, the AI caption beside it. Actions, in this order, as the prototype has them:
+*Decided by the owner, 2026-10-16 and 17 (PRD §22.1 row 45, ADR 0008). Replaces the full-bleed 4:5 hero with a swipe gallery, the Buy-first action list and the dark reveal. The boards are in the design canvas at https://claude.ai/artifact/C4pf26WW1oZmSaBtqrHBAT (private to the owner): `Main` (phone), `Desktop`, `Words` (option A).*
 
-| Action | Weight | Note |
+The feeling to build is looking at a mirror while trying a dress: she smiles, turns round and looks at it from several angles. The picture is the centre of the screen. It uses the existing light theme and tokens, on `--canvas`; nothing new is added to §11.
+
+**Layout.**
+
+- **Phone:** the picture is full width and about two-thirds of the screen height. Under it, the pose thumbnails; under them the name line, the three choices and the details, in one scrolling column.
+- **Desktop:** the picture is large and centred; a way back to Your try-ons sits at the left; the name line, the three choices and the details are a column to the right. The picture does not shrink to make room for the details.
+- **On the picture:** Instagram-style dots, the position of the pose and nothing else. No "On you" chip, no count, no arrows (arrows for keyboard users appear only when focused, as for any carousel). The AI label is beside the picture, never on it.
+- **Thumbnails:** one per pose under the picture, each with its name, 44px minimum targets. The current pose is marked by `--ink` and a 2px underline.
+- **Pose names, as verbs:** **Stand, Turn, Walk, Sit.** These replace the camera-angle names (Front, Three-quarter, Walking, Seated) in the interface only; the stored pose keys, the render prompts and the QA gate do not change.
+
+**Behaviour.**
+
+- **Arrival:** see §7, "The mirror's arrival". Once per try-on; reduced motion gets a cross-fade and no turn.
+- **Turn:** drag across the picture, with a slight tilt toward the next pose and a soft stop at the ends. Keyboard left and right arrows move between poses, as on any carousel.
+- **Hold:** press and hold the picture to see the label's own photograph in place of the render; release to return. A first-time hint reads *"Drag to turn. Hold to see the model."* and is shown the first time. On desktop the same hint reads *"AI-generated preview. Drag across her to turn, hold to see the model."* beside the picture, where it doubles as the AI label.
+- **Under the name:** *"Label, $price. AI-generated preview."* This is the AI label, the price and the label's name in one line, in Caption style. It makes no claim about size or fit, and the result carries no fit sentence, height or measurement (PRD Principle 3).
+
+**The three choices, and their words** (Words board, option A):
+
+| Choice | What it does | Note |
 |---|---|---|
-| **Buy $328** | Filled pill, `--ink`, full width | The one filled button. Hands off to the label's site (PRD §22.1 row 13) |
-| **Add to a list** | Secondary outline, with a save icon beside it | Signup trigger for a guest |
-| **Build the outfit** | Row below, two pair thumbnails | Opens the pair preview sheet; "Have a look, then decide" |
+| **Not for me** | Removes the try-on. The toast reads *"Removed from your try-ons."* with **Undo**; then the next try-on opens (Discover when there are none). | The visible discard of Rule 3. |
+| **Ask a friend** | Sends a vote link for this piece (the vote page, PRD C4). One action: it does not also send the piece. | Uses the share sheet or copies the link. |
+| **Love it** | Adds the try-on to Favourites. The toast reads *"Added to Favourites."* with **Undo**; the button then reads **Loved**, and pressing it again removes it (*"Removed from Favourites."*). | Not a save: every try-on is already kept. |
 
-There is no "Ask friends" on the result: asking starts from a list. Measure Buy's effect on session depth against list-adds (PRD §21.2).
+There is no Keep or Save button, because everything is saved by default (the verb-consistency rule of §9 does not apply to a button that does not exist). The three have equal weight, as plain text buttons (the Words board rejects pills for the extra weight they add under the picture); none is a filled `--ink` pill, because there is no purchase to lead the screen. The toast stays about four seconds (the boards' timing). *Known inconsistency:* a heart elsewhere in the product says "Save to Favourites" while this screen says "Love it"; the toast, "Added to Favourites.", is the same in both (PRD §22.5 question 12).
 
-Expectation-setting sits directly under the image in Caption style: *a preview, not a fitting.* Honest, defuses the worst reviews, costs nothing. It makes no claim about size or fit, and the result carries no fit sentence, height or measurement (PRD Principle 3).
+**Details.** Below the choices on a phone, in the right column on desktop, with no separate screen: the description, **Wear it with** (the pair preview, which stays a sheet, PRD C8), **Add to a list** and **Compare** (wide screens). **Buy is not shown anywhere on this screen, nor is the demonstration checkout or "Did it arrive?"**, all behind one switch until the owner turns it back on (PRD §22.1 row 46). When Buy returns, its place is a separate decision.
 
-**The prototype's result has no download.** A download leaks the image into the camera roll with no attribution and no return path.
+**Rules changed by this screen, and the ones kept** (ADR 0008 has the reasoning).
+
+- *Dropped:* the prototypes in `mocks/` as the visual specification for the result screen; "prefer routed screens over sheets" for the result's details; the "On you" chip on the person's own render in the result; camera-angle pose names in the interface; a full-width Buy button on the result; the near-black reveal stage of 2026-10-11.
+- *Kept:* the visible AI label beside every render (legal and trust); no fit or size language (legal); the colourless surround, which still means white or near-black behind try-on imagery and no tints (the mirror uses white); 44px minimum targets and reduced-motion support (accessibility).
+
+**The prototype's result has no download.** A download leaks the image into the camera roll with no attribution and no return path. The mirror has none either.
 
 ### Poll
 
@@ -388,6 +414,7 @@ Claims must be verifiable in the panel. State the mechanism, not the vibe: *your
 - **Sentence case everywhere.** Headings, buttons, nav, labels.
 - **Buttons name the outcome:** `Try it on`, `Ask friends`, `Save`, `Delete my photo`. Not `Submit`, `Learn more`, `Continue`.
 - **Verb consistency:** the button that says `Save` produces a toast that says `Saved`.
+- **On the mirror (ADR 0008):** the choices are `Not for me`, `Ask a friend`, `Love it`; the poses are `Stand`, `Turn`, `Walk`, `Sit`; the toasts are `Added to Favourites.`, `Removed from Favourites.`, `Removed from your try-ons.`
 - **Errors say what happened and what to do**, in one sentence, no apology.
 - **Empty states are an invitation** — the saved-items empty state contains a live item, not a shrug.
 - **Privacy copy states the mechanism**, never the sentiment.
@@ -418,12 +445,13 @@ Claims must be verifiable in the panel. State the mechanism, not the vibe: *your
 | Fake progress steps | Detectable; costs more trust than the wait |
 | Mixed aspect ratios in one scroll container | Advertises inconsistent renders |
 | Font-weight 700+ headings | Generic |
-| `Buy` as a catalogue or feed card's primary action | Makes us a store with a filter attached. (On the result screen Buy is the filled action by decision, PRD §22.1 row 13) |
+| `Buy` as a catalogue or feed card's primary action | Makes us a store with a filter attached. (Buy is hidden everywhere from 2026-10-17, PRD §22.1 row 46; the result's filled Buy of row 13 is superseded by the mirror) |
 | Download as the primary result action | Leaks the image with no return path |
 | Borders around try-on cards | Competes with the garment silhouette |
 | A label row or Follow button above a listing card's image; a heading that changes with the filter | Pushes the garment down and repeats the tab (PRD §22.1 rows 19, 20) |
-| A chip, count or arrow on a photograph beyond "On you" and the heart | Competes with the garment (PRD §22.1 row 35) |
+| A chip, count or arrow on a photograph beyond "On you" (cards only) and the heart | Competes with the garment (PRD §22.1 row 35) |
 | A hero that appears after the feed has painted | Moves what the person was looking at; the server decides from the `tr_hp` cookie (PRD §22.1 row 33) |
+| Camera-angle pose names (Front, Three-quarter) in the interface | The poses are Stand, Turn, Walk, Sit (ADR 0008) |
 | Tap targets under 44px | Phone-first product |
 | Poll with one option | "Do you like this?" gets left on read |
 

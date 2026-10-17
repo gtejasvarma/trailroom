@@ -65,47 +65,37 @@ for (const size of SIZES) {
       await page.waitForTimeout(600);
       await shot(page, "lists-favourites", size.name);
 
-      // Try-on: the reveal at three moments.
+      // Try-on: the arrival at three moments, the settled mirror, and the hold.
       await page.goto("/");
       await tryOnFromScratch(page, "Wool car coat", { name: "Maya Chen" });
-      const dialog = page.getByRole("dialog", {
-        name: "Create an account to save",
-      });
       await expect(
         page
           .getByTestId("queue-title")
           .filter({ hasText: /ready$/ })
-          .or(page.getByTestId("reveal")),
+          .or(page.getByTestId("pose-gallery")),
       ).toBeVisible({ timeout: 40_000 });
-      if (!(await page.getByTestId("reveal").isVisible())) {
+      if (!(await page.getByTestId("pose-gallery").isVisible())) {
         await expect(page.getByRole("dialog")).toBeVisible();
         await continueWithGoogle(page, { name: "Maya Chen" });
       }
-      void dialog;
-      const r = page.getByTestId("reveal");
-      await expect(r).toHaveAttribute("data-step", /^[0-4]$/, {
-        timeout: 30_000,
+      const stage = page.getByTestId("mirror-stage");
+      await expect(stage).toBeVisible({ timeout: 30_000 });
+      await shot(page, "arrival-1-focus", size.name);
+      await page.waitForTimeout(2_400);
+      await shot(page, "arrival-2-turning", size.name);
+      await expect(stage).toHaveAttribute("data-stage", "done", {
+        timeout: 10_000,
       });
-      await shot(page, "reveal-1-label-photo", size.name);
-      await expect(r).toHaveAttribute("data-step", /^[2-4]$/);
-      await page.waitForTimeout(420);
-      await shot(page, "reveal-2-mid-wipe", size.name);
-      await expect(r).toHaveAttribute("data-step", "4", { timeout: 5_000 });
       await page.waitForTimeout(400);
-      await shot(page, "reveal-3-end", size.name);
-      await page.getByTestId("reveal-continue").click();
-      await expect(r).toHaveCount(0);
-      await page.waitForTimeout(500);
-      await shot(page, "result", size.name);
-      await shot(page, "result-full", size.name, true);
-      const hold = page.getByTestId("hold-compare");
-      await hold.scrollIntoViewIfNeeded();
-      const b = (await hold.boundingBox())!;
+      await shot(page, "mirror", size.name);
+      await shot(page, "mirror-full", size.name, true);
+      const surface = page.getByTestId("pose-surface");
+      const b = (await surface.boundingBox())!;
       await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await page.mouse.down();
-      await page.getByTestId("pose-gallery").scrollIntoViewIfNeeded();
+      await expect(page.getByTestId("label-photo")).toBeVisible();
       await page.waitForTimeout(200);
-      await shot(page, "result-hold", size.name);
+      await shot(page, "mirror-hold", size.name);
       await page.mouse.up();
 
       // Home with a photo: the card on you.

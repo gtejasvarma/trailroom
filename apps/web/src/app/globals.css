@@ -266,32 +266,6 @@ dialog.sheet::backdrop {
   will-change: transform;
 }
 
-/* The reveal stage (see reveal.tsx): near-black layer, everything timed from script via classes. */
-.rv-fade {
-  opacity: 0;
-  transition: opacity 200ms var(--ease-out);
-}
-.rv-fade[data-on="true"] {
-  opacity: 1;
-}
-.rv-rise {
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 260ms var(--ease-out),
-    transform 260ms var(--ease-out);
-}
-.rv-rise[data-on="true"] {
-  opacity: 1;
-  transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .rv-rise {
-    transform: none;
-    transition: opacity 300ms linear;
-  }
-}
-
 /* The proof slider: a native range input stretched over the image, invisible, with a wide
    thumb so a finger can grab the divider anywhere along it. Keyboard and screen readers get
    the real control. */

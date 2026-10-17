@@ -1,6 +1,7 @@
 // Phase E: Compare (wide screens only) and the tray. Desktop 1440x900; the phone check says the
 // entry points are absent and the route explains itself. Review PNGs go to runs/phase-e/.
 import { expect, setScript, test } from "./helpers";
+import { BUY_ENABLED } from "../src/lib/flags";
 import {
   noHScroll,
   serious,
@@ -128,14 +129,18 @@ test.describe("desktop 1440x900", () => {
     await sheet.getByRole("button", { name: "Done" }).click();
     await expect(sheet).toBeHidden();
 
-    // Buy from a column opens the buy sheet.
-    await columns.first().getByTestId("compare-buy").click();
-    const buy = page.getByRole("dialog", {
-      name: /^Tailored linen suit, \$\d+$/,
-    });
-    await expect(buy).toBeVisible();
-    await buy.getByRole("button", { name: "Keep looking" }).click();
-    await expect(buy).toBeHidden();
+    // Buy from a column opens the buy sheet (while Buy is switched on); off, there is none.
+    if (BUY_ENABLED) {
+      await columns.first().getByTestId("compare-buy").click();
+      const buy = page.getByRole("dialog", {
+        name: /^Tailored linen suit, \$\d+$/,
+      });
+      await expect(buy).toBeVisible();
+      await buy.getByRole("button", { name: "Keep looking" }).click();
+      await expect(buy).toBeHidden();
+    } else {
+      await expect(page.getByTestId("compare-buy")).toHaveCount(0);
+    }
 
     // Add to a list from one column.
     await columns.nth(1).getByTestId("compare-add-to-list").click();

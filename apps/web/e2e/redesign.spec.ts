@@ -1,12 +1,11 @@
 // The redesign of 2026-10-11: the hero decided on the server, the quiet tabs, carousels with dots
-// only, the heart that saves to Favourites, the grid cards, the Reveal and hold-to-compare.
+// only, the heart that saves to Favourites, the grid cards, the card on you (the arrival and the mirror are in mirror.spec.ts).
 import type { Page } from "@playwright/test";
 import {
   card,
   continueWithGoogle,
   expect,
   newEmail,
-  realReveal,
   setScript,
   test,
   tryOnFromScratch,
@@ -22,20 +21,6 @@ const SIZES = [
 const heart = (page: Page, item: string) =>
   page.locator(`article[data-item=${item}]`).getByTestId("heart");
 const toast = (page: Page) => page.getByTestId("toast");
-const reveal = (page: Page) => page.getByTestId("reveal");
-
-/** Signs a guest in from the account sheet that a try-on (or Buy) opens, then waits for the reveal. */
-async function signInAtTheEnd(page: Page, name = "Maya Chen") {
-  const hero = page.getByTestId("pose-gallery");
-  const ready = page.getByTestId("queue-title").filter({ hasText: /ready$/ });
-  await expect(hero.or(ready).or(reveal(page))).toBeVisible({
-    timeout: 30_000,
-  });
-  if (!(await reveal(page).isVisible()) && !(await hero.isVisible())) {
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await continueWithGoogle(page, { name });
-  }
-}
 
 test.describe("the home page is decided on the server", () => {
   test("a visitor without the cookie gets the hero in the HTML; with it, no hero", async ({
@@ -307,87 +292,6 @@ for (const size of SIZES) {
       );
     });
 
-    test("the reveal plays once for an account, can be skipped, and the AI label is on it", async ({
-      page,
-    }) => {
-      test.setTimeout(120_000);
-      await realReveal(page);
-      await tryOnFromScratch(page, "Wool car coat");
-      // A guest sees no reveal while the account sheet is the next step.
-      await expect(reveal(page)).toHaveCount(0);
-      await signInAtTheEnd(page);
-      const r = reveal(page);
-      await expect(r).toBeVisible({ timeout: 30_000 });
-      await expect(r).toHaveAttribute("aria-modal", "true");
-      await expect(r).toHaveAccessibleName("Your try-on of Wool car coat");
-      // Step 1: the label's own photograph; the render is wiped over it.
-      await expect(page.getByTestId("reveal-label-photo")).toBeVisible();
-      await expect(page.getByTestId("reveal-edge")).toHaveCount(1);
-      await expect(page.getByTestId("reveal-ai")).toHaveCSS("opacity", "0");
-      // Escape jumps to the end state: the AI label, the other poses, the button.
-      await page.keyboard.press("Escape");
-      await expect(r).toHaveAttribute("data-step", "4");
-      await expect(page.getByTestId("reveal-ai")).toHaveText(
-        "AI-generated preview",
-      );
-      await expect(page.getByTestId("reveal-ai")).toHaveCSS("opacity", "1");
-      await expect(page.getByTestId("reveal-thumb")).toHaveCount(3);
-      const go = page.getByRole("button", { name: "See all 4 poses" });
-      await expect(go).toBeVisible();
-      // The page behind is inert while it is open.
-      expect(
-        await page.evaluate(
-          () => document.querySelector("main")?.closest("[inert]") !== null,
-        ),
-      ).toBe(true);
-      await go.click();
-      await expect(r).toHaveCount(0);
-      await expect(page.getByTestId("pose-gallery")).toBeVisible();
-      await expect(page.getByTestId("pose-thumb").first()).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-      // A second visit goes straight to the result.
-      await page.reload();
-      await expect(page.getByTestId("pose-gallery")).toBeVisible();
-      await expect(reveal(page)).toHaveCount(0);
-    });
-
-    test("hold to see the label's photo", async ({ page }) => {
-      test.setTimeout(120_000);
-      await tryOnFromScratch(page, "Wool car coat", { name: "Maya Chen" });
-      await waitForResult(page);
-      const chip = page.getByTestId("state-chip");
-      await expect(chip).toHaveText("On you");
-      await expect(page.getByTestId("counter")).toHaveCount(0);
-      const hold = page.getByTestId("hold-compare");
-      await expect(hold).toHaveText("Hold to see the label’s photo");
-      await expect(hold).toHaveAttribute("aria-pressed", "false");
-      const b = (await hold.boundingBox())!;
-      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-      await page.mouse.down();
-      await expect(page.getByTestId("label-photo")).toBeVisible();
-      await expect(chip).toHaveText("Label’s photo");
-      await expect(hold).toHaveAttribute("aria-pressed", "true");
-      await page.mouse.up();
-      await expect(page.getByTestId("label-photo")).toHaveCount(0);
-      await expect(chip).toHaveText("On you");
-      // Keyboard: Space held.
-      await hold.focus();
-      await page.keyboard.down("Space");
-      await expect(page.getByTestId("label-photo")).toBeVisible();
-      await page.keyboard.up("Space");
-      await expect(page.getByTestId("label-photo")).toHaveCount(0);
-      // The result has dots and arrow keys, and no arrows or counter on screen.
-      await expect(page.getByTestId("dot")).toHaveCount(4);
-      await page.getByTestId("pose-gallery").focus();
-      await page.keyboard.press("ArrowRight");
-      await expect(page.getByTestId("dot").nth(1)).toHaveAttribute(
-        "data-active",
-        "true",
-      );
-    });
-
     test("an on-you card says the render is AI-generated, beside the image", async ({
       page,
     }) => {
@@ -401,41 +305,12 @@ for (const size of SIZES) {
       await expect(coat.getByTestId("card-ai")).toHaveText(
         "AI-generated preview",
       );
-      await expect(coat.getByRole("button", { name: /^Buy \$/ })).toBeVisible();
+      // Buy is switched off (BUY_ENABLED): the card's action opens the mirror instead.
+      await expect(coat.getByRole("button", { name: /^Buy/ })).toHaveCount(0);
+      const see = coat.getByRole("link", { name: "See it on you" });
+      await expect(see).toBeVisible();
+      await see.click();
+      await expect(page.getByTestId("pose-gallery")).toBeVisible();
     });
   });
 }
-
-test.describe("reveal: other cases", () => {
-  test.use({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
-
-  test("reduced motion: no wipe line, no movement, everything appears", async ({
-    page,
-  }) => {
-    test.setTimeout(120_000);
-    await realReveal(page);
-    await tryOnFromScratch(page, "Wool car coat");
-    await signInAtTheEnd(page);
-    const r = reveal(page);
-    await expect(r).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId("reveal-edge")).toHaveCount(0);
-    await expect(r).toHaveAttribute("data-step", "4", { timeout: 4_000 });
-    await expect(page.getByTestId("reveal-ai")).toHaveCSS("opacity", "1");
-    const moving = await page.evaluate(() =>
-      document
-        .getAnimations()
-        .some((a) => (a as CSSTransition).transitionProperty === "transform"),
-    );
-    expect(moving).toBe(false);
-  });
-
-  test("a failed job never shows the stage", async ({ page }) => {
-    test.setTimeout(120_000);
-    await realReveal(page);
-    setScript([{ outcome: "blocked", times: 99 }]);
-    await tryOnFromScratch(page, "Wool car coat");
-    await expect(page.getByTestId("reveal")).toHaveCount(0);
-    await page.waitForTimeout(4_000);
-    await expect(page.getByTestId("reveal")).toHaveCount(0);
-  });
-});

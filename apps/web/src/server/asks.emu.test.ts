@@ -296,6 +296,150 @@ describe("creating an ask", () => {
   });
 });
 
+describe("an ask for one piece, with no list (the mirror's Ask a friend)", () => {
+  const pieceAsk = (
+    a: Person,
+    poseSetId: unknown,
+    question?: unknown,
+    extra: Record<string, unknown> = {},
+  ) =>
+    asksPOST(
+      req("POST", "/api/asks", {
+        token: a.token,
+        json: { poseSetId, question, ...extra },
+      }),
+    );
+
+  it("freezes the very try-on named, titles the page with the piece, and friends can vote", async () => {
+    const a = await withPhoto();
+    const { poseSetId, jobId } = await tryOn(a.token, "blouse");
+    const res = await pieceAsk(
+      a,
+      poseSetId,
+      "What do you think of the blouse?",
+    );
+    const body = await res.json();
+    expect(res.status).toBe(201);
+    expect(body.url).toMatch(/\/ask\/[A-Za-z0-9_-]{20,}$/);
+    const token = (body.url as string).split("/ask/")[1]!;
+    const doc = (
+      await firestore().collection("asks").doc(body.askId).get()
+    ).data()!;
+    expect(doc).toMatchObject({
+      uid: a.uid,
+      listId: "",
+      listName: getItem("blouse")!.name,
+      itemIds: ["blouse"],
+      poseSetIds: { blouse: poseSetId },
+      poseSetJobIds: { blouse: jobId },
+      question: "What do you think of the blouse?",
+      counts: { blouse: 0 },
+      revokedAt: null,
+    });
+    // Only the hash is kept, and it finds the ask.
+    expect(JSON.stringify(doc)).not.toContain(token);
+    expect((await getAskByToken(token))?.id).toBe(body.askId);
+    // The public page: the piece's name for a title, the render shown, one tap to vote.
+    const v = await (await view(token)).json();
+    expect(v.listName).toBe(getItem("blouse")!.name);
+    expect(v.pieces).toHaveLength(1);
+    expect(v.pieces[0]).toMatchObject({ itemId: "blouse", rendered: true });
+    expect((await image(token, "blouse")).status).toBe(200);
+    expect((await vote(token, "blouse")).status).toBe(200);
+    expect((await myAsks(a))[0]!.counts).toEqual({ blouse: 1 });
+  });
+
+  it("freezes the one named, not merely the newest, and a question is optional", async () => {
+    const a = await withPhoto();
+    const first = await tryOn(a.token, "blouse");
+    const res = await pieceAsk(a, first.poseSetId);
+    expect(res.status).toBe(201);
+    const { askId } = await res.json();
+    const doc = (await firestore().collection("asks").doc(askId).get()).data()!;
+    expect(doc.question).toBeNull();
+    expect(doc.poseSetIds).toEqual({ blouse: first.poseSetId });
+  });
+
+  it("is for an account only, and only for the person's own finished try-on", async () => {
+    const a = await withPhoto();
+    const b = await withPhoto();
+    const mine = await tryOn(a.token, "blouse");
+    const theirs = await tryOn(b.token, "blouse");
+    const guest = await (await import("./testkit")).anonymousToken();
+    const asGuest = await asksPOST(
+      req("POST", "/api/asks", {
+        token: guest,
+        json: { poseSetId: mine.poseSetId },
+      }),
+    );
+    expect(asGuest.status).toBe(403);
+    // Someone else's, one that does not exist, and ids that are not ids at all.
+    expect((await pieceAsk(a, theirs.poseSetId)).status).toBe(404);
+    expect((await pieceAsk(a, "nope")).status).toBe(404);
+    expect((await pieceAsk(a, "a/b")).status).toBe(404);
+    for (const bad of [42, null, ["x"], { id: 1 }])
+      expect((await pieceAsk(a, bad)).status, JSON.stringify(bad)).toBe(400);
+    // Neither mixed with a list nor with a list of pieces.
+    expect(
+      (await pieceAsk(a, mine.poseSetId, undefined, { itemIds: ["blouse"] }))
+        .status,
+    ).toBe(400);
+    expect(
+      (await asksGET(req("GET", "/api/asks", { token: a.token }))).status,
+    ).toBe(200);
+    expect(await myAsks(a)).toHaveLength(0);
+    expect(await myAsks(b)).toHaveLength(0);
+  });
+
+  it("refuses a try-on that is not finished, and an outfit", async () => {
+    const a = await withPhoto();
+    const { poseSetId } = await tryOn(a.token, "blouse");
+    await updatePoseSet(poseSetId, { status: "rendering" });
+    expect((await pieceAsk(a, poseSetId)).status).toBe(404);
+    await updatePoseSet(poseSetId, { status: "failed" });
+    expect((await pieceAsk(a, poseSetId)).status).toBe(404);
+    await updatePoseSet(poseSetId, { status: "complete", poses: ["walking"] });
+    // Friends are shown the Front render: a set without one has nothing to show.
+    expect((await pieceAsk(a, poseSetId)).status).toBe(400);
+  });
+
+  it("keeps the rules: the question limits, and 20 live asks, shared with list asks", async () => {
+    const a = await withPhoto();
+    const { poseSetId } = await tryOn(a.token, "blouse");
+    expect((await pieceAsk(a, poseSetId, "x".repeat(121))).status).toBe(400);
+    expect((await pieceAsk(a, poseSetId, 5)).status).toBe(400);
+    expect((await pieceAsk(a, poseSetId, "x".repeat(120))).status).toBe(201);
+    const listId = await makeList(a, ["blouse"]);
+    for (let i = 0; i < MAX_LIVE_ASKS - 2; i++)
+      expect((await ask(a, listId, ["blouse"])).res.status).toBe(201);
+    expect((await pieceAsk(a, poseSetId)).status).toBe(201);
+    const over = await pieceAsk(a, poseSetId);
+    expect([over.status, (await over.json()).error]).toEqual([
+      409,
+      "ask_limit",
+    ]);
+  });
+
+  it("can be switched off like any ask, and deleting a list leaves it alone", async () => {
+    const a = await withPhoto();
+    const { poseSetId } = await tryOn(a.token, "blouse");
+    const { askId, url } = await (await pieceAsk(a, poseSetId)).json();
+    const token = (url as string).split("/ask/")[1]!;
+    const listId = await makeList(a, ["blouse"]);
+    await listDELETE(
+      req("DELETE", `/api/lists/${listId}`, { token: a.token }),
+      p({ id: listId }),
+    );
+    expect((await view(token)).status).toBe(200);
+    const r = await revokePOST(
+      req("POST", `/api/asks/${askId}/revoke`, { token: a.token }),
+      p({ id: askId }),
+    );
+    expect(r.status).toBe(200);
+    expect((await view(token)).status).toBe(410);
+  });
+});
+
 describe("the public page's data", () => {
   it("has the headers, shows the first name, and holds back the split until you vote", async () => {
     const a = await person();

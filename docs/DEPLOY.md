@@ -462,8 +462,11 @@ Steps 1 to 11 were written for V0; steps 12 to 20 cover Phases D to F and the se
    cookie, on an `/api/renders/...` URL. A guest can only have a finished set if it was made before the
    rollout of the account requirement; such a set shows "4 poses, ready. Create an account to open them."
    until the guest signs in or is purged, about 48 hours after capture. A leftover set needs no action.
-8. **The result.** After the reveal the result opens with four poses and the AI caption under the
-   gallery (nothing drawn on the images), with no re-render. Buy is the filled action. (When there is no
+8. **The result is the mirror.** The first time, the picture comes into focus and she turns all the way
+   round once on her own, then settles. Drag across the picture to turn; the thumbnails and the dots
+   follow; press and hold the picture for the label's photograph. Under the name: "Label, $price.
+   AI-generated preview." The choices are **Not for me**, **Ask a friend** and **Love it**; there is no
+   Buy while `BUY_ENABLED` is false (`apps/web/src/lib/flags.ts`). (When there is no
    try-on yet, because the sign-in came right after an upload from the home page, you land on "Your
    photo is in" instead, with no label picker: see step 28.)
 9. Back in Discover, the piece you tried is shown "on you" with "See your 4 poses". **You → Your
@@ -498,7 +501,9 @@ Phases D to F (run after step 8, signed in with a fresh photo and try-on if step
 16. **Compare.** On a wide screen select two to four tried pieces into the tray (or press `C`) and open
     Compare: one pose switcher moves every column, and a set missing that pose shows a plain placeholder.
     Outfits are not offered.
-17. **Buy and the demonstration checkout.** On a result, Buy opens the buy sheet; **Go to LABEL** opens
+17. **Buy and the demonstration checkout.** *Skip while `BUY_ENABLED` is false: no Buy shows anywhere
+    (check that none does, on a card you have tried, a product page, a list, Compare and an outfit).*
+    With it on: on a result, Buy opens the buy sheet; **Go to LABEL** opens
     `/demo-checkout/<piece>`, which says there is nothing to purchase and takes no payment. Return and
     answer "Did it arrive?"; it is asked once per piece.
 18. **Outfit.** On the coat's result, **Build the outfit** (or **Wear it with**) offers the vest, the
@@ -552,68 +557,19 @@ The redesign (ADR 0006; PRD §22.1 rows 33 to 40). Run each on `https://trailroo
     piece. Tap the heart again: it empties. Tap a heart, then **Change**: as a guest this opens the
     account sheet. Then sign in with Google: Favourites arrives in the account with the piece in it
     (try it with a Google account that already exists, and with a new one).
-25. **The reveal, after a real try-on.** Signed in, start a real try-on and wait. When it finishes the
-    stage opens on near-black: the label's photograph is wiped into your Front render, the other
-    poses rise in under it with the AI caption visible, and one button opens the result. Tap
-    anywhere before the end: it jumps to the end state. Open the same try-on again from You: it goes
-    straight to the result with no stage (it is remembered per browser, so a private window
-    shows it once more). With the system setting "reduce motion" on, the render crossfades in
-    instead of wiping.
-26. **The hold control.** On the result, press and hold **Hold to see the label's photo**: the image
-    swaps to the label's photograph while it is held and returns on release. On a phone, check the
-    page does not scroll or select text while holding. On desktop, check images in the grid scrub
-    with the mouse pointer, the left and right arrow keys work on a focused carousel, and no arrows,
-    "Model shot" chip or count chips are drawn on any photograph. "On you" appears only on your own
-    renders.
-
-## Custom domain (`trailroom.ai`)
-
-**What was done, by the owner, on 2026-10-11.** `trailroom.ai` was connected to the App Hosting backend
-`trailroom` (Firebase console, App Hosting, the backend's Domains tab). The DNS is at Namecheap and holds
-the records the console asked for: an A record, a TXT record named `fah-claim`, and an `_acme-challenge_...`
-CNAME for the certificate. The old static Firebase Hosting site, `trailroom-ai`, no longer holds the
-domain. A `resend._domainkey` DNS record already exists for email; email is deferred by the owner and
-nothing is sent.
-
-**What the app does about it.** `PUBLIC_ORIGINS` in `apps/web/apphosting.yaml` lists
-`https://trailroom.ai` and `https://www.trailroom.ai` (commit `fb4d8d6`), so a share link is built on the
-address the person is using when it is one of these, and falls back to `INTERNAL_AUDIENCE` otherwise.
-
-**The `hosted.app` address must keep working.** The Cloud Workflow and the Scheduler job call
-`$APP_URL`, and `INTERNAL_AUDIENCE` is that address (step 8). Do not change `INTERNAL_AUDIENCE` or the
-workflow's `APP_URL` to the custom domain, and do not remove the `hosted.app` address.
-
-**Still to do, by the owner.**
-
-- [ ] Confirm the console shows `trailroom.ai` as connected (certificate issued, no pending record).
-      Check that `https://trailroom.ai` opens the site (with the gate off) and `https://www.trailroom.ai` too if it is meant to.
-- [ ] Add `trailroom.ai` (and `www.trailroom.ai` if used) to Authentication, Settings, Authorised
-      domains (step 11). Until then Google sign-in fails on the new address.
-- [ ] Run smoke test steps 20 and 23 to 26 on `https://trailroom.ai`, and 1 to 4 and 14 once there,
-      because the vote page link is built on the address the asker is using.
-
-## If the first build fails
-
-Three things could not be checked locally.
-
-- **Workspace packages don't resolve.** App Hosting documents Turborepo and Nx monorepos but not
-  whether a build rooted at `apps/web` installs from the repo root. If the build log shows
-  `Cannot find module '@trailroom/...'`, that is this. Tell Claude; the fix is in the build
-  configuration, not the app.
-- **Firebase web config is missing in the browser** (console error about `apiKey` on first load).
-  The client relies on App Hosting injecting `FIREBASE_WEBAPP_CONFIG` at build time. The fallback
-  is to add `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`,
-  `NEXT_PUBLIC_FIREBASE_PROJECT_ID` and `NEXT_PUBLIC_FIREBASE_APP_ID` to `apphosting.yaml` with
-  `availability: [BUILD, RUNTIME]`, from Project settings → Your apps.
-- **A workflow step fails on its first run.** The YAML is checked against the app's routes by a
-  contract test, and a TypeScript port of its branch logic is checked against the inline
-  orchestrator, but the YAML itself has never executed. Two things in it were written from memory
-  of Google's docs because the pages would not load: the `get_type(e)` helper in the error
-  handler, and the assumption that an unhandled error in one parallel branch stops the others. The execution's error names the failing step:
-  `gcloud workflows executions describe <id> --workflow render-pose-set --location $REGION --project $PROJECT`
-
-The two changes made after the redesign (PRD §22.1 rows 42 and 43; ADR 0007):
-
+25. **The mirror, after a real try-on.** Signed in, start a real try-on and wait. When it finishes the
+    picture comes into focus on white and she turns round once on her own; touch it to skip to the end.
+    Open the same try-on again from You: no arrival this time (remembered per browser). With "reduce
+    motion" on, it cross-fades and does not turn. **Not for me**: the picture drops away with Undo for
+    five seconds; let it run out and the try-on is gone from You and the next one opens. **Ask a
+    friend**: the share sheet opens with a vote link for this one piece (on a laptop the link is
+    copied). **Love it**: the piece appears in Favourites.
+26. **The hold.** Press and hold the picture: the label's own photograph replaces the render in place,
+    with "On the label's model" at the top; let go and it returns. A drag does not trigger it. The
+    keyboard equivalent is "See the label's photo" in the details. On a phone, check the page does not
+    scroll or select text while holding. On desktop, check images in the Discover grid scrub with the
+    mouse pointer, the left and right arrow keys work on a focused carousel, and no arrows or count chips
+    are drawn on any photograph.
 27. **The face check judges each pose. This is what confirms the open item of 2026-10-12.** The face-match service is deployed and `FACE_MATCH_URL` is set ("The face-match service"). Run a real try-on with a photo of a face, then read the
     latest job with `runs/diag.sh` (or in the Firebase console, Firestore, `jobs/<jobId>`). For each pose,
     the attempt's `qa.identity` is `pass` with a `probability` (the only real renders scored so far, locally, were

@@ -163,7 +163,7 @@ export const SCREENS: Screen[] = [
       await tryOnFromScratch(page, "Knit button vest");
       await waitForResult(page);
     },
-    primary: 'main button:has-text("Buy")',
+    primary: "main [data-testid=choice-love]",
   },
   {
     name: "your try-ons",
