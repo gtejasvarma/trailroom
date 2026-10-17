@@ -441,6 +441,55 @@ for (const size of SIZES) {
       expect(copied[0]).toMatch(/\/ask\/[A-Za-z0-9_-]+$/);
     });
 
+    test("when the browser refuses the share sheet after the link is made, a second tap shares it", async ({
+      page,
+    }) => {
+      // Safari on iPhone refuses navigator.share (and the clipboard) when the tap was too long
+      // ago, as after a slow request. The first call is refused here; the second, from a fresh tap,
+      // goes through.
+      test.setTimeout(120_000);
+      await page.addInitScript(() => {
+        const w = window as unknown as { __shared: unknown[]; __calls: number };
+        w.__shared = [];
+        w.__calls = 0;
+        const refuse = () =>
+          Promise.reject(
+            new DOMException("needs a fresh tap", "NotAllowedError"),
+          );
+        Object.defineProperty(navigator, "share", {
+          configurable: true,
+          value: async (d: unknown) => {
+            w.__calls += 1;
+            if (w.__calls === 1) return refuse();
+            w.__shared.push(d);
+          },
+        });
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: { writeText: refuse },
+        });
+      });
+      await signedInWithTryOns(page, ["coat"]);
+      const ask = page.getByTestId("choice-ask");
+      await ask.click();
+      await expect(toast(page)).toHaveText(
+        "Your link is ready. Tap Share link to send it.",
+      );
+      await expect(ask).toContainText("Share link");
+      expect(await listDocs("asks")).toHaveLength(1);
+
+      await ask.click();
+      await expect(toast(page)).toHaveText("Sent.");
+      await expect(ask).toContainText("Ask a friend");
+      const shared = (await page.evaluate(
+        () => (window as unknown as { __shared: unknown[] }).__shared,
+      )) as { url: string }[];
+      expect(shared).toHaveLength(1);
+      expect(shared[0]!.url).toMatch(/\/ask\/[A-Za-z0-9_-]+$/);
+      // The second tap reused the link: still one ask.
+      expect(await listDocs("asks")).toHaveLength(1);
+    });
+
     test("Not for me with Undo: the picture drops away, nothing is deleted, the mirror returns", async ({
       page,
     }) => {

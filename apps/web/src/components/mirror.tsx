@@ -221,6 +221,9 @@ export function Mirror({
   const [reduced, setReduced] = useState(false);
   const [gone, setGone] = useState(false);
   const [asking, setAsking] = useState(false);
+  /** A vote link made but not yet handed over, because the browser wanted a fresh tap. */
+  const [readyLink, setReadyLink] = useState<string | null>(null);
+  useEffect(() => setReadyLink(null), [job.poseSetId]);
   const [pop, setPop] = useState(0);
 
   const stageRef = useRef(stage);
@@ -439,38 +442,60 @@ export function Mirror({
   }, [deferred, job.poseSetId]);
 
   // ---- Ask a friend -------------------------------------------------------------------------
-  async function copyLink(url: string) {
+  // One tap where the browser allows it. The link has to be made on the server first, and Safari on
+  // iPhone opens the share sheet (or writes to the clipboard) only straight after a tap: when the
+  // request takes too long it refuses. Then the button becomes "Share link", and that second tap is
+  // fresh, so the share sheet always opens. Nobody is left with a button that did nothing.
+  const refused = (e: unknown) =>
+    e instanceof DOMException && e.name === "NotAllowedError";
+
+  /** Shares or copies `url`. Returns false only when the browser refused for want of a fresh tap. */
+  async function handOver(url: string, question: string): Promise<boolean> {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: copy.mirror.askShareTitle(item.name),
+          text: question,
+          url,
+        });
+        say(copy.mirror.askSent);
+        return true;
+      } catch (e) {
+        // Closing the share sheet is not an error.
+        if (e instanceof DOMException && e.name === "AbortError") return true;
+        if (refused(e)) return false;
+        // Anything else: try the clipboard below.
+      }
+    }
     try {
       await navigator.clipboard.writeText(url);
       say(copy.mirror.askCopied);
-    } catch {
+      return true;
+    } catch (e) {
+      if (refused(e)) return false;
       say(copy.toasts.linkCopyFailed);
+      return true;
     }
   }
 
   async function askFriend() {
     if (asking) return;
+    const question = copy.mirror.askQuestion(item.name);
+    if (readyLink) {
+      // The second tap: hand the link over straight away, before anything else is awaited.
+      const done = await handOver(readyLink, question);
+      if (done) setReadyLink(null);
+      else say(copy.toasts.linkCopyFailed);
+      return;
+    }
     setAsking(true);
     try {
-      const question = copy.mirror.askQuestion(item.name);
       const r = await api.createPieceAsk(job.poseSetId, question);
       rememberAskLink(r.askId, r.url);
       void refreshLists();
-      if (typeof navigator.share === "function") {
-        try {
-          await navigator.share({
-            title: copy.mirror.askShareTitle(item.name),
-            text: question,
-            url: r.url,
-          });
-          say(copy.mirror.askSent);
-        } catch (e) {
-          // Closing the share sheet is not an error; anything else falls back to the clipboard.
-          if (!(e instanceof DOMException && e.name === "AbortError"))
-            await copyLink(r.url);
-        }
-      } else {
-        await copyLink(r.url);
+      if (!(await handOver(r.url, question))) {
+        setReadyLink(r.url);
+        say(copy.mirror.askReady);
       }
     } catch (e) {
       say(
@@ -552,7 +577,7 @@ export function Mirror({
     <Choice
       key="ask"
       testId="choice-ask"
-      label={copy.mirror.askFriend}
+      label={readyLink ? copy.mirror.shareLink : copy.mirror.askFriend}
       icon={<AskIcon />}
       onClick={() => void askFriend()}
       disabled={asking || gone}

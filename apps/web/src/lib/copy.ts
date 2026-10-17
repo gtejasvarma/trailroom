@@ -609,6 +609,8 @@ export const copy = {
     askQuestion: (name: string) => `What do you think of the ${lower(name)}?`,
     askCopied: "Link copied. They vote in one tap, no app needed.",
     askSent: "Sent.",
+    askReady: "Your link is ready. Tap Share link to send it.",
+    shareLink: "Share link",
     askFailed: "We could not make the link just now, so try again.",
     askShareTitle: (name: string) => `${name} on Trailroom`,
     favouritesAdded: "Added to Favourites.",

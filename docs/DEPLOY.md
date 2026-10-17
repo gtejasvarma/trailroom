@@ -563,7 +563,9 @@ The redesign (ADR 0006; PRD §22.1 rows 33 to 40). Run each on `https://trailroo
     motion" on, it cross-fades and does not turn. **Not for me**: the picture drops away with Undo for
     five seconds; let it run out and the try-on is gone from You and the next one opens. **Ask a
     friend**: the share sheet opens with a vote link for this one piece (on a laptop the link is
-    copied). **Love it**: the piece appears in Favourites.
+    copied). On an iPhone, check which happens: the share sheet at once, or the button turning into
+    **Share link** with "Your link is ready", whose tap opens the share sheet. Either is correct; a
+    tap that does nothing is the bug this guards against. **Love it**: the piece appears in Favourites.
 26. **The hold.** Press and hold the picture: the label's own photograph replaces the render in place,
     with "On the label's model" at the top; let go and it returns. A drag does not trigger it. The
     keyboard equivalent is "See the label's photo" in the details. On a phone, check the page does not
