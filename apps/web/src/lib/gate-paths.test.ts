@@ -21,6 +21,11 @@ describe("the password gate's exemptions", () => {
     `/api/ask/${TOKEN}`,
     `/api/ask/${TOKEN}/vote`,
     `/api/ask/${TOKEN}/image/coat`,
+    // Landed, proxied at /landed, signs people in itself.
+    "/landed",
+    "/landed/new",
+    "/landed/api/me",
+    "/landed/_next/static/chunks/app.js",
   ])("lets %s through", (p) => {
     expect(isExempt(p)).toBe(true);
   });

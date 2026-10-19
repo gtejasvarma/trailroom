@@ -31,6 +31,10 @@ export function isExempt(pathname: string): boolean {
   return (
     pathname === "/gate" ||
     pathname === "/api/gate" ||
+    // Landed (proxied at /landed, see next.config.ts) has its own sign-in; Trailroom's password gate
+    // must not stand in front of it.
+    pathname === "/landed" ||
+    pathname.startsWith("/landed/") ||
     pathname === "/api/internal" ||
     pathname.startsWith("/api/internal/") ||
     isPublicAskPath(pathname) ||

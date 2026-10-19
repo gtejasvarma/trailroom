@@ -20,6 +20,27 @@ const config: NextConfig = {
     // a near-limit photo would arrive cut short. 11 MB covers the limit and the framing; the
     // route's own byte counter still enforces 10 MiB. (Docs: proxyClientMaxBodySize.)
     proxyClientMaxBodySize: "11mb",
+    // https://trailroom.ai/landed is proxied to Landed (below). Its slower calls (reading a deck,
+    // scoring an answer with one retry) can pass Next's 30 s default for proxied requests.
+    proxyTimeout: 120_000,
+  },
+  // https://trailroom.ai/landed is Landed, a separate app (Firebase project landed-d2625), proxied
+  // here because App Hosting cannot route one path of a domain to another project's backend. Landed
+  // is built for the /landed prefix, so paths pass through unchanged. These apply after Trailroom's
+  // own pages, so nothing of Trailroom's is affected. See Landed's docs/DEPLOY.md section 12.
+  async rewrites() {
+    return [
+      {
+        source: "/landed",
+        destination:
+          "https://landed--landed-d2625.us-central1.hosted.app/landed",
+      },
+      {
+        source: "/landed/:path*",
+        destination:
+          "https://landed--landed-d2625.us-central1.hosted.app/landed/:path*",
+      },
+    ];
   },
   // The old "Pick three labels" step is gone; its URL leads to "Your photo is in".
   async redirects() {
