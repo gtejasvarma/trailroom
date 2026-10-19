@@ -24,6 +24,14 @@ describe("forwarding /landed to Landed", () => {
         "x-google-access-token": "ya29.token",
         "content-type": "application/json",
         "x-forwarded-for": "1.2.3.4",
+        // Headers the hosting platform adds on the way into Trailroom.
+        "x-serverless-authorization": "Bearer platform-token",
+        "x-fah-backend": "trailroom",
+        "x-cloud-trace-context": "abc/1;o=1",
+        traceparent: "00-abc-def-01",
+        // Next.js client navigation.
+        rsc: "1",
+        "next-router-state-tree": "%5B%22%22%5D",
       }),
       "https://trailroom.ai/landed/api/setup",
     );
@@ -33,6 +41,16 @@ describe("forwarding /landed to Landed", () => {
     expect(h.get("x-google-access-token")).toBe("ya29.token");
     expect(h.get("content-type")).toBe("application/json");
     expect(h.get("x-forwarded-host")).toBe("trailroom.ai");
+    for (const platform of [
+      "x-serverless-authorization",
+      "x-fah-backend",
+      "x-cloud-trace-context",
+      "traceparent",
+      "x-forwarded-for",
+    ])
+      expect(h.get(platform), platform).toBeNull();
+    expect(h.get("rsc")).toBe("1");
+    expect(h.get("next-router-state-tree")).toBe("%5B%22%22%5D");
   });
   it("drops the compression and framing headers fetch has already dealt with, and keeps the rest", () => {
     const h = responseHeadersFromLanded(
@@ -43,10 +61,27 @@ describe("forwarding /landed to Landed", () => {
         "cache-control": "no-store",
         "x-frame-options": "DENY",
       }),
+      "https://trailroom.ai/landed/x",
     );
     expect(h.get("content-encoding")).toBeNull();
     expect(h.get("content-length")).toBeNull();
     expect(h.get("content-type")).toBe("audio/L16;rate=24000");
     expect(h.get("x-frame-options")).toBe("DENY");
+  });
+  it("points Landed's redirects back at trailroom.ai, and leaves other redirects alone", () => {
+    const own = responseHeadersFromLanded(
+      new Headers({ location: `${LANDED_ORIGIN}/landed/privacy?_rsc` }),
+      "https://trailroom.ai/landed/privacy",
+    );
+    expect(own.get("location")).toBe(
+      "https://trailroom.ai/landed/privacy?_rsc",
+    );
+    const google = responseHeadersFromLanded(
+      new Headers({ location: "https://accounts.google.com/o/oauth2/auth" }),
+      "https://trailroom.ai/landed/new",
+    );
+    expect(google.get("location")).toBe(
+      "https://accounts.google.com/o/oauth2/auth",
+    );
   });
 });

@@ -8,23 +8,33 @@
 export const LANDED_ORIGIN =
   "https://landed--landed-d2625.us-central1.hosted.app";
 
-/** Request headers that describe the connection to Trailroom, not the request for Landed. */
-const DROP_REQUEST = new Set([
-  "host",
-  "connection",
-  "keep-alive",
-  "proxy-connection",
-  "transfer-encoding",
-  "te",
-  "trailer",
-  "upgrade",
-  "content-length",
-  "forwarded",
-  "x-forwarded-host",
-  "x-forwarded-proto",
-  "x-forwarded-for",
-  "x-forwarded-port",
-  "cookie",
+/**
+ * The only request headers passed on to Landed. Everything else stays behind, in particular the
+ * headers Google's hosting adds on the way into Trailroom (routing and identity headers meant for
+ * Trailroom's own backend: forwarded to Landed's, they make its front end refuse the request with a
+ * 401) and Trailroom's cookies.
+ */
+const ALLOW_REQUEST = new Set([
+  "accept",
+  "accept-language",
+  "authorization", // Landed's Firebase sign-in token
+  "x-google-access-token", // the person's Google token for reading a deck they picked
+  "content-type",
+  "user-agent",
+  "range",
+  "if-none-match",
+  "if-modified-since",
+  "cache-control",
+  "pragma",
+  "origin",
+  "referer",
+  // Next.js client navigation
+  "rsc",
+  "next-url",
+  "next-action",
+  "next-router-state-tree",
+  "next-router-prefetch",
+  "next-router-segment-prefetch",
 ]);
 
 /**
@@ -51,7 +61,7 @@ export function requestHeadersForLanded(
 ): Headers {
   const out = new Headers();
   incoming.forEach((value, key) => {
-    if (!DROP_REQUEST.has(key.toLowerCase())) out.set(key, value);
+    if (ALLOW_REQUEST.has(key.toLowerCase())) out.set(key, value);
   });
   const u = new URL(requestUrl);
   out.set("x-forwarded-host", u.host);
@@ -59,10 +69,22 @@ export function requestHeadersForLanded(
   return out;
 }
 
-export function responseHeadersFromLanded(upstream: Headers): Headers {
+/**
+ * Landed's answer, ready to relay. A redirect Landed makes names Landed's own address; it is pointed
+ * back at the address the visitor used (trailroom.ai), so nobody is moved off it.
+ */
+export function responseHeadersFromLanded(
+  upstream: Headers,
+  requestUrl: string,
+): Headers {
   const out = new Headers();
+  const visitorOrigin = new URL(requestUrl).origin;
   upstream.forEach((value, key) => {
-    if (!DROP_RESPONSE.has(key.toLowerCase())) out.append(key, value);
+    const k = key.toLowerCase();
+    if (DROP_RESPONSE.has(k)) return;
+    if (k === "location" && value.startsWith(LANDED_ORIGIN))
+      out.append(key, visitorOrigin + value.slice(LANDED_ORIGIN.length));
+    else out.append(key, value);
   });
   return out;
 }
@@ -83,10 +105,19 @@ export async function proxyToLanded(request: Request): Promise<Response> {
   }
   try {
     const upstream = await fetch(landedUrl(request.url), init);
+    if (upstream.status === 401 && upstream.headers.has("www-authenticate")) {
+      // Landed's front end refused the request itself (Landed's own 401s carry no such header).
+      // Log which headers arrived (names only, never values) to see what reached it.
+      const names: string[] = [];
+      request.headers.forEach((_v, k) => names.push(k));
+      console.warn(
+        `landed proxy: Landed's front end refused ${new URL(request.url).pathname}; incoming header names: ${names.sort().join(", ")}`,
+      );
+    }
     return new Response(method === "HEAD" ? null : upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
-      headers: responseHeadersFromLanded(upstream.headers),
+      headers: responseHeadersFromLanded(upstream.headers, request.url),
     });
   } catch {
     return new Response("Landed could not be reached. Try again in a moment.", {
