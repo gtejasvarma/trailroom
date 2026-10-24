@@ -10,6 +10,7 @@ import {
   isPublicAskPath,
   isPublicUnsubscribePath,
 } from "@/lib/gate-paths";
+import { LANDED_NEXT_URL_HEADER } from "@/lib/landed-proxy";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,6 +20,15 @@ export async function middleware(request: NextRequest) {
     home.pathname = "/";
     home.search = "";
     return NextResponse.redirect(home);
+  }
+  if (pathname === "/landed" || pathname.startsWith("/landed/")) {
+    // Keep the browser's next-url for the Landed proxy before Next deletes it (see
+    // LANDED_NEXT_URL_HEADER). Always taken from next-url, so a client cannot supply its own.
+    const headers = new Headers(request.headers);
+    headers.delete(LANDED_NEXT_URL_HEADER);
+    const nextUrl = request.headers.get("next-url");
+    if (nextUrl) headers.set(LANDED_NEXT_URL_HEADER, nextUrl);
+    return NextResponse.next({ request: { headers } });
   }
   if (isExempt(pathname)) {
     const res = NextResponse.next();

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  LANDED_NEXT_URL_HEADER,
   LANDED_ORIGIN,
   landedUrl,
   requestHeadersForLanded,
@@ -51,6 +52,14 @@ describe("forwarding /landed to Landed", () => {
       expect(h.get(platform), platform).toBeNull();
     expect(h.get("rsc")).toBe("1");
     expect(h.get("next-router-state-tree")).toBe("%5B%22%22%5D");
+  });
+  it("gives Landed back the next-url header the middleware kept (Next deletes the original)", () => {
+    const h = requestHeadersForLanded(
+      new Headers({ rsc: "1", [LANDED_NEXT_URL_HEADER]: "/landed/new" }),
+      "https://trailroom.ai/landed/m/abc",
+    );
+    expect(h.get("next-url")).toBe("/landed/new");
+    expect(h.get(LANDED_NEXT_URL_HEADER)).toBeNull();
   });
   it("drops the compression and framing headers fetch has already dealt with, and keeps the rest", () => {
     const h = responseHeadersFromLanded(

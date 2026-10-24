@@ -40,6 +40,17 @@ const ALLOW_REQUEST = new Set([
 ]);
 
 /**
+ * Where the middleware keeps the browser's `next-url` header for Landed. Trailroom's own Next server
+ * deletes `next-url` before the route handler runs (Trailroom has no interception routes, so it has
+ * no use for it). But the browser folded `next-url` into the `_rsc` value of a client navigation, and
+ * Landed checks that value against the headers it receives: without `next-url` the check fails,
+ * Landed redirects to a corrected `_rsc`, the browser asks again with the same headers, and the
+ * navigation ends in ERR_TOO_MANY_REDIRECTS. So the middleware copies `next-url` here first, and the
+ * proxy turns it back into `next-url`.
+ */
+export const LANDED_NEXT_URL_HEADER = "x-landed-next-url";
+
+/**
  * Response headers that would be wrong once relayed: fetch has already undone the compression, and
  * Trailroom's server sets its own framing.
  */
@@ -65,6 +76,8 @@ export function requestHeadersForLanded(
   incoming.forEach((value, key) => {
     if (ALLOW_REQUEST.has(key.toLowerCase())) out.set(key, value);
   });
+  const nextUrl = incoming.get(LANDED_NEXT_URL_HEADER);
+  if (nextUrl) out.set("next-url", nextUrl);
   const u = new URL(requestUrl);
   out.set("x-forwarded-host", u.host);
   out.set("x-forwarded-proto", u.protocol.replace(":", ""));
