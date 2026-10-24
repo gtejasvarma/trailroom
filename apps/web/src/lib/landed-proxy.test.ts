@@ -21,7 +21,7 @@ describe("forwarding /landed to Landed", () => {
         host: "trailroom.ai",
         cookie: "trailroom_gate=secret",
         authorization: "Bearer id-token",
-        "x-google-access-token": "ya29.token",
+        "x-workspace-token": "ya29.token",
         "content-type": "application/json",
         "x-forwarded-for": "1.2.3.4",
         // Headers the hosting platform adds on the way into Trailroom.
@@ -38,7 +38,7 @@ describe("forwarding /landed to Landed", () => {
     expect(h.get("host")).toBeNull();
     expect(h.get("cookie")).toBeNull();
     expect(h.get("authorization")).toBe("Bearer id-token");
-    expect(h.get("x-google-access-token")).toBe("ya29.token");
+    expect(h.get("x-workspace-token")).toBe("ya29.token");
     expect(h.get("content-type")).toBe("application/json");
     expect(h.get("x-forwarded-host")).toBe("trailroom.ai");
     for (const platform of [

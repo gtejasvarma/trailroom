@@ -18,7 +18,9 @@ const ALLOW_REQUEST = new Set([
   "accept",
   "accept-language",
   "authorization", // Landed's Firebase sign-in token
-  "x-google-access-token", // the person's Google token for reading a deck they picked
+  // The person's Google token for reading a deck they picked. Not `x-google-*`: Google's front end
+  // strips headers with that prefix.
+  "x-workspace-token",
   "content-type",
   "user-agent",
   "range",
